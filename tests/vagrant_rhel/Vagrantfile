@@ -1,0 +1,4 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/rhel7"
+  config.vm.provision "file", source: "../../host-diagnostics_linux", destination: "./host-diagnostics_linux"
+end
