@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/randyhdev/host-diagnostics/hostdiag"
-	"github.com/randyhdev/host-diagnostics/products"
-	"github.com/randyhdev/host-diagnostics/util"
+	"github.com/hashicorp/host-diagnostics/hostdiag"
+	"github.com/hashicorp/host-diagnostics/products"
+	"github.com/hashicorp/host-diagnostics/util"
 )
 
 func main() {

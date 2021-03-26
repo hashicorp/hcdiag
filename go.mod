@@ -1,4 +1,4 @@
-module github.com/randyhdev/host-diagnostics
+module github.com/hashicorp/host-diagnostics
 
 go 1.15
 
