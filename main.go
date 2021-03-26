@@ -24,6 +24,7 @@ func main() {
 
 	osPtr := flag.String("os", "auto", "(optional) operating system override") // auto, darwin, linux, ??
 	productPtr := flag.String("product", "", "(optional) product name")        // terraform, vault, ??
+	dryrunPtr := flag.Bool("dryrun", false, "(optional) performing a dry run will display all commands without executing them")
 	// levelPtr := flag.String("level", "full", "(optional) info gathering level")     // basic, enhanced, full ??
 	// outfilePtr := flag.String("outfile", "./outfile", "(optional) output filepath") // ./outfile, diff types??
 	flag.Parse()
@@ -49,11 +50,14 @@ func main() {
 
 	// Run OS Commands and add to DiagInfo map
 	for _, element := range OSCommands {
-		CommandOutput, err := exec.Command(element.Command, element.Arguments...).Output()
-		if err != nil {
-			fmt.Println(err)
+		fmt.Printf("%s %v\n", element.Command, element.Arguments)
+		if *dryrunPtr == false {
+			CommandOutput, err := exec.Command(element.Command, element.Arguments...).Output()
+			if err != nil {
+				fmt.Println(err)
+			}
+			DiagInfo[element.Attribute] = strings.TrimSuffix(string(CommandOutput), "\n")
 		}
-		DiagInfo[element.Attribute] = strings.TrimSuffix(string(CommandOutput), "\n")
 	}
 
 	// Host info map into JSON
@@ -78,21 +82,24 @@ func main() {
 
 		// Run Product Commands
 		for _, element := range ProductCommands {
-			CommandOutput, err := exec.Command(element.Command, element.Arguments...).CombinedOutput()
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			// If format is json then unmarshal to map[string]interface{}, otherwise out string
-			if element.Format == "json" {
-				var outInterface map[string]interface{}
-				if err := json.Unmarshal(CommandOutput, &outInterface); err != nil {
+			fmt.Printf("%s %v\n", element.Command, element.Arguments)
+			if *dryrunPtr == false {
+				CommandOutput, err := exec.Command(element.Command, element.Arguments...).CombinedOutput()
+				if err != nil {
 					fmt.Println(err)
 				}
-				ProductInfo[element.Attribute] = outInterface
-			} else {
-				outString := strings.TrimSuffix(string(CommandOutput), "\n")
-				ProductInfo[element.Attribute] = outString
+
+				// If format is json then unmarshal to map[string]interface{}, otherwise out string
+				if element.Format == "json" {
+					var outInterface map[string]interface{}
+					if err := json.Unmarshal(CommandOutput, &outInterface); err != nil {
+						fmt.Println(err)
+					}
+					ProductInfo[element.Attribute] = outInterface
+				} else {
+					outString := strings.TrimSuffix(string(CommandOutput), "\n")
+					ProductInfo[element.Attribute] = outString
+				}
 			}
 		}
 
