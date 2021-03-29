@@ -5,6 +5,7 @@ import (
 	"net"
 	"runtime"
 
+	"github.com/hashicorp/host-diagnostics/util"
 	"github.com/mitchellh/go-ps"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -12,16 +13,9 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-// OSCommand struct
-type OSCommand struct {
-	Attribute string
-	Command   string
-	Arguments []string
-}
-
 // OSCommands stuff
-func OSCommands(operatingSystem string) []OSCommand {
-	OSCommands := make([]OSCommand, 0)
+func OSCommands(operatingSystem string) []util.CommandStruct {
+	OSCommands := make([]util.CommandStruct, 0)
 
 	if operatingSystem == "auto" {
 		operatingSystem = runtime.GOOS
@@ -30,38 +24,44 @@ func OSCommands(operatingSystem string) []OSCommand {
 	switch {
 	case operatingSystem == "darwin":
 		OSCommands = append(OSCommands,
-			OSCommand{
+			util.CommandStruct{
 				Attribute: "Kernel",
 				Command:   "uname",
 				Arguments: []string{"-s"},
+				Format:    "string",
 			},
-			OSCommand{
+			util.CommandStruct{
 				Attribute: "Kernel Release",
 				Command:   "uname",
 				Arguments: []string{"-r"},
+				Format:    "string",
 			},
-			OSCommand{
+			util.CommandStruct{
 				Attribute: "Kernel Version",
 				Command:   "uname",
 				Arguments: []string{"-v"},
+				Format:    "string",
 			})
 
 	case operatingSystem == "linux":
 		OSCommands = append(OSCommands,
-			OSCommand{
+			util.CommandStruct{
 				Attribute: "Kernel",
 				Command:   "uname",
 				Arguments: []string{"-s"},
+				Format:    "string",
 			},
-			OSCommand{
+			util.CommandStruct{
 				Attribute: "Kernel Release",
 				Command:   "uname",
 				Arguments: []string{"-r"},
+				Format:    "string",
 			},
-			OSCommand{
+			util.CommandStruct{
 				Attribute: "Kernel Version",
 				Command:   "uname",
 				Arguments: []string{"-v"},
+				Format:    "string",
 			})
 
 	default:
@@ -70,10 +70,11 @@ func OSCommands(operatingSystem string) []OSCommand {
 	}
 
 	OSCommands = append(OSCommands,
-		OSCommand{
+		util.CommandStruct{
 			Attribute: "pwd",
 			Command:   "pwd",
 			Arguments: nil,
+			Format:    "string",
 		})
 
 	return OSCommands

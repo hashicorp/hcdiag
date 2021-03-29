@@ -2,24 +2,18 @@ package products
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/host-diagnostics/util"
 )
 
-// ProductCommand struct
-type ProductCommand struct {
-	Attribute string
-	Command   string
-	Arguments []string
-	Format    string
-}
-
 // ProductCommands stuff
-func ProductCommands(productName string) []ProductCommand {
-	ProductCommands := make([]ProductCommand, 0)
+func ProductCommands(productName string) []util.CommandStruct {
+	ProductCommands := make([]util.CommandStruct, 0)
 
 	switch {
 	case productName == "terraform":
 		ProductCommands = append(ProductCommands,
-			ProductCommand{
+			util.CommandStruct{
 				Attribute: "example",
 				Command:   "terraform",
 				Arguments: []string{"version"},
@@ -27,31 +21,31 @@ func ProductCommands(productName string) []ProductCommand {
 
 	case productName == "vault":
 		ProductCommands = append(ProductCommands,
-			ProductCommand{
+			util.CommandStruct{
 				Attribute: "vault status -format json",
 				Command:   "vault",
 				Arguments: []string{"status", "-format=json"},
 				Format:    "json",
 			},
-			ProductCommand{
+			util.CommandStruct{
 				Attribute: "vault version",
 				Command:   "vault",
 				Arguments: []string{"version"},
 				Format:    "string",
 			},
-			ProductCommand{
+			util.CommandStruct{
 				Attribute: "vault read sys/health",
 				Command:   "vault",
 				Arguments: []string{"read", "sys/health", "-format=json"},
 				Format:    "json",
 			},
-			ProductCommand{
+			util.CommandStruct{
 				Attribute: "vault read sys/host-info",
 				Command:   "vault",
 				Arguments: []string{"read", "sys/host-info", "-format=json"},
 				Format:    "json",
 			},
-			ProductCommand{
+			util.CommandStruct{
 				Attribute: "vault read sys/seal-status",
 				Command:   "vault",
 				Arguments: []string{"read", "sys/seal-status", "-format=json"},

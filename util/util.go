@@ -8,7 +8,47 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"strings"
 )
+
+// CommandStruct stuff
+type CommandStruct struct {
+	Attribute string
+	Command   string
+	Arguments []string
+	Format    string
+}
+
+// ExecuteCommands stuff
+func ExecuteCommands(CommandList []CommandStruct, dryrunPtr bool) map[string]interface{} { //  (map[string]interface{}, string) {
+	// Create map for info
+	ReturnInfo := make(map[string]interface{}, 0)
+
+	// Run Commands
+	for _, element := range CommandList {
+		fmt.Printf("%s %v\n", element.Command, element.Arguments)
+		if dryrunPtr == false {
+			CommandOutput, err := exec.Command(element.Command, element.Arguments...).CombinedOutput()
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			// If format is json then unmarshal to map[string]interface{}, otherwise out string
+			if element.Format == "json" {
+				var outInterface map[string]interface{}
+				if err := json.Unmarshal(CommandOutput, &outInterface); err != nil {
+					fmt.Println(err)
+				}
+				ReturnInfo[element.Attribute] = outInterface
+			} else {
+				outString := strings.TrimSuffix(string(CommandOutput), "\n")
+				ReturnInfo[element.Attribute] = outString
+			}
+		}
+	}
+	return ReturnInfo //, err
+}
 
 // TarGz func to archive and compress
 func TarGz(sourceFilePath string, destFilePathTar string, destFilePathTarGz string) error {
