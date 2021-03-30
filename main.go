@@ -19,6 +19,7 @@ func main() {
 	// TODO: expand os and product cmds, os commands are really just placeholders atm
 	// TODO: expand hostdiag process, currently only returning all process names and not very useful
 	// TODO: add outfile arg logic or similar, possibly options for output type
+	// TODO: consolidate output into single targz
 
 	// Create logger
 	appLogger := hclog.New(&hclog.LoggerOptions{
@@ -38,43 +39,26 @@ func main() {
 	// outfilePtr := flag.String("outfile", "./outfile", "(optional) output filepath") // ./outfile, diff types??
 	flag.Parse()
 
-	hostInfo := hostdiag.GetHost()
-	diskInfo := hostdiag.GetDisk()
-	memoryInfo := hostdiag.GetMemory()
-	processInfo := hostdiag.GetProcesses()
-	networkInfo := hostdiag.GetNetwork()
-
-	// Get list of OS commands to execute
+	// Get list of OS Commands to run along with their attribute identifier, arguments, and format
 	OSCommands := make([]util.CommandStruct, 0)
 	OSCommands = hostdiag.OSCommands(*osPtr)
 
-	// Create map for host info
-	DiagInfo := map[string]interface{}{
-		"Host":      hostInfo,
-		"Disk":      diskInfo,
-		"Memory":    memoryInfo,
-		"Processes": processInfo,
-		"Network":   networkInfo,
-	}
+	// Create map for host info and execute os commands
+	DiagInfo := make(map[string]interface{}, 0)
 	DiagInfo = util.ExecuteCommands(OSCommands, *dryrunPtr)
-
-	// Host info map into JSON
-	DiagInfoJSON := util.MapToJSON(DiagInfo)
-
-	// Dump host info JSON into a results file
-	util.JSONToFile(DiagInfoJSON, "./results.json")
-
-	// Create and compress archive
-	util.TarGz("./results.json", "./results.tar", "./results.tar.gz")
+	DiagInfo["Host"] = hostdiag.GetHost()
+	DiagInfo["Disk"] = hostdiag.GetDisk()
+	DiagInfo["Memory"] = hostdiag.GetMemory()
+	DiagInfo["Processes"] = hostdiag.GetProcesses()
+	DiagInfo["Network"] = hostdiag.GetNetwork()
 
 	// Optional product commands
 	if *productPtr != "" {
-		// Get Product Commands to run along with their attribute identifier and arguments
+		// Get Product Commands to run along with their attribute identifier, arguments, and format
 		ProductCommands := make([]util.CommandStruct, 0)
 		ProductCommands = products.ProductCommands(*productPtr)
 
-		// Create map for product info
-		// best practice to handle err in function or from caller? both?
+		// Create map for product info and execute product commands
 		ProductInfo := make(map[string]interface{}, 0)
 		ProductInfo = util.ExecuteCommands(ProductCommands, *dryrunPtr)
 
@@ -84,4 +68,16 @@ func main() {
 		// Dump product info JSON into a results_product file
 		util.JSONToFile(ProductInfoJSON, "./results_product.json")
 	}
+
+	// TODO: consolidate output
+	// ------------------------
+
+	// Host info map into JSON
+	DiagInfoJSON := util.MapToJSON(DiagInfo)
+
+	// Dump host info JSON into a results file
+	util.JSONToFile(DiagInfoJSON, "./results.json")
+
+	// Create and compress archive
+	util.TarGz("./results.json", "./results.tar", "./results.tar.gz")
 }
