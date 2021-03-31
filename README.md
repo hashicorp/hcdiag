@@ -4,13 +4,14 @@
 
 ### input
 
-* `os` - override operating system value, default is 'auto' and will use runtime.GOOS
-* `product` - product cmd execs e.g. vault or terraform
+* `os` - string - override operating system value, `auto` by default and will use runtime.GOOS
+* `product` - string - product cmd execs e.g. vault or terraform, blank string by default
+* `dryrun` - bool - if true will display but not execute os and product cmd's, `false` by default
+* `outfile` - string - name of output file, `support.tar.gz` by default
 
 ### output
 
-* `results.json` - json output of host diag + `results.tar`, `results.tar.gz`
-* `results_product.json` - json output of prod cmd exec if product entered
+* `support.tar.gz` - contents include HostInfo.json and ProductInfo.json
 
 ### run, build, and test
 
