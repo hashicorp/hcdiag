@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"os"
 
 	"github.com/hashicorp/go-hclog"
@@ -11,73 +12,88 @@ import (
 )
 
 func main() {
+	// TODO: standardize error handling
 	// TODO: eval third party libs, gap and risk analysis
-	// TODO: update data model, lots of things generic currently
 	// TODO: determine appropriate arguments, eval cli libs
-	// TODO: standardize error and exception handling
-	// TODO: add support to targz for multiple files / dir, improve func; found several good examples but wanted to understand myself before using
+	// TODO: update data model, lots of things generic currently
 	// TODO: expand os and product cmds, os commands are really just placeholders atm
+	// TODO: add support to targz for multiple files / dir, improve func; found several good examples but wanted to understand myself before using
 	// TODO: expand hostdiag process, currently only returning all process names and not very useful
 	// TODO: add outfile arg logic or similar, possibly options for output type
 	// TODO: consolidate output into single targz
+	// TODO: validate temp dir cross platform
 
-	// Create logger
+	// Create logger and set as default
 	appLogger := hclog.New(&hclog.LoggerOptions{
 		Name: "host-diagnostics",
 	})
+	hclog.SetDefault(appLogger)
+
 	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {
 		if level := hclog.LevelFromString(logStr); level != hclog.NoLevel {
 			appLogger.SetLevel(level)
-			appLogger.Trace("logger configuration change", "LOG_LEVEL", hclog.Fmt("%s", logStr))
+			appLogger.Debug("Logger configuration change", "LOG_LEVEL", hclog.Fmt("%s", logStr))
 		}
 	}
 
-	osPtr := flag.String("os", "auto", "(optional) override operating system detection")                // auto, darwin, linux, ??
-	productPtr := flag.String("product", "", "(optional) run product diagnostic commands if specified") // terraform, vault, ??
-	dryrunPtr := flag.Bool("dryrun", false, "(optional) performing a dry run will display all commands without executing them")
-	// levelPtr := flag.String("level", "full", "(optional) info gathering level")     // basic, enhanced, full ??
-	// outfilePtr := flag.String("outfile", "./outfile", "(optional) output filepath") // ./outfile, diff types??
+	// Create temporary directory for output files
+	dir, err := ioutil.TempDir("./", "temp")
+	defer os.RemoveAll(dir)
+	if err != nil {
+		appLogger.Error("Error creating temp directory", "name", hclog.Fmt("%s", dir))
+		os.Exit(1)
+	}
+	appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
+
+	// args
+	osPtr := flag.String("os", "auto", "(optional) Override operating system detection")
+	productPtr := flag.String("product", "", "(optional) Run product diagnostic commands if specified")
+	dryrunPtr := flag.Bool("dryrun", false, "(optional) Performing a dry run will display all commands without executing them")
+	outfilePtr := flag.String("outfile", "support.tar.gz", "(optional) Output file name")
+	// levelPtr := flag.String("level", "full", "(optional) info gathering level") // basic, enhanced, full ??
 	flag.Parse()
 
+	appLogger.Info("Gathering host diagnostics")
 	// Get list of OS Commands to run along with their attribute identifier, arguments, and format
 	OSCommands := make([]util.CommandStruct, 0)
 	OSCommands = hostdiag.OSCommands(*osPtr)
 
 	// Create map for host info and execute os commands
-	DiagInfo := make(map[string]interface{}, 0)
-	DiagInfo = util.ExecuteCommands(OSCommands, *dryrunPtr)
-	DiagInfo["Host"] = hostdiag.GetHost()
-	DiagInfo["Disk"] = hostdiag.GetDisk()
-	DiagInfo["Memory"] = hostdiag.GetMemory()
-	DiagInfo["Processes"] = hostdiag.GetProcesses()
-	DiagInfo["Network"] = hostdiag.GetNetwork()
+	HostInfo := make(map[string]interface{}, 0)
+	HostInfo, _ = util.ExecuteCommands(OSCommands, *dryrunPtr)
+	HostInfo["Host"], _ = hostdiag.GetHost()
+	HostInfo["Disk"], _ = hostdiag.GetDisk()
+	HostInfo["Memory"], _ = hostdiag.GetMemory()
+	HostInfo["Processes"], _ = hostdiag.GetProcesses()
+	HostInfo["Network"], _ = hostdiag.GetNetwork()
+
+	// Host info map into JSON
+	HostInfoJSON, _ := util.MapToJSON(HostInfo)
+
+	// Dump host info JSON into a results file
+	util.JSONToFile(HostInfoJSON, dir+"/HostInfo.json")
+	appLogger.Debug("Created output file", "name", hclog.Fmt("./%s", dir+"/HostInfo.json"))
 
 	// Optional product commands
 	if *productPtr != "" {
+		appLogger.Info("Gathering product diagnostics")
 		// Get Product Commands to run along with their attribute identifier, arguments, and format
 		ProductCommands := make([]util.CommandStruct, 0)
 		ProductCommands = products.ProductCommands(*productPtr)
 
 		// Create map for product info and execute product commands
 		ProductInfo := make(map[string]interface{}, 0)
-		ProductInfo = util.ExecuteCommands(ProductCommands, *dryrunPtr)
+		ProductInfo, _ = util.ExecuteCommands(ProductCommands, *dryrunPtr)
 
 		// Product info map into JSON
-		ProductInfoJSON := util.MapToJSON(ProductInfo)
+		ProductInfoJSON, _ := util.MapToJSON(ProductInfo)
 
 		// Dump product info JSON into a results_product file
-		util.JSONToFile(ProductInfoJSON, "./results_product.json")
+		util.JSONToFile(ProductInfoJSON, dir+"/ProductInfo.json")
+		appLogger.Debug("Created output file", "name", hclog.Fmt("./%s", dir+"/ProductInfo.json"))
 	}
 
-	// TODO: consolidate output
-	// ------------------------
-
-	// Host info map into JSON
-	DiagInfoJSON := util.MapToJSON(DiagInfo)
-
-	// Dump host info JSON into a results file
-	util.JSONToFile(DiagInfoJSON, "./results.json")
-
-	// Create and compress archive
-	util.TarGz("./results.json", "./results.tar", "./results.tar.gz")
+	// Create and compress archive of files in temporary folder
+	appLogger.Info("Compressing and archiving output file", "name", *outfilePtr)
+	util.TarGz(dir, "./"+*outfilePtr)
 }

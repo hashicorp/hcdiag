@@ -5,6 +5,7 @@ import (
 	"net"
 	"runtime"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/host-diagnostics/util"
 	"github.com/mitchellh/go-ps"
 
@@ -81,20 +82,22 @@ func OSCommands(operatingSystem string) []util.CommandStruct {
 }
 
 // GetNetwork stuff
-func GetNetwork() interface{} {
+func GetNetwork() (interface{}, error) {
 	networkInfo, err := net.Interfaces()
 	if err != nil {
-		return "Unable to get network info"
+		hclog.L().Error("GetNetwork", "Error getting network information", err)
+		return networkInfo, err
 	}
 
-	return networkInfo
+	return networkInfo, err
 }
 
 // GetProcesses stuff
-func GetProcesses() interface{} {
+func GetProcesses() (interface{}, error) {
 	processes, err := ps.Processes()
 	if err != nil {
-		return "Unable to get process info"
+		hclog.L().Error("GetProcesses", "Error getting process information", err)
+		return processes, err
 	}
 
 	processInfo := make([]string, 0)
@@ -105,41 +108,44 @@ func GetProcesses() interface{} {
 		processInfo = append(processInfo, process.Executable())
 	}
 
-	return processInfo
+	return processInfo, err
 }
 
 // basic functions below serving mostly as placeholders for third party libs
 // -------------------------------------------------------------------------
 
 // GetMemory stuff
-func GetMemory() interface{} {
+func GetMemory() (interface{}, error) {
 	// third party
 	memoryInfo, err := mem.VirtualMemory()
 	if err != nil {
-		return "Unable to get memory info"
+		hclog.L().Error("GetMemory", "Error getting memory information", err)
+		return memoryInfo, err
 	}
 
-	return memoryInfo
+	return memoryInfo, err
 }
 
 // GetDisk stuff
-func GetDisk() interface{} {
+func GetDisk() (interface{}, error) {
 	// third party
 	diskInfo, err := disk.Partitions(true)
 	if err != nil {
-		return "Unable to get disk info"
+		hclog.L().Error("GetDisk", "Error getting disk information", err)
+		return diskInfo, err
 	}
 
-	return diskInfo
+	return diskInfo, err
 }
 
 // GetHost stuff
-func GetHost() interface{} {
+func GetHost() (interface{}, error) {
 	// third party
 	hostInfo, err := host.Info()
 	if err != nil {
-		return "Unable to get host info"
+		hclog.L().Error("GetHost", "Error getting host information", err)
+		return hostInfo, err
 	}
 
-	return hostInfo
+	return hostInfo, err
 }

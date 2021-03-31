@@ -4,12 +4,14 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // CommandStruct stuff
@@ -21,115 +23,114 @@ type CommandStruct struct {
 }
 
 // ExecuteCommands stuff
-func ExecuteCommands(CommandList []CommandStruct, dryrunPtr bool) map[string]interface{} { //  (map[string]interface{}, string) {
+func ExecuteCommands(CommandList []CommandStruct, dryrunPtr bool) (map[string]interface{}, error) {
 	// Create map for info
 	ReturnInfo := make(map[string]interface{}, 0)
 
 	// Run Commands
 	for _, element := range CommandList {
-		fmt.Printf("%s %v\n", element.Command, element.Arguments)
+		hclog.L().Debug("ExecuteCommands", "command", element.Command, "arguments", element.Arguments)
+
 		if dryrunPtr == false {
 			CommandOutput, err := exec.Command(element.Command, element.Arguments...).CombinedOutput()
 			if err != nil {
-				fmt.Println(err)
+				hclog.L().Error("ExecuteCommands", "error during command execution", err, "command", element.Command, "arguments", element.Arguments)
+				return ReturnInfo, err
 			}
 
 			// If format is json then unmarshal to map[string]interface{}, otherwise out string
 			if element.Format == "json" {
 				var outInterface map[string]interface{}
 				if err := json.Unmarshal(CommandOutput, &outInterface); err != nil {
-					fmt.Println(err)
+					hclog.L().Error("ExecuteCommands", "error during unmarshal to json", err)
+					return ReturnInfo, err
 				}
 				ReturnInfo[element.Attribute] = outInterface
+
 			} else {
 				outString := strings.TrimSuffix(string(CommandOutput), "\n")
 				ReturnInfo[element.Attribute] = outString
 			}
 		}
 	}
-	return ReturnInfo //, err
+
+	return ReturnInfo, nil
 }
 
 // TarGz func to archive and compress
-func TarGz(sourceFilePath string, destFilePathTar string, destFilePathTarGz string) error {
+func TarGz(sourceDir string, destFileName string) error {
 	// tar
-	destFile, err := os.Create(destFilePathTar)
+	destFile, err := os.Create(destFileName)
 	if err != nil {
-		fmt.Printf("Error creating tarball, got '%s'", err.Error())
+		hclog.L().Error("TarGz", "error creating tarball", err)
+		return err
 	}
 	defer destFile.Close()
 
-	gzipWriter := gzip.NewWriter(destFile)
-	defer gzipWriter.Close()
+	gzWriter := gzip.NewWriter(destFile)
+	defer gzWriter.Close()
 
-	tarWriter := tar.NewWriter(gzipWriter)
+	tarWriter := tar.NewWriter(gzWriter)
 	defer tarWriter.Close()
 
-	sourceFile, err := os.Open(sourceFilePath)
-	if err != nil {
-		fmt.Printf("Error opening source file, got '%s'", err.Error())
-	}
-	defer sourceFile.Close()
+	filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() == false {
+			sourceFile, err := os.Open(path)
+			if err != nil {
+				hclog.L().Error("TarGz", "error opening source file", err)
+				return err
+			}
+			defer sourceFile.Close()
 
-	stat, err := sourceFile.Stat()
-	if err != nil {
-		fmt.Printf("Error on stat for source file, got '%s'", err.Error())
-	}
+			stat, err := sourceFile.Stat()
+			if err != nil {
+				hclog.L().Error("TarGz", "error checking source file", err)
+				return err
+			}
 
-	header := &tar.Header{
-		Name:    sourceFilePath,
-		Size:    stat.Size(),
-		Mode:    int64(stat.Mode()),
-		ModTime: stat.ModTime(),
-	}
+			header := &tar.Header{
+				Name:    path,
+				Size:    stat.Size(),
+				Mode:    int64(stat.Mode()),
+				ModTime: stat.ModTime(),
+			}
 
-	err = tarWriter.WriteHeader(header)
-	if err != nil {
-		fmt.Printf("Error writing header for tar file, got '%s'", err.Error())
-	}
+			if err := tarWriter.WriteHeader(header); err != nil {
+				hclog.L().Error("TarGz", "error writing header for tar", err)
+				return err
+			}
 
-	_, err = io.Copy(tarWriter, sourceFile)
-	if err != nil {
-		fmt.Printf("Error copying file to tarball, got '%s'", err.Error())
-	}
-
-	// gzip
-	reader, err := os.Open(destFilePathTar)
-	if err != nil {
-		fmt.Printf("Error opening tar file, got '%s'", err.Error())
-	}
-
-	writer, err := os.Create(destFilePathTarGz)
-	if err != nil {
-		fmt.Printf("Error creating tar gz file, got '%s'", err.Error())
-	}
-	defer writer.Close()
-
-	archiver := gzip.NewWriter(writer)
-	archiver.Name = destFilePathTarGz
-	defer archiver.Close()
-
-	_, err = io.Copy(archiver, reader)
+			if _, err := io.Copy(tarWriter, sourceFile); err != nil {
+				hclog.L().Error("TarGz", "error copying file to tarball", err)
+				return err
+			}
+		}
+		return nil
+	})
 
 	return err
 }
 
 // MapToJSON stuff
-func MapToJSON(mapVar map[string]interface{}) []byte {
+func MapToJSON(mapVar map[string]interface{}) ([]byte, error) {
 	InfoJSON, err := json.MarshalIndent(mapVar, "", "    ")
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		hclog.L().Error("MapToJSON", "error during map to json", err)
+		return InfoJSON, err
 	}
 
-	return InfoJSON
+	return InfoJSON, err
 }
 
 // JSONToFile stuff
-func JSONToFile(JSON []byte, outFile string) {
+func JSONToFile(JSON []byte, outFile string) error {
 	err := ioutil.WriteFile(outFile, JSON, 0644)
 	if err != nil {
-		fmt.Println(err)
+		hclog.L().Error("JSONToFile", "error during json to file", err)
 	}
-	return
+
+	return err
 }

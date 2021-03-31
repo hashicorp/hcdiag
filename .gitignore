@@ -16,6 +16,9 @@
 
 /tests/vagrant*/.vagrant*
 *host-diagnostics*
-*results*
+*temp*
+*.json*
+*.tar*
+*.gz*
 *notes*
 .DS_Store*
