@@ -7,7 +7,7 @@ import (
 )
 
 // ProductCommands stuff
-func ProductCommands(productName string) []util.CommandStruct {
+func ProductCommands(productName string, tempDir string) []util.CommandStruct {
 	ProductCommands := make([]util.CommandStruct, 0)
 
 	switch {
@@ -50,6 +50,12 @@ func ProductCommands(productName string) []util.CommandStruct {
 				Command:   "vault",
 				Arguments: []string{"read", "sys/seal-status", "-format=json"},
 				Format:    "json",
+			},
+			util.CommandStruct{
+				Attribute: "vault debug -duration=1s",
+				Command:   "vault",
+				Arguments: []string{"debug", "-duration=5s", "-output=" + tempDir + "/VaultDebug.tar.gz"},
+				Format:    "string",
 			})
 
 	default:

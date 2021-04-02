@@ -1,8 +1,8 @@
 cd ..
 
 # test local
-go run .
-cat ./results.json
+# go run .
+# cat ./results.json
 
 # build linux binary
 GOOS=linux GOARCH=amd64 go build -o host-diagnostics_linux

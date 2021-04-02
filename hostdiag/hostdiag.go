@@ -111,9 +111,6 @@ func GetProcesses() (interface{}, error) {
 	return processInfo, err
 }
 
-// basic functions below serving mostly as placeholders for third party libs
-// -------------------------------------------------------------------------
-
 // GetMemory stuff
 func GetMemory() (interface{}, error) {
 	// third party

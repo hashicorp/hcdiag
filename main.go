@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	// TODO: standardize error handling
+	// TODO: standardize log and error handling
 	// TODO: eval third party libs, gap and risk analysis
 	// TODO: determine appropriate arguments, eval cli libs
 	// TODO: update data model, lots of things generic currently
@@ -20,15 +20,13 @@ func main() {
 	// TODO: add support to targz for multiple files / dir, improve func; found several good examples but wanted to understand myself before using
 	// TODO: expand hostdiag process, currently only returning all process names and not very useful
 	// TODO: add outfile arg logic or similar, possibly options for output type
-	// TODO: consolidate output into single targz
 	// TODO: validate temp dir cross platform
 
-	// Create logger and set as default
+	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
 		Name: "host-diagnostics",
 	})
 	hclog.SetDefault(appLogger)
-
 	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {
 		if level := hclog.LevelFromString(logStr); level != hclog.NoLevel {
 			appLogger.SetLevel(level)
@@ -45,18 +43,16 @@ func main() {
 	}
 	appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
 
-	// args
+	// Parse arugments
 	osPtr := flag.String("os", "auto", "(optional) Override operating system detection")
 	productPtr := flag.String("product", "", "(optional) Run product diagnostic commands if specified")
 	dryrunPtr := flag.Bool("dryrun", false, "(optional) Performing a dry run will display all commands without executing them")
 	outfilePtr := flag.String("outfile", "support.tar.gz", "(optional) Output file name")
-	// levelPtr := flag.String("level", "full", "(optional) info gathering level") // basic, enhanced, full ??
 	flag.Parse()
 
-	appLogger.Info("Gathering host diagnostics")
 	// Get list of OS Commands to run along with their attribute identifier, arguments, and format
-	OSCommands := make([]util.CommandStruct, 0)
-	OSCommands = hostdiag.OSCommands(*osPtr)
+	appLogger.Info("Gathering host diagnostics")
+	OSCommands := hostdiag.OSCommands(*osPtr)
 
 	// Create map for host info and execute os commands
 	HostInfo := make(map[string]interface{}, 0)
@@ -76,10 +72,9 @@ func main() {
 
 	// Optional product commands
 	if *productPtr != "" {
-		appLogger.Info("Gathering product diagnostics")
 		// Get Product Commands to run along with their attribute identifier, arguments, and format
-		ProductCommands := make([]util.CommandStruct, 0)
-		ProductCommands = products.ProductCommands(*productPtr)
+		appLogger.Info("Gathering product diagnostics")
+		ProductCommands := products.ProductCommands(*productPtr, dir)
 
 		// Create map for product info and execute product commands
 		ProductInfo := make(map[string]interface{}, 0)
