@@ -23,43 +23,7 @@ func ProductCommands(productName string, tempDir string) []util.CommandStruct {
 		ProductCommands = append(ProductCommands, NomadCommands()...)
 
 	case productName == "vault":
-		ProductCommands = append(ProductCommands,
-			util.CommandStruct{
-				Attribute: "vault status -format json",
-				Command:   "vault",
-				Arguments: []string{"status", "-format=json"},
-				Format:    "json",
-			},
-			util.CommandStruct{
-				Attribute: "vault version",
-				Command:   "vault",
-				Arguments: []string{"version"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "vault read sys/health",
-				Command:   "vault",
-				Arguments: []string{"read", "sys/health", "-format=json"},
-				Format:    "json",
-			},
-			util.CommandStruct{
-				Attribute: "vault read sys/host-info",
-				Command:   "vault",
-				Arguments: []string{"read", "sys/host-info", "-format=json"},
-				Format:    "json",
-			},
-			util.CommandStruct{
-				Attribute: "vault read sys/seal-status",
-				Command:   "vault",
-				Arguments: []string{"read", "sys/seal-status", "-format=json"},
-				Format:    "json",
-			},
-			util.CommandStruct{
-				Attribute: "vault debug -duration=1s",
-				Command:   "vault",
-				Arguments: []string{"debug", "-duration=5s", "-output=" + tempDir + "/VaultDebug.tar.gz"},
-				Format:    "string",
-			})
+		ProductCommands = append(ProductCommands, VaultCommands(tempDir)...)
 
 	default:
 		fmt.Println("default")
