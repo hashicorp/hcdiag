@@ -19,6 +19,9 @@ func ProductCommands(productName string, tempDir string) []util.CommandStruct {
 				Arguments: []string{"version"},
 			})
 
+	case productName == "nomad":
+		ProductCommands = append(ProductCommands, NomadCommands()...)
+
 	case productName == "vault":
 		ProductCommands = append(ProductCommands,
 			util.CommandStruct{
