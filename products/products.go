@@ -20,7 +20,7 @@ func ProductCommands(productName string, tempDir string) []util.CommandStruct {
 			})
 
 	case productName == "nomad":
-		ProductCommands = append(ProductCommands, NomadCommands()...)
+		ProductCommands = append(ProductCommands, NomadCommands(tempDir)...)
 
 	case productName == "vault":
 		ProductCommands = append(ProductCommands, VaultCommands(tempDir)...)
