@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/hashicorp/go-hclog"
@@ -64,7 +65,7 @@ func main() {
 	HostInfo["Network"], _ = hostdiag.GetNetwork()
 
 	// Host info map into JSON
-	HostInfoJSON, _ := util.MapToJSON(HostInfo)
+	HostInfoJSON, _ := util.InterfaceToJSON(HostInfo)
 
 	// Dump host info JSON into a results file
 	util.JSONToFile(HostInfoJSON, dir+"/HostInfo.json")
@@ -76,12 +77,14 @@ func main() {
 		appLogger.Info("Gathering product diagnostics")
 		ProductCommands := products.ProductCommands(*productPtr, dir)
 
-		// Create map for product info and execute product commands
-		ProductInfo := make(map[string]interface{}, 0)
-		ProductInfo, _ = util.ExecuteCommands(ProductCommands, *dryrunPtr)
+		// Execute product commands
+		ProductInfo, err := util.ExecuteCommands(ProductCommands, *dryrunPtr)
+		if err != nil {
+			log.Fatalf("Error in ExecuteCommands: %v", err)
+		}
 
 		// Product info map into JSON
-		ProductInfoJSON, _ := util.MapToJSON(ProductInfo)
+		ProductInfoJSON, _ := util.InterfaceToJSON(ProductInfo)
 
 		// Dump product info JSON into a results_product file
 		util.JSONToFile(ProductInfoJSON, dir+"/ProductInfo.json")

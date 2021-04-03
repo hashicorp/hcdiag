@@ -32,6 +32,6 @@ func TestExecuteCommands(t *testing.T) {
 
 // TarGz(sourceDir string, destFileName string) error
 
-// MapToJSON(mapVar map[string]interface{}) ([]byte, error)
+// InterfaceToJSON(mapVar map[string]interface{}) ([]byte, error)
 
 // JSONToFile(JSON []byte, outFile string) error
