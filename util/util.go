@@ -14,6 +14,18 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+func NewCommand(command string, format string) CommandStruct {
+	bits := strings.Split(command, " ")
+	cmd := bits[0]
+	args := bits[1:]
+	return CommandStruct{
+		Attribute: command,
+		Command:   cmd,
+		Arguments: args,
+		Format:    format,
+	}
+}
+
 // CommandStruct stuff
 type CommandStruct struct {
 	Attribute string
