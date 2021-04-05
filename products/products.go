@@ -8,7 +8,7 @@ import (
 
 // ProductCommands stuff
 func ProductCommands(productName string, tempDir string) []util.CommandStruct {
-	ProductCommands := make([]util.CommandStruct, 0)
+	var ProductCommands []util.CommandStruct
 
 	switch {
 	case productName == "terraform":
