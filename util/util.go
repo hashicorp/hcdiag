@@ -130,7 +130,7 @@ func TarGz(sourceDir string, destFileName string) error {
 func InterfaceToJSON(mapVar interface{}) ([]byte, error) {
 	InfoJSON, err := json.MarshalIndent(mapVar, "", "    ")
 	if err != nil {
-		hclog.L().Error("InterfaceToJSON", "error during map to json", err)
+		hclog.L().Error("InterfaceToJSON", "message", err)
 		return InfoJSON, err
 	}
 
