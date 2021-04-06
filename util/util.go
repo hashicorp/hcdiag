@@ -14,6 +14,18 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+func NewCommand(command string, format string) CommandStruct {
+	bits := strings.Split(command, " ")
+	cmd := bits[0]
+	args := bits[1:]
+	return CommandStruct{
+		Attribute: command,
+		Command:   cmd,
+		Arguments: args,
+		Format:    format,
+	}
+}
+
 // CommandStruct stuff
 type CommandStruct struct {
 	Attribute string
@@ -38,9 +50,9 @@ func ExecuteCommands(CommandList []CommandStruct, dryrunPtr bool) (map[string]in
 				return ReturnInfo, err
 			}
 
-			// If format is json then unmarshal to map[string]interface{}, otherwise out string
+			// If format is json then unmarshal to interface{}, otherwise out string
 			if element.Format == "json" {
-				var outInterface map[string]interface{}
+				var outInterface interface{}
 				if err := json.Unmarshal(CommandOutput, &outInterface); err != nil {
 					hclog.L().Error("ExecuteCommands", "error during unmarshal to json", err)
 					return ReturnInfo, err
@@ -114,11 +126,11 @@ func TarGz(sourceDir string, destFileName string) error {
 	return err
 }
 
-// MapToJSON stuff
-func MapToJSON(mapVar map[string]interface{}) ([]byte, error) {
+// InterfaceToJSON stuff
+func InterfaceToJSON(mapVar interface{}) ([]byte, error) {
 	InfoJSON, err := json.MarshalIndent(mapVar, "", "    ")
 	if err != nil {
-		hclog.L().Error("MapToJSON", "error during map to json", err)
+		hclog.L().Error("InterfaceToJSON", "message", err)
 		return InfoJSON, err
 	}
 

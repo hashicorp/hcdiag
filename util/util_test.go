@@ -1,8 +1,26 @@
 package util
 
 import (
+	"reflect"
 	"testing"
 )
+
+func TestNewCommand(t *testing.T) {
+	expected := CommandStruct{
+		Attribute: "test thing -format=json",
+		Command:   "test",
+		Arguments: []string{"thing", "-format=json"},
+		Format:    "string",
+	}
+	actual := NewCommand(
+		"test thing -format=json",
+		"string",
+	)
+	// TODO: some manner of `assert` instead of this.
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("expected %#v != actual %#v", expected, actual)
+	}
+}
 
 func TestExecuteCommands(t *testing.T) {
 	// Create list of command struct to execute
@@ -32,6 +50,6 @@ func TestExecuteCommands(t *testing.T) {
 
 // TarGz(sourceDir string, destFileName string) error
 
-// MapToJSON(mapVar map[string]interface{}) ([]byte, error)
+// InterfaceToJSON(mapVar map[string]interface{}) ([]byte, error)
 
 // JSONToFile(JSON []byte, outFile string) error
