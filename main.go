@@ -24,8 +24,7 @@ func main() {
 	// TODO: add outfile arg logic or similar, possibly options for output type
 	// TODO: validate temp dir cross platform
 
-	configureLogging()
-	appLogger := hclog.Default()
+	appLogger := configureLogging("host-diagnostics")
 
 	// Create temporary directory for output files
 	dir, err := ioutil.TempDir("./", "temp")
@@ -71,10 +70,10 @@ func main() {
 	util.TarGz(dir, "./"+*outfilePtr)
 }
 
-func configureLogging() {
+func configureLogging(loggerName string) hclog.Logger {
 	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
-		Name: "host-diagnostics",
+		Name: loggerName,
 	})
 	hclog.SetDefault(appLogger)
 	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {
@@ -83,6 +82,7 @@ func configureLogging() {
 			appLogger.Debug("Logger configuration change", "LOG_LEVEL", hclog.Fmt("%s", logStr))
 		}
 	}
+	return hclog.Default()
 }
 
 func RunSeekers(seekers []*seeker.Seeker, dry bool) map[string]interface{} {
