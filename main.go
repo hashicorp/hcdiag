@@ -23,17 +23,8 @@ func main() {
 	// TODO: add outfile arg logic or similar, possibly options for output type
 	// TODO: validate temp dir cross platform
 
-	// Create logger, set default and log level
-	appLogger := hclog.New(&hclog.LoggerOptions{
-		Name: "host-diagnostics",
-	})
-	hclog.SetDefault(appLogger)
-	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {
-		if level := hclog.LevelFromString(logStr); level != hclog.NoLevel {
-			appLogger.SetLevel(level)
-			appLogger.Debug("Logger configuration change", "LOG_LEVEL", hclog.Fmt("%s", logStr))
-		}
-	}
+	configureLogging()
+	appLogger := hclog.Default()
 
 	// Create temporary directory for output files
 	dir, err := ioutil.TempDir("./", "temp")
@@ -94,4 +85,18 @@ func main() {
 	// Create and compress archive of files in temporary folder
 	appLogger.Info("Compressing and archiving output file", "name", *outfilePtr)
 	util.TarGz(dir, "./"+*outfilePtr)
+}
+
+func configureLogging() {
+	// Create logger, set default and log level
+	appLogger := hclog.New(&hclog.LoggerOptions{
+		Name: "host-diagnostics",
+	})
+	hclog.SetDefault(appLogger)
+	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {
+		if level := hclog.LevelFromString(logStr); level != hclog.NoLevel {
+			appLogger.SetLevel(level)
+			appLogger.Debug("Logger configuration change", "LOG_LEVEL", hclog.Fmt("%s", logStr))
+		}
+	}
 }
