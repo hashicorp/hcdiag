@@ -23,6 +23,7 @@ func main() {
 	// TODO: expand hostdiag process, currently only returning all process names and not very useful
 	// TODO: add outfile arg logic or similar, possibly options for output type
 	// TODO: validate temp dir cross platform
+	// TODO: decide what exit codes we want with different error modes
 
 	appLogger := configureLogging("host-diagnostics")
 
@@ -53,7 +54,11 @@ func main() {
 	seekers = append(seekers, hostdiag.NewHostSeeker(*osPtr))
 
 	// run em
-	results := RunSeekers(seekers, *dryrunPtr)
+	results, err := RunSeekers(seekers, *dryrunPtr)
+	if err != nil {
+		appLogger.Error("a critical Seeker failed", "message", err)
+		os.Exit(2)
+	}
 	if *dryrunPtr {
 		return
 	}
@@ -85,7 +90,7 @@ func configureLogging(loggerName string) hclog.Logger {
 	return hclog.Default()
 }
 
-func RunSeekers(seekers []*seeker.Seeker, dry bool) map[string]interface{} {
+func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, error) {
 	results := make(map[string]interface{})
 	l := hclog.Default()
 
@@ -97,17 +102,17 @@ func RunSeekers(seekers []*seeker.Seeker, dry bool) map[string]interface{} {
 
 		l.Info("running", "seeker", s.Identifier)
 		results[s.Identifier] = s
-		s.Run()
-		if s.Error != nil {
+		result, err := s.Run()
+		if err != nil {
 			l.Warn("result",
 				"seeker", s.Identifier,
-				"result", fmt.Sprintf("%s", s.Result),
-				"error", s.Error,
+				"result", fmt.Sprintf("%s", result),
+				"error", err,
 			)
 			if s.MustSucceed {
-				return results
+				return results, err
 			}
 		}
 	}
-	return results
+	return results, nil
 }
