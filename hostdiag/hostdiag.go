@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
+	s "github.com/hashicorp/host-diagnostics/seeker"
 	"github.com/hashicorp/host-diagnostics/util"
 	"github.com/mitchellh/go-ps"
 
@@ -13,6 +14,37 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 )
+
+func NewHostSeeker(os string) *s.Seeker {
+	if os == "auto" {
+		os = runtime.GOOS
+	}
+	return &s.Seeker{
+		Identifier: "host",
+		Runner: &HostSeeker{
+			OS: os,
+		},
+	}
+}
+
+type HostSeeker struct {
+	OS string `json:"os"`
+}
+
+func (hs *HostSeeker) Run() (interface{}, error) {
+	results := make(map[string]interface{})
+
+	// TODO: not throw away errors?  separate Seekers for each?  sheesh.
+	results["uname"], _ = s.NewCommander("uname -v", "string", false).Run()
+	results["host"], _ = GetHost()
+	results["memory"], _ = GetMemory()
+	results["disk"], _ = GetDisk()
+	// TODO: change and/or uncomment these noisy things
+	// results["processes"], _ = GetProcesses()
+	// results["network"], _ = GetNetwork()
+
+	return results, nil
+}
 
 // OSCommands stuff
 func OSCommands(operatingSystem string) []util.CommandStruct {
