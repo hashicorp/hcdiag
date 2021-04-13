@@ -1,13 +1,11 @@
 package hostdiag
 
 import (
-	"fmt"
 	"net"
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
 	s "github.com/hashicorp/host-diagnostics/seeker"
-	"github.com/hashicorp/host-diagnostics/util"
 	"github.com/mitchellh/go-ps"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -44,73 +42,6 @@ func (hs *HostSeeker) Run() (interface{}, error) {
 	// results["network"], _ = GetNetwork()
 
 	return results, nil
-}
-
-// OSCommands stuff
-func OSCommands(operatingSystem string) []util.CommandStruct {
-	OSCommands := make([]util.CommandStruct, 0)
-
-	if operatingSystem == "auto" {
-		operatingSystem = runtime.GOOS
-	}
-
-	switch {
-	case operatingSystem == "darwin":
-		OSCommands = append(OSCommands,
-			util.CommandStruct{
-				Attribute: "Kernel",
-				Command:   "uname",
-				Arguments: []string{"-s"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "Kernel Release",
-				Command:   "uname",
-				Arguments: []string{"-r"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "Kernel Version",
-				Command:   "uname",
-				Arguments: []string{"-v"},
-				Format:    "string",
-			})
-
-	case operatingSystem == "linux":
-		OSCommands = append(OSCommands,
-			util.CommandStruct{
-				Attribute: "Kernel",
-				Command:   "uname",
-				Arguments: []string{"-s"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "Kernel Release",
-				Command:   "uname",
-				Arguments: []string{"-r"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "Kernel Version",
-				Command:   "uname",
-				Arguments: []string{"-v"},
-				Format:    "string",
-			})
-
-	default:
-		fmt.Println("other os")
-
-	}
-
-	OSCommands = append(OSCommands,
-		util.CommandStruct{
-			Attribute: "pwd",
-			Command:   "pwd",
-			Arguments: nil,
-			Format:    "string",
-		})
-
-	return OSCommands
 }
 
 // GetNetwork stuff
