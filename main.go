@@ -2,13 +2,14 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/host-diagnostics/hostdiag"
 	"github.com/hashicorp/host-diagnostics/products"
+	"github.com/hashicorp/host-diagnostics/seeker"
 	"github.com/hashicorp/host-diagnostics/util"
 )
 
@@ -42,45 +43,28 @@ func main() {
 	outfilePtr := flag.String("outfile", "support.tar.gz", "(optional) Output file name")
 	flag.Parse()
 
-	// Get list of OS Commands to run along with their attribute identifier, arguments, and format
-	appLogger.Info("Gathering host diagnostics")
-	OSCommands := hostdiag.OSCommands(*osPtr)
+	appLogger.Info("Gathering diagnostics")
 
-	// Create map for host info and execute os commands
-	HostInfo := make(map[string]interface{}, 0)
-	HostInfo, _ = util.ExecuteCommands(OSCommands, *dryrunPtr)
-	HostInfo["Host"], _ = hostdiag.GetHost()
-	HostInfo["Disk"], _ = hostdiag.GetDisk()
-	HostInfo["Memory"], _ = hostdiag.GetMemory()
-	HostInfo["Processes"], _ = hostdiag.GetProcesses()
-	HostInfo["Network"], _ = hostdiag.GetNetwork()
-
-	// Host info map into JSON
-	HostInfoJSON, _ := util.InterfaceToJSON(HostInfo)
-
-	// Dump host info JSON into a results file
-	util.JSONToFile(HostInfoJSON, dir+"/HostInfo.json")
-	appLogger.Debug("Created output file", "name", hclog.Fmt("./%s", dir+"/HostInfo.json"))
-
-	// Optional product commands
-	if *productPtr != "" {
-		// Get Product Commands to run along with their attribute identifier, arguments, and format
-		appLogger.Info("Gathering product diagnostics")
-		ProductCommands := products.ProductCommands(*productPtr, dir)
-
-		// Execute product commands
-		ProductInfo, err := util.ExecuteCommands(ProductCommands, *dryrunPtr)
-		if err != nil {
-			log.Fatalf("Error in ExecuteCommands: %v", err)
-		}
-
-		// Product info map into JSON
-		ProductInfoJSON, _ := util.InterfaceToJSON(ProductInfo)
-
-		// Dump product info JSON into a results_product file
-		util.JSONToFile(ProductInfoJSON, dir+"/ProductInfo.json")
-		appLogger.Debug("Created output file", "name", hclog.Fmt("./%s", dir+"/ProductInfo.json"))
+	// set up Seekers
+	seekers, err := products.GetSeekers(*productPtr, dir)
+	if err != nil {
+		appLogger.Error("products.GetSeekers", "error", err)
+		os.Exit(1)
 	}
+	seekers = append(seekers, hostdiag.NewHostSeeker(*osPtr))
+
+	// run em
+	results := RunSeekers(seekers, *dryrunPtr)
+	if *dryrunPtr {
+		return
+	}
+
+	// write out results
+	err = util.WriteJSON(results, dir+"/Results.json")
+	if err != nil {
+		os.Exit(1)
+	}
+	appLogger.Info("created Results.json file", "dest", dir+"/Results.json")
 
 	// Create and compress archive of files in temporary folder
 	appLogger.Info("Compressing and archiving output file", "name", *outfilePtr)
@@ -99,4 +83,31 @@ func configureLogging() {
 			appLogger.Debug("Logger configuration change", "LOG_LEVEL", hclog.Fmt("%s", logStr))
 		}
 	}
+}
+
+func RunSeekers(seekers []*seeker.Seeker, dry bool) map[string]interface{} {
+	results := make(map[string]interface{})
+	l := hclog.Default()
+
+	for _, s := range seekers {
+		if dry {
+			l.Info("would run", "seeker", s.Identifier)
+			continue
+		}
+
+		l.Info("running", "seeker", s.Identifier)
+		results[s.Identifier] = s
+		s.Run()
+		if s.Error != nil {
+			l.Warn("result",
+				"seeker", s.Identifier,
+				"result", fmt.Sprintf("%s", s.Result),
+				"error", s.Error,
+			)
+			if s.MustSucceed {
+				return results
+			}
+		}
+	}
+	return results
 }
