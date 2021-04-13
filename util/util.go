@@ -126,6 +126,20 @@ func TarGz(sourceDir string, destFileName string) error {
 	return err
 }
 
+// WriteJSON converts an interface{} to JSON then writes to filePath.
+func WriteJSON(iface interface{}, filePath string) error {
+	// TODO: these funcs have their own logging in em, perhaps we don't want that?
+	jsonBts, err := InterfaceToJSON(iface)
+	if err != nil {
+		return err
+	}
+	err = JSONToFile(jsonBts, filePath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // InterfaceToJSON stuff
 func InterfaceToJSON(mapVar interface{}) ([]byte, error) {
 	InfoJSON, err := json.MarshalIndent(mapVar, "", "    ")
