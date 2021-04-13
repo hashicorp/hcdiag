@@ -7,67 +7,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/hashicorp/go-hclog"
 )
-
-func NewCommand(command string, format string) CommandStruct {
-	bits := strings.Split(command, " ")
-	cmd := bits[0]
-	args := bits[1:]
-	return CommandStruct{
-		Attribute: command,
-		Command:   cmd,
-		Arguments: args,
-		Format:    format,
-	}
-}
-
-// CommandStruct stuff
-type CommandStruct struct {
-	Attribute string
-	Command   string
-	Arguments []string
-	Format    string
-}
-
-// ExecuteCommands stuff
-func ExecuteCommands(CommandList []CommandStruct, dryrunPtr bool) (map[string]interface{}, error) {
-	// Create map for info
-	ReturnInfo := make(map[string]interface{}, 0)
-
-	// Run Commands
-	for _, element := range CommandList {
-		hclog.L().Debug("ExecuteCommands", "command", element.Command, "arguments", element.Arguments)
-
-		if dryrunPtr == false {
-			CommandOutput, err := exec.Command(element.Command, element.Arguments...).CombinedOutput()
-			if err != nil {
-				hclog.L().Error("ExecuteCommands", "error during command execution", err, "command", element.Command, "arguments", element.Arguments)
-				return ReturnInfo, err
-			}
-
-			// If format is json then unmarshal to interface{}, otherwise out string
-			if element.Format == "json" {
-				var outInterface interface{}
-				if err := json.Unmarshal(CommandOutput, &outInterface); err != nil {
-					hclog.L().Error("ExecuteCommands", "error during unmarshal to json", err)
-					return ReturnInfo, err
-				}
-				ReturnInfo[element.Attribute] = outInterface
-
-			} else {
-				outString := strings.TrimSuffix(string(CommandOutput), "\n")
-				ReturnInfo[element.Attribute] = outString
-			}
-		}
-	}
-
-	return ReturnInfo, nil
-}
 
 // TarGz func to archive and compress
 func TarGz(sourceDir string, destFileName string) error {
@@ -124,6 +67,20 @@ func TarGz(sourceDir string, destFileName string) error {
 	})
 
 	return err
+}
+
+// WriteJSON converts an interface{} to JSON then writes to filePath.
+func WriteJSON(iface interface{}, filePath string) error {
+	// TODO: these funcs have their own logging in em, perhaps we don't want that?
+	jsonBts, err := InterfaceToJSON(iface)
+	if err != nil {
+		return err
+	}
+	err = JSONToFile(jsonBts, filePath)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // InterfaceToJSON stuff

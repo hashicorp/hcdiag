@@ -1,12 +1,11 @@
 package hostdiag
 
 import (
-	"fmt"
 	"net"
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/util"
+	s "github.com/hashicorp/host-diagnostics/seeker"
 	"github.com/mitchellh/go-ps"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -14,71 +13,35 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-// OSCommands stuff
-func OSCommands(operatingSystem string) []util.CommandStruct {
-	OSCommands := make([]util.CommandStruct, 0)
-
-	if operatingSystem == "auto" {
-		operatingSystem = runtime.GOOS
+func NewHostSeeker(os string) *s.Seeker {
+	if os == "auto" {
+		os = runtime.GOOS
 	}
-
-	switch {
-	case operatingSystem == "darwin":
-		OSCommands = append(OSCommands,
-			util.CommandStruct{
-				Attribute: "Kernel",
-				Command:   "uname",
-				Arguments: []string{"-s"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "Kernel Release",
-				Command:   "uname",
-				Arguments: []string{"-r"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "Kernel Version",
-				Command:   "uname",
-				Arguments: []string{"-v"},
-				Format:    "string",
-			})
-
-	case operatingSystem == "linux":
-		OSCommands = append(OSCommands,
-			util.CommandStruct{
-				Attribute: "Kernel",
-				Command:   "uname",
-				Arguments: []string{"-s"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "Kernel Release",
-				Command:   "uname",
-				Arguments: []string{"-r"},
-				Format:    "string",
-			},
-			util.CommandStruct{
-				Attribute: "Kernel Version",
-				Command:   "uname",
-				Arguments: []string{"-v"},
-				Format:    "string",
-			})
-
-	default:
-		fmt.Println("other os")
-
+	return &s.Seeker{
+		Identifier: "host",
+		Runner: &HostSeeker{
+			OS: os,
+		},
 	}
+}
 
-	OSCommands = append(OSCommands,
-		util.CommandStruct{
-			Attribute: "pwd",
-			Command:   "pwd",
-			Arguments: nil,
-			Format:    "string",
-		})
+type HostSeeker struct {
+	OS string `json:"os"`
+}
 
-	return OSCommands
+func (hs *HostSeeker) Run() (interface{}, error) {
+	results := make(map[string]interface{})
+
+	// TODO: not throw away errors?  separate Seekers for each?  sheesh.
+	results["uname"], _ = s.NewCommander("uname -v", "string", false).Run()
+	results["host"], _ = GetHost()
+	results["memory"], _ = GetMemory()
+	results["disk"], _ = GetDisk()
+	// TODO: change and/or uncomment these noisy things
+	// results["processes"], _ = GetProcesses()
+	// results["network"], _ = GetNetwork()
+
+	return results, nil
 }
 
 // GetNetwork stuff
