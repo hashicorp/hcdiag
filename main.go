@@ -14,8 +14,6 @@ import (
 	"github.com/hashicorp/host-diagnostics/util"
 )
 
-var manifestOutputMap = map[string]interface{}{}
-
 func main() {
 	// TODO: standardize log and error handling
 	// TODO: eval third party libs, gap and risk analysis
@@ -25,11 +23,12 @@ func main() {
 	// TODO: validate temp dir cross platform
 	// TODO: decide what exit codes we want with different error modes
 
-	start := time.Now()
-	dir := "."
-	results := map[string]interface{}{}
-
+	var err error
+	var manifest util.Manifest
+	manifest.Start = time.Now()
 	appLogger := configureLogging("host-diagnostics")
+	results := map[string]interface{}{}
+	dir := "."
 
 	// Parse arguments
 	osPtr := flag.String("os", "auto", "(optional) Override operating system detection")
@@ -38,15 +37,13 @@ func main() {
 	outfilePtr := flag.String("outfile", "support.tar.gz", "(optional) Output file name")
 	flag.Parse()
 
-	// dump flags to manifest (temporary)
-	manifestOutputMap["OS"] = *osPtr
-	manifestOutputMap["Product"] = *productPtr
-	manifestOutputMap["Dryrun"] = *dryrunPtr
-	manifestOutputMap["Outfile"] = *outfilePtr
+	manifest.OS = *osPtr
+	manifest.Product = *productPtr
+	manifest.Dryrun = *dryrunPtr
+	manifest.Outfile = *outfilePtr
 
 	if !*dryrunPtr {
 		// Create temporary directory for output files
-		var err error
 		dir, err = ioutil.TempDir("./", "temp")
 		defer os.RemoveAll(dir)
 		if err != nil {
@@ -55,7 +52,8 @@ func main() {
 		}
 		appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
 
-		defer writeOutput(start, dir, &results, *outfilePtr)
+		defer writeOutput(&manifest, &results, dir, *outfilePtr)
+		defer util.ManifestOutput(&manifest, dir)
 	}
 
 	appLogger.Info("Gathering diagnostics")
@@ -66,10 +64,10 @@ func main() {
 		os.Exit(1)
 	}
 	seekers = append(seekers, hostdiag.NewHostSeeker(*osPtr))
-	manifestOutputMap["NumSeekers"] = len(seekers)
+	manifest.NumSeekers = len(seekers)
 
 	// Run seekers
-	results, err = RunSeekers(seekers, *dryrunPtr)
+	results, err = RunSeekers(seekers, *dryrunPtr, &manifest)
 	if err != nil {
 		appLogger.Error("a critical Seeker failed", "message", err)
 		os.Exit(2)
@@ -91,7 +89,7 @@ func configureLogging(loggerName string) hclog.Logger {
 	return hclog.Default()
 }
 
-func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, error) {
+func RunSeekers(seekers []*seeker.Seeker, dry bool, manifest *util.Manifest) (map[string]interface{}, error) {
 	results := make(map[string]interface{})
 	l := hclog.Default()
 	errCount := 0
@@ -113,17 +111,17 @@ func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, err
 				"error", err,
 			)
 			if s.MustSucceed {
-				manifestOutputMap["NumErrors"] = errCount
+				manifest.NumErrors = errCount
 				return results, err
 			}
 		}
 	}
 
-	manifestOutputMap["NumErrors"] = errCount
+	manifest.NumErrors = errCount
 	return results, nil
 }
 
-func writeOutput(start time.Time, dir string, results *map[string]interface{}, outfile string) {
+func writeOutput(manifest *util.Manifest, results *map[string]interface{}, dir string, outfile string) {
 	l := hclog.Default()
 
 	// Write out results
@@ -134,13 +132,13 @@ func writeOutput(start time.Time, dir string, results *map[string]interface{}, o
 	}
 	l.Info("Created Results.json file", "dest", dir+"/Results.json")
 
-	// Write manifest
-	err = util.ManifestOutput(manifestOutputMap, start, dir)
+	// Write out manifest
+	err = util.WriteJSON(manifest, dir+"/Manifest.json")
 	if err != nil {
-		l.Error("util.ManifestOutput", "error", err)
+		l.Error("util.WriteJSON", "error", err)
 		os.Exit(1)
 	}
-	l.Info("Created manifest output file", "dest", "./"+outfile)
+	l.Info("Created Manifest.json file", "dest", dir+"/Manifest.json")
 
 	// Archive and compress outputs
 	err = util.TarGz(dir, "./"+outfile)
