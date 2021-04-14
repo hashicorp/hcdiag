@@ -55,7 +55,7 @@ func main() {
 		}
 		appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
 
-		defer writeOutput(manifestOutputMap, start, dir, &results, *outfilePtr)
+		defer writeOutput(start, dir, &results, *outfilePtr)
 	}
 
 	appLogger.Info("Gathering diagnostics")
@@ -123,7 +123,7 @@ func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, err
 	return results, nil
 }
 
-func writeOutput(manifestOutputMap map[string]interface{}, start time.Time, dir string, results *map[string]interface{}, outfile string) {
+func writeOutput(start time.Time, dir string, results *map[string]interface{}, outfile string) {
 	l := hclog.Default()
 
 	// Write out results
@@ -132,7 +132,7 @@ func writeOutput(manifestOutputMap map[string]interface{}, start time.Time, dir 
 		l.Error("util.WriteJSON", "error", err)
 		os.Exit(1)
 	}
-	l.Info("created Results.json file", "dest", dir+"/Results.json")
+	l.Info("Created Results.json file", "dest", dir+"/Results.json")
 
 	// Write manifest
 	err = util.ManifestOutput(manifestOutputMap, start, dir)
