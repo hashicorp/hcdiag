@@ -4,10 +4,12 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -100,6 +102,25 @@ func JSONToFile(JSON []byte, outFile string) error {
 	if err != nil {
 		hclog.L().Error("JSONToFile", "error during json to file", err)
 	}
+
+	return err
+}
+
+// ManifestOutput stuff
+func ManifestOutput(manifestOutputMap map[string]interface{}, start time.Time, dir string) error {
+	manifestOutputMap["start"] = start
+
+	end := time.Now()
+	manifestOutputMap["end"] = end
+
+	duration := end.Sub(start)
+	manifestOutputMap["duration"] = fmt.Sprintf("%v seconds", duration.Seconds())
+
+	// Product info map into JSON
+	manifestOutputJSON, err := InterfaceToJSON(manifestOutputMap)
+
+	// Dump product info JSON into a results_product file
+	err = JSONToFile(manifestOutputJSON, dir+"/manifest.json")
 
 	return err
 }

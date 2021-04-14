@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/host-diagnostics/hostdiag"
@@ -13,66 +14,66 @@ import (
 	"github.com/hashicorp/host-diagnostics/util"
 )
 
+var manifestOutputMap = map[string]interface{}{}
+
 func main() {
 	// TODO: standardize log and error handling
 	// TODO: eval third party libs, gap and risk analysis
 	// TODO: determine appropriate arguments, eval cli libs
-	// TODO: update data model, lots of things generic currently
-	// TODO: expand os and product cmds, os commands are really just placeholders atm
-	// TODO: add support to targz for multiple files / dir, improve func; found several good examples but wanted to understand myself before using
-	// TODO: expand hostdiag process, currently only returning all process names and not very useful
-	// TODO: add outfile arg logic or similar, possibly options for output type
+	// TODO: hostdiag cmds and functions need some work, will be expanded based on initial feedback
+	// TODO: allow multiple products - could use comma separate input and for each call to GetSeekers, or can handle in seekers func
 	// TODO: validate temp dir cross platform
 	// TODO: decide what exit codes we want with different error modes
 
+	start := time.Now()
+	dir := "."
+	results := map[string]interface{}{}
+
 	appLogger := configureLogging("host-diagnostics")
 
-	// Create temporary directory for output files
-	dir, err := ioutil.TempDir("./", "temp")
-	defer os.RemoveAll(dir)
-	if err != nil {
-		appLogger.Error("Error creating temp directory", "name", hclog.Fmt("%s", dir))
-		os.Exit(1)
-	}
-	appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
-
-	// Parse arugments
+	// Parse arguments
 	osPtr := flag.String("os", "auto", "(optional) Override operating system detection")
 	productPtr := flag.String("product", "", "(optional) Run product diagnostic commands if specified")
 	dryrunPtr := flag.Bool("dryrun", false, "(optional) Performing a dry run will display all commands without executing them")
 	outfilePtr := flag.String("outfile", "support.tar.gz", "(optional) Output file name")
 	flag.Parse()
 
-	appLogger.Info("Gathering diagnostics")
+	// dump flags to manifest (temporary)
+	manifestOutputMap["OS"] = *osPtr
+	manifestOutputMap["Product"] = *productPtr
+	manifestOutputMap["Dryrun"] = *dryrunPtr
+	manifestOutputMap["Outfile"] = *outfilePtr
 
-	// set up Seekers
+	if !*dryrunPtr {
+		// Create temporary directory for output files
+		var err error
+		dir, err = ioutil.TempDir("./", "temp")
+		defer os.RemoveAll(dir)
+		if err != nil {
+			appLogger.Error("Error creating temp directory", "name", hclog.Fmt("%s", dir))
+			os.Exit(1)
+		}
+		appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
+
+		defer writeOutput(manifestOutputMap, start, dir, &results, *outfilePtr)
+	}
+
+	appLogger.Info("Gathering diagnostics")
+	// Set up Seekers
 	seekers, err := products.GetSeekers(*productPtr, dir)
 	if err != nil {
 		appLogger.Error("products.GetSeekers", "error", err)
 		os.Exit(1)
 	}
 	seekers = append(seekers, hostdiag.NewHostSeeker(*osPtr))
+	manifestOutputMap["NumSeekers"] = len(seekers)
 
-	// run em
-	results, err := RunSeekers(seekers, *dryrunPtr)
+	// Run seekers
+	results, err = RunSeekers(seekers, *dryrunPtr)
 	if err != nil {
 		appLogger.Error("a critical Seeker failed", "message", err)
 		os.Exit(2)
 	}
-	if *dryrunPtr {
-		return
-	}
-
-	// write out results
-	err = util.WriteJSON(results, dir+"/Results.json")
-	if err != nil {
-		os.Exit(1)
-	}
-	appLogger.Info("created Results.json file", "dest", dir+"/Results.json")
-
-	// Create and compress archive of files in temporary folder
-	appLogger.Info("Compressing and archiving output file", "name", *outfilePtr)
-	util.TarGz(dir, "./"+*outfilePtr)
 }
 
 func configureLogging(loggerName string) hclog.Logger {
@@ -93,6 +94,7 @@ func configureLogging(loggerName string) hclog.Logger {
 func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, error) {
 	results := make(map[string]interface{})
 	l := hclog.Default()
+	errCount := 0
 
 	for _, s := range seekers {
 		if dry {
@@ -104,15 +106,47 @@ func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, err
 		results[s.Identifier] = s
 		result, err := s.Run()
 		if err != nil {
+			errCount = errCount + 1
 			l.Warn("result",
 				"seeker", s.Identifier,
 				"result", fmt.Sprintf("%s", result),
 				"error", err,
 			)
 			if s.MustSucceed {
+				manifestOutputMap["NumErrors"] = errCount
 				return results, err
 			}
 		}
 	}
+
+	manifestOutputMap["NumErrors"] = errCount
 	return results, nil
+}
+
+func writeOutput(manifestOutputMap map[string]interface{}, start time.Time, dir string, results *map[string]interface{}, outfile string) {
+	l := hclog.Default()
+
+	// Write out results
+	err := util.WriteJSON(results, dir+"/Results.json")
+	if err != nil {
+		l.Error("util.WriteJSON", "error", err)
+		os.Exit(1)
+	}
+	l.Info("created Results.json file", "dest", dir+"/Results.json")
+
+	// Write manifest
+	err = util.ManifestOutput(manifestOutputMap, start, dir)
+	if err != nil {
+		l.Error("util.ManifestOutput", "error", err)
+		os.Exit(1)
+	}
+	l.Info("Created manifest output file", "dest", "./"+outfile)
+
+	// Archive and compress outputs
+	err = util.TarGz(dir, "./"+outfile)
+	if err != nil {
+		l.Error("util.TarGz", "error", err)
+		os.Exit(1)
+	}
+	l.Info("Compressed and archived output file", "dest", "./"+outfile)
 }
