@@ -116,10 +116,10 @@ func ManifestOutput(manifestOutputMap map[string]interface{}, start time.Time, d
 	duration := end.Sub(start)
 	manifestOutputMap["duration"] = fmt.Sprintf("%v seconds", duration.Seconds())
 
-	// Product info map into JSON
+	// Manifest output into JSON
 	manifestOutputJSON, err := InterfaceToJSON(manifestOutputMap)
 
-	// Dump product info JSON into a results_product file
+	// Manifest JSON to file
 	err = JSONToFile(manifestOutputJSON, dir+"/manifest.json")
 
 	return err
