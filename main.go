@@ -24,7 +24,7 @@ func main() {
 	// TODO: decide what exit codes we want with different error modes
 
 	var err error
-	var manifest util.Manifest
+	var manifest Manifest
 	manifest.Start = time.Now()
 	appLogger := configureLogging("host-diagnostics")
 	results := map[string]interface{}{}
@@ -53,7 +53,6 @@ func main() {
 		appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
 
 		defer writeOutput(&manifest, &results, dir, *outfilePtr)
-		defer util.ManifestOutput(&manifest, dir)
 	}
 
 	appLogger.Info("Gathering diagnostics")
@@ -67,11 +66,33 @@ func main() {
 	manifest.NumSeekers = len(seekers)
 
 	// Run seekers
-	results, err = RunSeekers(seekers, *dryrunPtr, &manifest)
+	results, err = RunSeekers(seekers, *dryrunPtr)
 	if err != nil {
-		appLogger.Error("a critical Seeker failed", "message", err)
+		appLogger.Error("A critical Seeker failed", "message", err)
 		os.Exit(2)
 	}
+
+	for _, s := range seekers {
+		if s.Error != nil {
+			manifest.NumErrors++
+		}
+	}
+
+	manifest.End = time.Now()
+	manifest.Duration = fmt.Sprintf("%v seconds", manifest.End.Sub(manifest.Start).Seconds())
+}
+
+// Manifest struct is used to retain high level runtime information.
+type Manifest struct {
+	Start      time.Time
+	End        time.Time
+	Duration   string
+	NumErrors  int
+	NumSeekers int
+	OS         string
+	Dryrun     bool
+	Product    string
+	Outfile    string
 }
 
 func configureLogging(loggerName string) hclog.Logger {
@@ -89,10 +110,9 @@ func configureLogging(loggerName string) hclog.Logger {
 	return hclog.Default()
 }
 
-func RunSeekers(seekers []*seeker.Seeker, dry bool, manifest *util.Manifest) (map[string]interface{}, error) {
+func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, error) {
 	results := make(map[string]interface{})
 	l := hclog.Default()
-	errCount := 0
 
 	for _, s := range seekers {
 		if dry {
@@ -104,24 +124,21 @@ func RunSeekers(seekers []*seeker.Seeker, dry bool, manifest *util.Manifest) (ma
 		results[s.Identifier] = s
 		result, err := s.Run()
 		if err != nil {
-			errCount = errCount + 1
 			l.Warn("result",
 				"seeker", s.Identifier,
 				"result", fmt.Sprintf("%s", result),
 				"error", err,
 			)
 			if s.MustSucceed {
-				manifest.NumErrors = errCount
 				return results, err
 			}
 		}
 	}
 
-	manifest.NumErrors = errCount
 	return results, nil
 }
 
-func writeOutput(manifest *util.Manifest, results *map[string]interface{}, dir string, outfile string) {
+func writeOutput(manifest *Manifest, results *map[string]interface{}, dir string, outfile string) {
 	l := hclog.Default()
 
 	// Write out results

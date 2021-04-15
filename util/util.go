@@ -4,12 +4,10 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -104,28 +102,4 @@ func JSONToFile(JSON []byte, outFile string) error {
 	}
 
 	return err
-}
-
-// ManifestOutput manipulates manifest output data as needed.
-func ManifestOutput(manifest *Manifest, dir string) {
-	end := time.Now()
-	manifest.End = end
-
-	duration := end.Sub(manifest.Start)
-	manifest.Duration = fmt.Sprintf("%v seconds", duration.Seconds())
-
-	return
-}
-
-// Manifest struct is used to retain high level runtime information.
-type Manifest struct {
-	Start      time.Time
-	End        time.Time
-	Duration   string
-	NumErrors  int
-	NumSeekers int
-	OS         string
-	Dryrun     bool
-	Product    string
-	Outfile    string
 }
