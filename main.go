@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -35,6 +36,9 @@ func main() {
 	productPtr := flag.String("product", "", "(optional) Run product diagnostic commands if specified")
 	dryrunPtr := flag.Bool("dryrun", false, "(optional) Performing a dry run will display all commands without executing them")
 	outfilePtr := flag.String("outfile", "support.tar.gz", "(optional) Output file name")
+	// TODO: support more than one dir or file
+	includeDir := flag.String("include-dir", "", "(optional) Include a directory in the bundle (e.g. logs)")
+	includeFile := flag.String("include-file", "", "(optional) Include a file in the bundle")
 	flag.Parse()
 
 	manifest.OS = *osPtr
@@ -53,6 +57,12 @@ func main() {
 		appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
 
 		defer writeOutput(&manifest, &results, dir, *outfilePtr)
+	}
+
+	err = copyIncludes(filepath.Join(dir, "includes"), *includeDir, *includeFile)
+	if err != nil {
+		appLogger.Error("failed to copyIncludes", "message", err)
+		os.Exit(1)
 	}
 
 	appLogger.Info("Gathering diagnostics")
@@ -164,4 +174,27 @@ func writeOutput(manifest *Manifest, results *map[string]interface{}, dir string
 		os.Exit(1)
 	}
 	l.Info("Compressed and archived output file", "dest", "./"+outfile)
+}
+
+func copyIncludes(to, dir, file string) (err error) {
+	if dir == "" && file == "" {
+		return nil
+	}
+
+	err = os.MkdirAll(to, 0755)
+	if err != nil {
+		return err
+	}
+
+	if dir != "" {
+		if err = util.CopyDir(to, dir); err != nil {
+			return err
+		}
+	}
+	if file != "" {
+		if err = util.CopyFile(to+"/"+file, file); err != nil {
+			return err
+		}
+	}
+	return nil
 }
