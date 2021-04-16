@@ -196,7 +196,7 @@ func copyIncludes(to, dir, file string) (err error) {
 		}
 	}
 	if file != "" {
-		if err = util.CopyFile(to+"/"+file, file); err != nil {
+		if err = util.CopyDir(to, file); err != nil {
 			return err
 		}
 	}
