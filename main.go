@@ -44,6 +44,8 @@ func main() {
 	manifest.OS = *osPtr
 	manifest.Product = *productPtr
 	manifest.Dryrun = *dryrunPtr
+	manifest.IncludeDir = *includeDir
+	manifest.IncludeFile = *includeFile
 	manifest.Outfile = *outfilePtr
 
 	if !*dryrunPtr {
@@ -94,15 +96,17 @@ func main() {
 
 // Manifest struct is used to retain high level runtime information.
 type Manifest struct {
-	Start      time.Time
-	End        time.Time
-	Duration   string
-	NumErrors  int
-	NumSeekers int
-	OS         string
-	Dryrun     bool
-	Product    string
-	Outfile    string
+	Start       time.Time
+	End         time.Time
+	Duration    string
+	NumErrors   int
+	NumSeekers  int
+	OS          string
+	Dryrun      bool
+	Product     string
+	IncludeDir  string
+	IncludeFile string
+	Outfile     string
 }
 
 func configureLogging(loggerName string) hclog.Logger {
