@@ -11,7 +11,7 @@ type Runner interface {
 
 // Seeker seeks information via its Runner then stores the results.
 type Seeker struct {
-	Runner      Runner      `json:"-"`
+	Runner      Runner      `json:"runner"`
 	Identifier  string      `json:"-"`
 	Result      interface{} `json:"result"`
 	ErrString   string      `json:"error"` // this simplifies json marshaling
