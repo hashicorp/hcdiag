@@ -1,24 +1,26 @@
 package seeker
 
-import "fmt"
+import (
+	"github.com/hashicorp/host-diagnostics/apiclients"
+)
 
-func NewHTTPer(url string, mustSucceed bool) *Seeker {
+func NewHTTPer(client *apiclients.APIClient, path string, mustSucceed bool) *Seeker {
 	return &Seeker{
-		Identifier:  url,
-		Runner:      HTTPer{URL: url},
+		Identifier: client.Product + " " + path,
+		Runner: HTTPer{
+			Client: client,
+			Path:   path,
+		},
 		MustSucceed: mustSucceed,
 	}
 }
 
 // HTTPer hits APIs.
 type HTTPer struct {
-	URL string `json:"url"`
+	Path   string                `json:"path"`
+	Client *apiclients.APIClient `json:"client"`
 }
 
 func (h HTTPer) Run() (interface{}, error) {
-	c := Commander{ // TODO: make it actually do apis
-		Command: fmt.Sprintf(`echo {"url":"%s","TODO":"actually hit api"}`, h.URL),
-		format:  "json",
-	}
-	return c.Run()
+	return h.Client.Get(h.Path)
 }
