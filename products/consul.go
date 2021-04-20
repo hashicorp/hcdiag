@@ -11,6 +11,7 @@ import (
 func ConsulSeekers(tmpDir string) []*s.Seeker {
 	api := apiclients.NewConsulAPI()
 	return []*s.Seeker{
+		s.NewCommander("consul version", "string", true),
 		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%ds -interval=%ds", tmpDir, DebugSeconds, IntervalSeconds), "string", false),
 
 		s.NewHTTPer(api, "/v1/agent/self", false),
