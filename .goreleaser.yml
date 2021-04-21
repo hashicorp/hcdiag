@@ -13,7 +13,6 @@ builds:
   goos:
     - windows
     - linux
-    - darwin
   goarch:
     - amd64
     - arm
@@ -35,6 +34,3 @@ checksum:
 
 release:
   draft: true
-
-changelog:
-  skip: true
