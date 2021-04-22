@@ -10,14 +10,14 @@ const (
 )
 
 // GetSeekers provides product Seekers for gathering info.
-func GetSeekers(consul bool, nomad bool, vault bool, tmpDir string) (seekers []*s.Seeker, err error) {
-	if consul {
+func GetSeekers(consul bool, nomad bool, vault bool, all bool, tmpDir string) (seekers []*s.Seeker, err error) {
+	if consul || all {
 		seekers = append(seekers, ConsulSeekers(tmpDir)...)
 	}
-	if nomad {
+	if nomad || all {
 		seekers = append(seekers, NomadSeekers(tmpDir)...)
 	}
-	if vault {
+	if vault || all {
 		seekers = append(seekers, VaultSeekers(tmpDir)...)
 	}
 	return seekers, err
