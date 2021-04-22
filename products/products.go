@@ -1,8 +1,6 @@
 package products
 
 import (
-	"fmt"
-
 	s "github.com/hashicorp/host-diagnostics/seeker"
 )
 
@@ -12,17 +10,15 @@ const (
 )
 
 // GetSeekers provides product Seekers for gathering info.
-func GetSeekers(product string, tmpDir string) (seekers []*s.Seeker, err error) {
-	if product == "" {
-		return seekers, err
-	} else if product == "consul" {
+func GetSeekers(consul bool, nomad bool, vault bool, all bool, tmpDir string) (seekers []*s.Seeker, err error) {
+	if consul || all {
 		seekers = append(seekers, ConsulSeekers(tmpDir)...)
-	} else if product == "nomad" {
+	}
+	if nomad || all {
 		seekers = append(seekers, NomadSeekers(tmpDir)...)
-	} else if product == "vault" {
+	}
+	if vault || all {
 		seekers = append(seekers, VaultSeekers(tmpDir)...)
-	} else {
-		err = fmt.Errorf("unsupported product '%s'", product)
 	}
 	return seekers, err
 }
