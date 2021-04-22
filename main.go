@@ -33,7 +33,9 @@ func main() {
 
 	// Parse arguments
 	osPtr := flag.String("os", "auto", "(optional) Override operating system detection")
-	productPtr := flag.String("product", "", "(optional) Run product diagnostic commands if specified")
+	consulPtr := flag.Bool("consul", false, "(optional) Run consul diagnostic commands")
+	nomadPtr := flag.Bool("nomad", false, "(optional) Run nomad diagnostic commands")
+	vaultPtr := flag.Bool("vault", false, "(optional) Run vault diagnostic commands")
 	dryrunPtr := flag.Bool("dryrun", false, "(optional) Performing a dry run will display all commands without executing them")
 	outfilePtr := flag.String("outfile", "support.tar.gz", "(optional) Output file name")
 	// TODO: support more than one dir or file
@@ -42,7 +44,9 @@ func main() {
 	flag.Parse()
 
 	manifest.OS = *osPtr
-	manifest.Product = *productPtr
+	manifest.Consul = *consulPtr
+	manifest.Nomad = *nomadPtr
+	manifest.Vault = *vaultPtr
 	manifest.Dryrun = *dryrunPtr
 	manifest.IncludeDir = *includeDir
 	manifest.IncludeFile = *includeFile
@@ -69,7 +73,7 @@ func main() {
 
 	appLogger.Info("Gathering diagnostics")
 	// Set up Seekers
-	seekers, err := products.GetSeekers(*productPtr, dir)
+	seekers, err := products.GetSeekers(*consulPtr, *nomadPtr, *vaultPtr, dir)
 	if err != nil {
 		appLogger.Error("products.GetSeekers", "error", err)
 		os.Exit(1)
@@ -103,7 +107,9 @@ type Manifest struct {
 	NumSeekers  int
 	OS          string
 	Dryrun      bool
-	Product     string
+	Consul      bool
+	Nomad       bool
+	Vault       bool
 	IncludeDir  string
 	IncludeFile string
 	Outfile     string
