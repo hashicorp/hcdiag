@@ -16,16 +16,20 @@ import (
 )
 
 func main() {
+	os.Exit(realMain())
+}
+
+func realMain() int {
 	// TODO: standardize log and error handling
 	// TODO: eval third party libs, gap and risk analysis
 	// TODO: determine appropriate arguments, eval cli libs
-	// TODO: hostdiag cmds and functions need some work, will be expanded based on initial feedback
-	// TODO: allow multiple products - could use comma separate input and for each call to GetSeekers, or can handle in seekers func
+	// TODO: hostdiag cmds and functions should be expanded
 	// TODO: validate temp dir cross platform
 	// TODO: decide what exit codes we want with different error modes
 
 	var err error
 	var manifest Manifest
+	var seekers []*seeker.Seeker
 	manifest.Start = time.Now()
 	appLogger := configureLogging("host-diagnostics")
 	results := map[string]interface{}{}
@@ -60,22 +64,23 @@ func main() {
 		defer os.RemoveAll(dir)
 		if err != nil {
 			appLogger.Error("Error creating temp directory", "name", hclog.Fmt("%s", dir))
-			os.Exit(1)
+			return 1
 		}
 		appLogger.Debug("Created temp directory", "name", hclog.Fmt("./%s", dir))
 
-		defer writeOutput(&manifest, &results, dir, *outfilePtr)
+		defer writeOutput(&manifest, &seekers, &results, dir, *outfilePtr)
 	}
 
 	err = copyIncludes(filepath.Join(dir, "includes"), *includeDir, *includeFile)
 	if err != nil {
 		appLogger.Error("failed to copyIncludes", "message", err)
-		os.Exit(1)
+		return 1
 	}
 
 	appLogger.Info("Gathering diagnostics")
+
 	// Set up Seekers
-	seekers, err := products.GetSeekers(*consulPtr, *nomadPtr, *vaultPtr, *allProductsPtr, dir)
+	seekers, err = products.GetSeekers(*consulPtr, *nomadPtr, *vaultPtr, *allProductsPtr, dir)
 	if err != nil {
 		appLogger.Error("products.GetSeekers", "error", err)
 		os.Exit(1)
@@ -87,17 +92,10 @@ func main() {
 	results, err = RunSeekers(seekers, *dryrunPtr)
 	if err != nil {
 		appLogger.Error("A critical Seeker failed", "message", err)
-		os.Exit(2)
+		return 2
 	}
 
-	for _, s := range seekers {
-		if s.Error != nil {
-			manifest.NumErrors++
-		}
-	}
-
-	manifest.End = time.Now()
-	manifest.Duration = fmt.Sprintf("%v seconds", manifest.End.Sub(manifest.Start).Seconds())
+	return 0
 }
 
 // Manifest struct is used to retain high level runtime information.
@@ -161,8 +159,19 @@ func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, err
 	return results, nil
 }
 
-func writeOutput(manifest *Manifest, results *map[string]interface{}, dir string, outfile string) {
+func writeOutput(manifest *Manifest, seekers *[]*seeker.Seeker, results *map[string]interface{}, dir string, outfile string) {
 	l := hclog.Default()
+
+	// Error summary
+	for _, s := range *seekers {
+		if s.Error != nil {
+			manifest.NumErrors++
+		}
+	}
+
+	// Manifest timing
+	manifest.End = time.Now()
+	manifest.Duration = fmt.Sprintf("%v seconds", manifest.End.Sub(manifest.Start).Seconds())
 
 	// Write out results
 	err := util.WriteJSON(results, dir+"/Results.json")
