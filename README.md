@@ -5,24 +5,26 @@
 ### input
 
 * `os` - string - override operating system value, `auto` by default and will use runtime.GOOS
-* `product` - string - product cmd execs e.g. vault or terraform, blank string by default
-* `dryrun` - bool - if true will display but not execute os and product cmd's, `false` by default
+* `consul` - bool - run consul diagnostics
+* `nomad` - bool - run noamd diagnostics
+* `vault` - bool - run vault diagnostics
+* `all` - bool - run all available product diagnostics
+* `dryrun` - bool - if true will display but not execute os and product cmd's
 * `outfile` - string - name of output file, `support.tar.gz` by default
+* `includeDir` - string - include a directory in output bundle (e.g. logs)
+* `includeFile` - string - include a file in output bundle
 
 ### output
 
-* `support.tar.gz` - contents include HostInfo.json and ProductInfo.json
+* `support.tar.gz` - contents include Results.json, Manifest.json, and product diagnostic outputs where applicable
 
 ### run, build, and test
 
-host diag  
+host diag only  
 * `go run .`
 
-host diag & vault cmd  
-* `go run . -product vault`
+host diag & vault diagnostics  
+* `go run . -vault`
 
-linux build  
-* `GOOS=linux GOARCH=amd64 go build -o host-diagnostics_linux`
-
-testing ubuntu and rhel  
-* `cd ./tests && ./testing.sh`
+host diag & consul + nomad diagnostics  
+* `go run . -consul -nomad`
