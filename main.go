@@ -83,7 +83,7 @@ func realMain() int {
 	seekers, err = products.GetSeekers(*consulPtr, *nomadPtr, *vaultPtr, *allProductsPtr, dir)
 	if err != nil {
 		appLogger.Error("products.GetSeekers", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	seekers = append(seekers, hostdiag.NewHostSeeker(*osPtr))
 	manifest.NumSeekers = len(seekers)
@@ -159,7 +159,7 @@ func RunSeekers(seekers []*seeker.Seeker, dry bool) (map[string]interface{}, err
 	return results, nil
 }
 
-func writeOutput(manifest *Manifest, seekers *[]*seeker.Seeker, results *map[string]interface{}, dir string, outfile string) {
+func writeOutput(manifest *Manifest, seekers *[]*seeker.Seeker, results *map[string]interface{}, dir string, outfile string) (err error) {
 	l := hclog.Default()
 
 	// Error summary
@@ -174,10 +174,10 @@ func writeOutput(manifest *Manifest, seekers *[]*seeker.Seeker, results *map[str
 	manifest.Duration = fmt.Sprintf("%v seconds", manifest.End.Sub(manifest.Start).Seconds())
 
 	// Write out results
-	err := util.WriteJSON(results, dir+"/Results.json")
+	err = util.WriteJSON(results, dir+"/Results.json")
 	if err != nil {
 		l.Error("util.WriteJSON", "error", err)
-		os.Exit(1)
+		return err
 	}
 	l.Info("Created Results.json file", "dest", dir+"/Results.json")
 
@@ -185,7 +185,7 @@ func writeOutput(manifest *Manifest, seekers *[]*seeker.Seeker, results *map[str
 	err = util.WriteJSON(manifest, dir+"/Manifest.json")
 	if err != nil {
 		l.Error("util.WriteJSON", "error", err)
-		os.Exit(1)
+		return err
 	}
 	l.Info("Created Manifest.json file", "dest", dir+"/Manifest.json")
 
@@ -193,9 +193,11 @@ func writeOutput(manifest *Manifest, seekers *[]*seeker.Seeker, results *map[str
 	err = util.TarGz(dir, "./"+outfile)
 	if err != nil {
 		l.Error("util.TarGz", "error", err)
-		os.Exit(1)
+		return err
 	}
 	l.Info("Compressed and archived output file", "dest", "./"+outfile)
+
+	return nil
 }
 
 func copyIncludes(to, dir, file string) (err error) {
