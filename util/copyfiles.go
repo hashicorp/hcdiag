@@ -62,3 +62,30 @@ func CopyFile(to, src string) error {
 	_, err = io.Copy(w, r)
 	return err
 }
+
+func FilterWalk(srcDir, filter string) ([]string, error) {
+	var fileMatches []string
+
+	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		if match, err := filepath.Match(filter, filepath.Base(path)); err != nil {
+			return err
+		} else if match {
+			fileMatches = append(fileMatches, path)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return fileMatches, nil
+}

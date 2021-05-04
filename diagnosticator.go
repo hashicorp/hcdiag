@@ -53,6 +53,7 @@ type Flags struct {
 	Dryrun      bool
 	Consul      bool
 	Nomad       bool
+	TFE         bool
 	Vault       bool
 	AllProducts bool
 	IncludeDir  string
@@ -65,6 +66,7 @@ func (f *Flags) ParseFlags() {
 	flag.StringVar(&f.OS, "os", "auto", "(optional) Override operating system detection")
 	flag.BoolVar(&f.Consul, "consul", false, "(optional) Run consul diagnostics")
 	flag.BoolVar(&f.Nomad, "nomad", false, "(optional) Run nomad diagnostics")
+	flag.BoolVar(&f.TFE, "tfe", false, "(optional) Run TFE/TFC diagnostics")
 	flag.BoolVar(&f.Vault, "vault", false, "(optional) Run vault diagnostics")
 	flag.BoolVar(&f.AllProducts, "all", false, "(optional) Run all available product diagnostics")
 	flag.StringVar(&f.IncludeDir, "include-dir", "", "(optional) Include a directory in the bundle (e.g. logs)")
@@ -151,7 +153,7 @@ func (d *Diagnosticator) CopyIncludes() (err error) {
 func (d *Diagnosticator) GetSeekers() (err error) {
 	d.l.Debug("Gathering Seekers")
 
-	d.seekers, err = products.GetSeekers(d.Consul, d.Nomad, d.Vault, d.AllProducts, d.tmpDir)
+	d.seekers, err = products.GetSeekers(d.Consul, d.Nomad, d.TFE, d.Vault, d.AllProducts, d.tmpDir)
 	if err != nil {
 		d.l.Error("products.GetSeekers", "error", err)
 		return err
