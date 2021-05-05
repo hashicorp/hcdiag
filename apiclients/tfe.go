@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const DefaultTFEAddr = "https://127.0.0.1"
+const DefaultTFEAddr = "https://app.terraform.io"
 
 // NewTFEAPI returns an APIClient for TFE.
 func NewTFEAPI() *APIClient {

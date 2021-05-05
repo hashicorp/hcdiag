@@ -22,7 +22,6 @@ type Copier struct {
 
 func (c Copier) Run() (result interface{}, err error) {
 	files, err := util.FilterWalk(c.srcDir, c.filter)
-
 	if err != nil {
 		return nil, err
 	}
@@ -34,5 +33,5 @@ func (c Copier) Run() (result interface{}, err error) {
 		}
 	}
 
-	return nil, nil
+	return files, nil
 }

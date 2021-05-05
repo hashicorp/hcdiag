@@ -3,6 +3,7 @@ package apiclients
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -70,6 +71,12 @@ func (c *APIClient) request(method string, path string, data []byte) (interface{
 	// Convert to interface{}
 	var iface interface{}
 	err = json.Unmarshal(body, &iface)
+
+	if resp.StatusCode == 401 {
+		return iface, errors.New("Authentication issue")
+	} else if resp.StatusCode == 404 {
+		return iface, errors.New("Forbidden request")
+	}
 
 	return iface, err
 }
