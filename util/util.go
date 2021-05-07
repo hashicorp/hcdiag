@@ -109,12 +109,8 @@ func FilterWalk(srcDir, filter string) ([]string, error) {
 	var fileMatches []string
 
 	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
+		if err != nil || info.IsDir() {
 			return err
-		}
-
-		if info.IsDir() {
-			return nil
 		}
 
 		if match, err := filepath.Match(filter, filepath.Base(path)); err != nil {
