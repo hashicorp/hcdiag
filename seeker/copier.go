@@ -5,10 +5,10 @@ import (
 )
 
 // NewCopier provides a Seeker for copying files to temp dir based on a filter.
-func NewCopier(SourceDir string, Filter string, DestDir string, mustSucceed bool) *Seeker {
+func NewCopier(sourceDir string, filter string, destDir string, mustSucceed bool) *Seeker {
 	return &Seeker{
-		Identifier:  "copy " + SourceDir + "/" + Filter,
-		Runner:      Copier{SourceDir: SourceDir, Filter: Filter, DestDir: DestDir},
+		Identifier:  "copy " + sourceDir + "/" + filter,
+		Runner:      Copier{SourceDir: sourceDir, Filter: filter, DestDir: destDir},
 		MustSucceed: mustSucceed,
 	}
 }
