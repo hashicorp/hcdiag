@@ -72,6 +72,7 @@ func (c *APIClient) request(method string, path string, data []byte) (interface{
 	var iface interface{}
 	err = json.Unmarshal(body, &iface)
 
+	// Error-return the status code if it's not 200 OK
 	if resp.StatusCode != http.StatusOK {
 		return iface, errors.New(resp.Status)
 	}
