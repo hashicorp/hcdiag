@@ -3,6 +3,7 @@ package apiclients
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -70,6 +71,11 @@ func (c *APIClient) request(method string, path string, data []byte) (interface{
 	// Convert to interface{}
 	var iface interface{}
 	err = json.Unmarshal(body, &iface)
+
+	// Error-return the status code if it's not 200 OK
+	if resp.StatusCode != http.StatusOK {
+		return iface, errors.New(resp.Status)
+	}
 
 	return iface, err
 }
