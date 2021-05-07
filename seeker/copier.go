@@ -20,6 +20,7 @@ type Copier struct {
 	DestDir   string `json:"destination_directory"`
 }
 
+// Run satisfies the Runner interface and copies the filtered source files to the destination.
 func (c Copier) Run() (result interface{}, err error) {
 	files, err := util.FilterWalk(c.SourceDir, c.Filter)
 	if err != nil {
