@@ -113,6 +113,7 @@ func FilterWalk(srcDir, filter string) ([]string, error) {
 			return err
 		}
 
+		// Check for files that match the filter
 		match, err := filepath.Match(filter, filepath.Base(path))
 		if match && err == nil {
 			fileMatches = append(fileMatches, path)
