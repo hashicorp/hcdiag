@@ -72,10 +72,8 @@ func (c *APIClient) request(method string, path string, data []byte) (interface{
 	var iface interface{}
 	err = json.Unmarshal(body, &iface)
 
-	if resp.StatusCode == 401 {
-		return iface, errors.New("Authentication issue")
-	} else if resp.StatusCode == 404 {
-		return iface, errors.New("Forbidden request")
+	if resp.StatusCode != http.StatusOK {
+		return iface, errors.New(resp.Status)
 	}
 
 	return iface, err
