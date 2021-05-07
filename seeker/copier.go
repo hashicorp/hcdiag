@@ -7,7 +7,7 @@ import (
 // NewCopier provides a Seeker for copying files to temp dir based on a filter.
 func NewCopier(srcDir string, filter string, tmpDir string, mustSucceed bool) *Seeker {
 	return &Seeker{
-		Identifier:  "copy files matching: " + filter + " from directory: " + srcDir,
+		Identifier:  "copy " + srcDir + "/" + filter,
 		Runner:      Copier{srcDir: srcDir, filter: filter, tmpDir: tmpDir},
 		MustSucceed: mustSucceed,
 	}
