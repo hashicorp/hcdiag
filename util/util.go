@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-// TarGz func to archive and compress
+// TarGz accepts a source directory and destination file name to archive and compress files.
 func TarGz(sourceDir string, destFileName string) error {
 	// tar
 	destFile, err := os.Create(destFileName)
@@ -83,7 +83,7 @@ func WriteJSON(iface interface{}, filePath string) error {
 	return nil
 }
 
-// InterfaceToJSON stuff
+// InterfaceToJSON converts an interface{} to JSON.
 func InterfaceToJSON(mapVar interface{}) ([]byte, error) {
 	InfoJSON, err := json.MarshalIndent(mapVar, "", "    ")
 	if err != nil {
@@ -94,7 +94,7 @@ func InterfaceToJSON(mapVar interface{}) ([]byte, error) {
 	return InfoJSON, err
 }
 
-// JSONToFile stuff
+// JSONToFile accepts JSON and an output file path to create a JSON file.
 func JSONToFile(JSON []byte, outFile string) error {
 	err := ioutil.WriteFile(outFile, JSON, 0644)
 	if err != nil {
@@ -102,4 +102,32 @@ func JSONToFile(JSON []byte, outFile string) error {
 	}
 
 	return err
+}
+
+// FilterWalk accepts a source directory and filter to return a list of matching files.
+func FilterWalk(srcDir, filter string) ([]string, error) {
+	var fileMatches []string
+
+	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		if match, err := filepath.Match(filter, filepath.Base(path)); err != nil {
+			return err
+		} else if match {
+			fileMatches = append(fileMatches, path)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return fileMatches, nil
 }
