@@ -108,6 +108,7 @@ func JSONToFile(JSON []byte, outFile string) error {
 func FilterWalk(srcDir, filter string) ([]string, error) {
 	var fileMatches []string
 
+	// Filter the files
 	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return err

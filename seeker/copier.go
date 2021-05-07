@@ -27,6 +27,7 @@ func (c Copier) Run() (result interface{}, err error) {
 		return nil, err
 	}
 
+	// Copy the files
 	for _, s := range files {
 		err := util.CopyDir(c.DestDir, s)
 		if err != nil {
