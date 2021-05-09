@@ -13,18 +13,10 @@ import (
 // so mocks can be used instead of actually writing files?
 // that would also allow us to run these tests in parallel if we wish.
 
-func TestNewDiagnosticatorCreatesTempDir(t *testing.T) {
-	// NOTE: NewDiagnosticator() can only be called once,
-	// due to how `flag` works (see bottom of this test file)
+func TestNewDiagnosticator(t *testing.T) {
 	d := NewDiagnosticator(hclog.Default())
-	defer d.Cleanup()
-
-	fileInfo, err := os.Stat(d.tmpDir)
-	if err != nil {
-		t.Errorf("Error checking for temp dir: %s", err)
-	}
-	if !fileInfo.IsDir() {
-		t.Error("tmpDir is not a directory")
+	if d.Start.IsZero() {
+		t.Errorf("Start value still zero after start(): %s", d.Start)
 	}
 }
 
@@ -54,6 +46,23 @@ func TestStartAndEnd(t *testing.T) {
 	}
 	if d.Duration == "" {
 		t.Error("Duration value still an empty string after start()")
+	}
+}
+
+func TestCreateTemp(t *testing.T) {
+	d := NewDiagnosticator(hclog.Default())
+	defer d.Cleanup()
+
+	if err := d.CreateTemp(); err != nil {
+		t.Errorf("Failed creating temp dir: %s", err)
+	}
+
+	fileInfo, err := os.Stat(d.tmpDir)
+	if err != nil {
+		t.Errorf("Error checking for temp dir: %s", err)
+	}
+	if !fileInfo.IsDir() {
+		t.Error("tmpDir is not a directory")
 	}
 }
 

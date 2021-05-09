@@ -24,8 +24,6 @@ func NewDiagnosticator(logger hclog.Logger) *Diagnosticator {
 		results: make(map[string]interface{}),
 	}
 	d.start()
-	d.ParseFlags()
-	d.CreateTemp()
 	return &d
 }
 
