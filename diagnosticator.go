@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -54,9 +55,24 @@ type Flags struct {
 	TFE         bool
 	Vault       bool
 	AllProducts bool
-	IncludeDir  string
-	IncludeFile string
+	Includes    []string
 	Outfile     string
+}
+
+type CSVFlag struct {
+	Values *[]string
+}
+
+func (s CSVFlag) String() string {
+	if s.Values != nil {
+		return strings.Join(*s.Values, ",")
+	}
+	return ""
+}
+
+func (s CSVFlag) Set(v string) error {
+	*s.Values = strings.Split(v, ",")
+	return nil
 }
 
 func (f *Flags) ParseFlags(args []string) {
@@ -68,9 +84,8 @@ func (f *Flags) ParseFlags(args []string) {
 	flags.BoolVar(&f.TFE, "tfe", false, "Run Terraform Enterprise diagnostics")
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
 	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
-	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
-	flags.StringVar(&f.IncludeDir, "include-dir", "", "Include a directory in the bundle (e.g. logs)")
-	flags.StringVar(&f.IncludeFile, "include-file", "", "Include a file in the bundle")
+	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
+	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name (default: support.tar.gz)")
 	flags.Parse(args)
 }
 
@@ -113,39 +128,30 @@ func (d *Diagnosticator) Cleanup() (err error) {
 }
 
 func (d *Diagnosticator) CopyIncludes() (err error) {
-	// no sense trying anything else if no includes are.. included.
-	if d.IncludeDir == "" && d.IncludeFile == "" {
-		return nil
-	}
-
-	if d.Dryrun {
-		if d.IncludeDir != "" {
-			d.l.Info("Would include directory copy", "from", d.IncludeDir)
-		}
-		if d.IncludeFile != "" {
-			d.l.Info("Would include file copy", "from", d.IncludeFile)
-		}
+	if len(d.Includes) == 0 {
 		return nil
 	}
 
 	d.l.Info("Copying includes")
 
 	dest := filepath.Join(d.tmpDir, "includes")
-	err = os.MkdirAll(dest, 0755)
-	if err != nil {
-		return err
+	if !d.Dryrun {
+		err = os.MkdirAll(dest, 0755)
+		if err != nil {
+			return err
+		}
 	}
 
-	if d.IncludeDir != "" {
-		if err = util.CopyDir(dest, d.IncludeDir); err != nil {
+	for _, f := range d.Includes {
+		if d.Dryrun {
+			d.l.Info("Would include", "from", f)
+			continue
+		}
+		if err = util.CopyDir(dest, f); err != nil {
 			return err
 		}
 	}
-	if d.IncludeFile != "" {
-		if err = util.CopyDir(dest, d.IncludeFile); err != nil {
-			return err
-		}
-	}
+
 	return nil
 }
 
