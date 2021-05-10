@@ -99,7 +99,7 @@ func TestCreateTempAndCleanup(t *testing.T) {
 
 func TestCopyIncludes(t *testing.T) {
 	d := Diagnosticator{l: hclog.Default()}
-	d.ParseFlags([]string{"-includes", "products,main.go"})
+	d.ParseFlags([]string{"-includes", "main.go,products,seeker/*"})
 	d.CreateTemp()
 	defer d.Cleanup()
 
@@ -110,6 +110,7 @@ func TestCopyIncludes(t *testing.T) {
 	expectFiles := []string{
 		"main.go",
 		filepath.Join("products", "products.go"),
+		filepath.Join("seeker", "seeker.go"),
 	}
 	for _, f := range expectFiles {
 		path := filepath.Join(d.tmpDir, "includes", f)
