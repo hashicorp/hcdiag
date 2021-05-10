@@ -21,7 +21,7 @@ func realMain() (rc int) {
 	var err error
 	l := configureLogging("host-diagnostics")
 	d := NewDiagnosticator(l)
-	d.ParseFlags()
+	d.ParseFlags(os.Args[1:])
 	if err := d.CreateTemp(); err != nil {
 		return 1
 	}

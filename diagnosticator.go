@@ -59,18 +59,19 @@ type Flags struct {
 	Outfile     string
 }
 
-func (f *Flags) ParseFlags() {
-	flag.BoolVar(&f.Dryrun, "dryrun", false, "(optional) Performing a dry run will display all commands without executing them")
-	flag.StringVar(&f.OS, "os", "auto", "(optional) Override operating system detection")
-	flag.BoolVar(&f.Consul, "consul", false, "(optional) Run consul diagnostics")
-	flag.BoolVar(&f.Nomad, "nomad", false, "(optional) Run nomad diagnostics")
-	flag.BoolVar(&f.TFE, "tfe", false, "(optional) Run TFE/TFC diagnostics")
-	flag.BoolVar(&f.Vault, "vault", false, "(optional) Run vault diagnostics")
-	flag.BoolVar(&f.AllProducts, "all", false, "(optional) Run all available product diagnostics")
-	flag.StringVar(&f.IncludeDir, "include-dir", "", "(optional) Include a directory in the bundle (e.g. logs)")
-	flag.StringVar(&f.IncludeFile, "include-file", "", "(optional) Include a file in the bundle")
-	flag.StringVar(&f.Outfile, "outfile", "support.tar.gz", "(optional) Output file name")
-	flag.Parse()
+func (f *Flags) ParseFlags(args []string) {
+	flags := flag.NewFlagSet("hc-diagnosticator", flag.ExitOnError)
+	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
+	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
+	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
+	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
+	flags.BoolVar(&f.TFE, "tfe", false, "Run Terraform Enterprise diagnostics")
+	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
+	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
+	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
+	flags.StringVar(&f.IncludeDir, "include-dir", "", "Include a directory in the bundle (e.g. logs)")
+	flags.StringVar(&f.IncludeFile, "include-file", "", "Include a file in the bundle")
+	flags.Parse(args)
 }
 
 func (d *Diagnosticator) start() {

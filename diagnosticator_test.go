@@ -20,6 +20,15 @@ func TestNewDiagnosticator(t *testing.T) {
 	}
 }
 
+func TestParsesFlags(t *testing.T) {
+	// not testing all flags, just that one is parsed appropriately
+	d := NewDiagnosticator(hclog.Default())
+	d.ParseFlags([]string{"-dryrun"})
+	if !d.Dryrun {
+		t.Error("-dryrun should enable Dryrun")
+	}
+}
+
 func TestStartAndEnd(t *testing.T) {
 	d := Diagnosticator{l: hclog.Default()}
 
@@ -174,27 +183,3 @@ func TestWriteOutput(t *testing.T) {
 		}
 	}
 }
-
-// TODO: enable some cli argument testing after we replace `flag`
-// as-is, this panics with: "flag redefined: dryrun"
-// explanation: https://stackoverflow.com/questions/49193480/golang-flag-redefined
-
-// func setArgs(args ...string) (reset func()) {
-// 	before := os.Args
-// 	os.Args = append([]string{"cooltool"}, args...)
-// 	reset = func() {
-// 		os.Args = before
-// 	}
-// 	return reset
-// }
-
-// func TestNewDiagnosticatorParsesFlags(t *testing.T) {
-// 	// not testing all flags, just that one is parsed appropriately
-// 	resetArgs := setArgs("-dryrun")
-// 	defer resetArgs()
-
-// 	d := NewDiagnosticator(hclog.Default())
-// 	if !d.Dryrun {
-// 		t.Error("-dryrun should enable Dryrun")
-// 	}
-// }
