@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
@@ -98,24 +99,48 @@ func TestCreateTempAndCleanup(t *testing.T) {
 }
 
 func TestCopyIncludes(t *testing.T) {
-	d := Diagnosticator{l: hclog.Default()}
-	d.ParseFlags([]string{"-includes", "main.go,products,seeker/*"})
+	// set up a table of test cases
+	// these dirs/files are checked in to this repo under tests/resources/
+	testTable := []map[string]string{
+		{
+			"path":   "file.0",
+			"expect": "file.0",
+		},
+		{
+			"path":   "dir1",
+			"expect": filepath.Join("dir1", "file.1"),
+		},
+		{
+			"path":   filepath.Join("dir2", "file*"),
+			"expect": filepath.Join("dir2", "file.2"),
+		},
+	}
+
+	// build -includes string
+	var includeStr []string
+	for _, data := range testTable {
+		path := filepath.Join("tests", "resources", data["path"])
+		includeStr = append(includeStr, path)
+	}
+
+	// basic Diagnosticator setup
+	d := NewDiagnosticator(hclog.Default())
+	// the args here now amount to:
+	// -includes 'tests/resources/file.0,tests/resources/dir1/file.1,tests/resources/dir2/file*'
+	d.ParseFlags([]string{"-includes", strings.Join(includeStr, ",")})
 	d.CreateTemp()
 	defer d.Cleanup()
 
+	// execute what we're aiming to test
 	if err := d.CopyIncludes(); err != nil {
 		t.Errorf("Error copying includes: %s", err)
 	}
 
-	expectFiles := []string{
-		"main.go",
-		filepath.Join("products", "products.go"),
-		filepath.Join("seeker", "seeker.go"),
-	}
-	for _, f := range expectFiles {
-		path := filepath.Join(d.tmpDir, "includes", f)
-		if _, err := os.Stat(path); err != nil {
-			t.Errorf("Expect %s to exist, got error: %s", path, err)
+	// verify expected file locations
+	for _, data := range testTable {
+		expect := filepath.Join(d.tmpDir, "includes", "tests", "resources", data["expect"])
+		if _, err := os.Stat(expect); err != nil {
+			t.Errorf("Expect %s to exist, got error: %s", expect, err)
 		}
 	}
 }
