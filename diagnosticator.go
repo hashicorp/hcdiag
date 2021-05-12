@@ -64,10 +64,10 @@ type CSVFlag struct {
 }
 
 func (s CSVFlag) String() string {
-	if s.Values != nil {
-		return strings.Join(*s.Values, ",")
+	if s.Values == nil {
+		return ""
 	}
-	return ""
+	return strings.Join(*s.Values, ",")
 }
 
 func (s CSVFlag) Set(v string) error {
