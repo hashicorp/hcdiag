@@ -16,19 +16,29 @@ import (
 	"github.com/hashicorp/host-diagnostics/util"
 )
 
-// TODO: NewDryagnosticator() to simplify all the 'if d.Dryrun's ??
+// TODO: NewDryDiagnosticator() to simplify all the 'if d.Dryrun's ??
+// NOTE(kit): ^ That division seems rly sensible to me. Going to do a ponder on how to divide these up.
 
-func NewDiagnosticator(logger hclog.Logger) *Diagnosticator {
+// PLSFIX(kit): This can fail if the temp directory can't be built, we should return an error here
+func NewDiagnosticator(logger hclog.Logger) (*Diagnosticator, error) {
 	d := Diagnosticator{
 		l:       logger,
 		results: make(map[string]interface{}),
 	}
 	d.start()
 	d.ParseFlags()
-	d.CreateTemp()
-	return &d
+	// PLSFIX(kit): If we can't create a temp dir that should stop the world. Let's log it out and abort
+	err := d.CreateTemp()
+	if err != nil {
+		logger.Error("Failed to create temp directory", "error", err)
+		// NOTE(kit): Not sure if we ought to return
+		return nil, err
+	}
+	return &d, nil
 }
 
+// PLSFIX(kit): add doccomment
+// Diagnosticator holds our set of seekers to be executed and their results.
 type Diagnosticator struct {
 	l       hclog.Logger
 	seekers []*seeker.Seeker
@@ -38,6 +48,8 @@ type Diagnosticator struct {
 	Manifest
 }
 
+// PLSFIX(kit): add doccomment
+// Manifest holds the metadata for a diagnostics run for rendering later.
 type Manifest struct {
 	Start      time.Time
 	End        time.Time
@@ -48,6 +60,8 @@ type Manifest struct {
 	Flags
 }
 
+// PLSFIX(kit): add doccomment
+// Flags stores our CLI inputs.
 type Flags struct {
 	OS          string
 	Dryrun      bool
@@ -61,6 +75,8 @@ type Flags struct {
 	Outfile     string
 }
 
+// PLSFIX(kit): add doccomment
+// ParseFlags maps our CLI input flags to their storage location, name, defaults, and description.
 func (f *Flags) ParseFlags() {
 	flag.BoolVar(&f.Dryrun, "dryrun", false, "(optional) Performing a dry run will display all commands without executing them")
 	flag.StringVar(&f.OS, "os", "auto", "(optional) Override operating system detection")
@@ -84,6 +100,9 @@ func (d *Diagnosticator) end() {
 	d.Duration = fmt.Sprintf("%v seconds", d.End.Sub(d.Start).Seconds())
 }
 
+// PLSFIX(kit): add doccomment
+// CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
+//   artifact.
 func (d *Diagnosticator) CreateTemp() (err error) {
 	if d.Dryrun {
 		return nil
@@ -99,6 +118,8 @@ func (d *Diagnosticator) CreateTemp() (err error) {
 	return nil
 }
 
+// PLSFIX(kit): add doccomment
+// Cleanup ensures our temp directory contents are deleted when our diagnostics are done.
 func (d *Diagnosticator) Cleanup() (err error) {
 	if d.Dryrun {
 		return nil
@@ -113,6 +134,8 @@ func (d *Diagnosticator) Cleanup() (err error) {
 	return err
 }
 
+// PLSFIX(kit): add doccomment
+// CopyIncludes copies the specified files over to our tempdir.
 func (d *Diagnosticator) CopyIncludes() (err error) {
 	// no sense trying anything else if no includes are.. included.
 	if d.IncludeDir == "" && d.IncludeFile == "" {
@@ -150,6 +173,8 @@ func (d *Diagnosticator) CopyIncludes() (err error) {
 	return nil
 }
 
+// PLSFIX(kit): add doccomment
+// GetSeekers maps the products we're running into the seekers that we're executing.
 func (d *Diagnosticator) GetSeekers() (err error) {
 	d.l.Debug("Gathering Seekers")
 
@@ -158,11 +183,14 @@ func (d *Diagnosticator) GetSeekers() (err error) {
 		d.l.Error("products.GetSeekers", "error", err)
 		return err
 	}
+	// TODO(kit): We need multiple independent seeker sets to execute these concurrently.
 	d.seekers = append(d.seekers, hostdiag.NewHostSeeker(d.OS))
 	d.NumSeekers = len(d.seekers)
 	return nil
 }
 
+// PLSFIX(kit): add doccomment
+// RunSeekers executes each set of seekers for the products in this run.
 func (d *Diagnosticator) RunSeekers() (err error) {
 	d.l.Info("Gathering diagnostics")
 
@@ -171,6 +199,8 @@ func (d *Diagnosticator) RunSeekers() (err error) {
 		return err
 	}
 
+	// TODO(kit): Parallelize seeker set execution
+	// TODO(kit): Extract the body of this loop out into a function?
 	for _, s := range d.seekers {
 		if d.Dryrun {
 			d.l.Info("would run", "seeker", s.Identifier)
@@ -194,6 +224,8 @@ func (d *Diagnosticator) RunSeekers() (err error) {
 		}
 	}
 
+	// TODO(kit): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
+	//  it as a warn if we're over the 50% threshold. Maybe we only render it in the manifest or results?
 	if d.NumErrors > d.NumSeekers/2 {
 		return errors.New("more than 50% of Seekers failed")
 	}
@@ -201,6 +233,8 @@ func (d *Diagnosticator) RunSeekers() (err error) {
 	return nil
 }
 
+// PLSFIX(kit): doccomment
+// WriteOutput renders the manifest and results of the diagnostics run.
 func (d *Diagnosticator) WriteOutput() (err error) {
 	d.end()
 
