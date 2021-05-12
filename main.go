@@ -10,14 +10,7 @@ func main() {
 	os.Exit(realMain())
 }
 
-func realMain() (rc int) {
-	// TODO: standardize log and error handling
-	// TODO: eval third party libs, gap and risk analysis
-	// TODO: determine appropriate arguments, eval cli libs
-	// TODO: hostdiag cmds and functions should be expanded
-	// TODO: validate temp dir cross platform
-	// TODO: decide what exit codes we want with different error modes
-
+func realMain() (returnCode int) {
 	var err error
 	l := configureLogging("host-diagnostics")
 	d := NewDiagnosticator(l)
@@ -31,12 +24,12 @@ func realMain() (rc int) {
 	// Cleanup being defer'd first makes it run last.
 	defer func() {
 		if err = d.Cleanup(); err != nil {
-			rc = 1
+			returnCode = 1
 		}
 	}()
 	defer func() {
 		if err = d.WriteOutput(); err != nil {
-			rc = 1
+			returnCode = 1
 		}
 	}()
 
@@ -55,6 +48,8 @@ func realMain() (rc int) {
 	return 0
 }
 
+// configureLogging takes a logger name, sets the default configuration, grabs the LOG_LEVEL from our ENV vars, and
+//  returns a configured and usable logger.
 func configureLogging(loggerName string) hclog.Logger {
 	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
