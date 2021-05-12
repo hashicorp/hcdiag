@@ -13,13 +13,13 @@ import (
 // JSONToFile(JSON []byte, outFile string) error
 
 func TestSplitFilepath(t *testing.T) {
-	// set up a test map -- TODO: i imagine some test fixtures might help with this?
+	// set up a table of test cases
 	abs, err := filepath.Abs(".")
 	if err != nil {
 		t.Errorf("error getting absolute path: %s", err)
 		return
 	}
-	testMap := []map[string]string{
+	testTable := []map[string]string{
 		{
 			"path": "coolfile", // input
 			"dir":  ".",        // expected dir
@@ -45,7 +45,7 @@ func TestSplitFilepath(t *testing.T) {
 		return
 	}
 	defer os.RemoveAll("cooldir")
-	for _, data := range testMap {
+	for _, data := range testTable {
 		f := data["path"]
 		_, err = os.Create(f)
 		if err != nil {
@@ -56,7 +56,7 @@ func TestSplitFilepath(t *testing.T) {
 	}
 
 	// Validate our test results
-	for _, data := range testMap {
+	for _, data := range testTable {
 		dir, file := SplitFilepath(data["path"])
 		if err != nil {
 			t.Errorf("error from SplitFilepath: %s", err)
