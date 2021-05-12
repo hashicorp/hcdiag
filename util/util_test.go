@@ -55,7 +55,7 @@ func TestSplitFilepath(t *testing.T) {
 		defer os.Remove(f)
 	}
 
-	// actually test things
+	// Validate our test results
 	for _, data := range testMap {
 		dir, file := SplitFilepath(data["path"])
 		if err != nil {
