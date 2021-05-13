@@ -180,7 +180,7 @@ func (d *Diagnosticator) GetSeekers() (err error) {
 	return nil
 }
 
-// RunSeekers executes each set of seekers for the products in this run.
+// RunSeekers executes all seekers for this run.
 func (d *Diagnosticator) RunSeekers() (err error) {
 	d.l.Info("Gathering diagnostics")
 
