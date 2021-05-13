@@ -147,9 +147,8 @@ func (d *Diagnosticator) CopyIncludes() (err error) {
 			d.l.Info("Would include", "from", f)
 			continue
 		}
-		dir, file := util.SplitFilepath(f)
-		d.l.Debug("getting Copier", "dir", dir, "file", file)
-		seeker := seeker.NewCopier(dir, file, dest, false)
+		d.l.Debug("getting Copier", "path", f)
+		seeker := seeker.NewCopier(f, dest, false)
 		if _, err = seeker.Run(); err != nil {
 			return err
 		}
