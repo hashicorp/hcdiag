@@ -5,11 +5,8 @@ import (
 )
 
 const (
-	DebugSeconds    = 10
-	// PLSFIX(kit): Nitpicky, but we should change this to DefaultIntervalSeconds. It's only used in Consul right now,
-	//  but if the intent to keeping it in this file is to provide a default between products, we should communicate
-	//  that in the name.
-	IntervalSeconds = 5
+	DefaultDebugSeconds    = 10
+	DefaultIntervalSeconds = 5
 )
 
 // TODO(kit): refactor later, see https://hashicorp.atlassian.net/browse/ENGSYS-1199
