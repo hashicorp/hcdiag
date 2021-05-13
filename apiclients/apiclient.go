@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/hashicorp/host-diagnostics/util"
 )
 
 type HTTPClient interface {
@@ -36,9 +38,31 @@ type APIResponse struct {
 	Errors []string `json:"errors"`
 }
 
-// We *only* want to retrieve information, never put/post/delete
+// Get makes a GET request to a given path.
 func (c *APIClient) Get(path string) (interface{}, error) {
 	return c.request("GET", path, []byte{})
+}
+
+// GetValue runs Get() then looks through the response for nested mapKeys.
+func (c *APIClient) GetValue(path string, mapKeys ...string) (interface{}, error) {
+	i, err := c.Get(path)
+	if err != nil {
+		return nil, err
+	}
+	return util.FindInInterface(i, mapKeys...)
+}
+
+// GetStringValue runs GetValue() then casts the result to a string.
+func (c *APIClient) GetStringValue(path string, mapKeys ...string) (string, error) {
+	i, err := c.GetValue(path, mapKeys...)
+	if err != nil {
+		return "", err
+	}
+	v, ok := i.(string)
+	if !ok {
+		return "", fmt.Errorf("unable to cast '%#v' to string", i)
+	}
+	return v, nil
 }
 
 func (c *APIClient) request(method string, path string, data []byte) (interface{}, error) {
