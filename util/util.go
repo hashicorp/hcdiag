@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -152,4 +153,35 @@ func FilterWalk(srcDir, filter string) ([]string, error) {
 	}
 
 	return fileMatches, nil
+}
+
+// FindInInterface treats an interface{} like a (nested) map,
+// and searches through its contents for a given list of mapKeys.
+// For example, given an interface{} containing a map like
+// iface ~ interface{}{"top": {"mid": {"bottom": "desired_value"}}}
+// one could fetch an interface{} of "desired_value" with
+// FindInInterface(iface, "top", "mid", "bottom")
+// then afterwards cast it to a string, or whatever type you're expecting.
+func FindInInterface(iface interface{}, mapKeys ...string) (interface{}, error) {
+	var (
+		mapped map[string]interface{}
+		ok     bool
+		val    interface{}
+	)
+	mapped, ok = iface.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unable to cast to map[string]interface{}; iface: %#v", iface)
+	}
+	for _, k := range mapKeys {
+		val, ok = mapped[k]
+		if !ok {
+			return nil, fmt.Errorf("key '%s' not found in mapped iface: %#v", k, mapped)
+		}
+		mapped, ok = val.(map[string]interface{})
+		if !ok {
+			// cannot map-ify any further, so assume this is what they're looking for
+			return val, nil
+		}
+	}
+	return mapped, nil
 }
