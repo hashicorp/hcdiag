@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -24,8 +25,6 @@ func NewDiagnosticator(logger hclog.Logger) *Diagnosticator {
 		results: make(map[string]interface{}),
 	}
 	d.start()
-	d.ParseFlags()
-	d.CreateTemp()
 	return &d
 }
 
@@ -56,23 +55,38 @@ type Flags struct {
 	TFE         bool
 	Vault       bool
 	AllProducts bool
-	IncludeDir  string
-	IncludeFile string
+	Includes    []string
 	Outfile     string
 }
 
-func (f *Flags) ParseFlags() {
-	flag.BoolVar(&f.Dryrun, "dryrun", false, "(optional) Performing a dry run will display all commands without executing them")
-	flag.StringVar(&f.OS, "os", "auto", "(optional) Override operating system detection")
-	flag.BoolVar(&f.Consul, "consul", false, "(optional) Run consul diagnostics")
-	flag.BoolVar(&f.Nomad, "nomad", false, "(optional) Run nomad diagnostics")
-	flag.BoolVar(&f.TFE, "tfe", false, "(optional) Run TFE/TFC diagnostics")
-	flag.BoolVar(&f.Vault, "vault", false, "(optional) Run vault diagnostics")
-	flag.BoolVar(&f.AllProducts, "all", false, "(optional) Run all available product diagnostics")
-	flag.StringVar(&f.IncludeDir, "include-dir", "", "(optional) Include a directory in the bundle (e.g. logs)")
-	flag.StringVar(&f.IncludeFile, "include-file", "", "(optional) Include a file in the bundle")
-	flag.StringVar(&f.Outfile, "outfile", "support.tar.gz", "(optional) Output file name")
-	flag.Parse()
+type CSVFlag struct {
+	Values *[]string
+}
+
+func (s CSVFlag) String() string {
+	if s.Values == nil {
+		return ""
+	}
+	return strings.Join(*s.Values, ",")
+}
+
+func (s CSVFlag) Set(v string) error {
+	*s.Values = strings.Split(v, ",")
+	return nil
+}
+
+func (f *Flags) ParseFlags(args []string) {
+	flags := flag.NewFlagSet("hc-diagnosticator", flag.ExitOnError)
+	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
+	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
+	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
+	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
+	flags.BoolVar(&f.TFE, "tfe", false, "Run Terraform Enterprise diagnostics")
+	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
+	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
+	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
+	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name (default: support.tar.gz)")
+	flags.Parse(args)
 }
 
 func (d *Diagnosticator) start() {
@@ -114,39 +128,33 @@ func (d *Diagnosticator) Cleanup() (err error) {
 }
 
 func (d *Diagnosticator) CopyIncludes() (err error) {
-	// no sense trying anything else if no includes are.. included.
-	if d.IncludeDir == "" && d.IncludeFile == "" {
-		return nil
-	}
-
-	if d.Dryrun {
-		if d.IncludeDir != "" {
-			d.l.Info("Would include directory copy", "from", d.IncludeDir)
-		}
-		if d.IncludeFile != "" {
-			d.l.Info("Would include file copy", "from", d.IncludeFile)
-		}
+	if len(d.Includes) == 0 {
 		return nil
 	}
 
 	d.l.Info("Copying includes")
 
 	dest := filepath.Join(d.tmpDir, "includes")
-	err = os.MkdirAll(dest, 0755)
-	if err != nil {
-		return err
+	if !d.Dryrun {
+		err = os.MkdirAll(dest, 0755)
+		if err != nil {
+			return err
+		}
 	}
 
-	if d.IncludeDir != "" {
-		if err = util.CopyDir(dest, d.IncludeDir); err != nil {
+	for _, f := range d.Includes {
+		if d.Dryrun {
+			d.l.Info("Would include", "from", f)
+			continue
+		}
+		dir, file := util.SplitFilepath(f)
+		d.l.Debug("getting Copier", "dir", dir, "file", file)
+		seeker := seeker.NewCopier(dir, file, dest, false)
+		if _, err = seeker.Run(); err != nil {
 			return err
 		}
 	}
-	if d.IncludeFile != "" {
-		if err = util.CopyDir(dest, d.IncludeFile); err != nil {
-			return err
-		}
-	}
+
 	return nil
 }
 

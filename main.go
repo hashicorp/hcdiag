@@ -21,6 +21,10 @@ func realMain() (rc int) {
 	var err error
 	l := configureLogging("host-diagnostics")
 	d := NewDiagnosticator(l)
+	d.ParseFlags(os.Args[1:])
+	if err := d.CreateTemp(); err != nil {
+		return 1
+	}
 
 	// defer to ensure output-writing and cleanup even if there are seeker errors,
 	// but update 'rc' so we can still exit non-0 on errors.

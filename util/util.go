@@ -104,6 +104,31 @@ func JSONToFile(JSON []byte, outFile string) error {
 	return err
 }
 
+// SplitFilepath takes a full path string and turns it into directory and file parts.
+// In particular, it's useful for passing into seekers.NewCopier()
+func SplitFilepath(path string) (dir string, file string) {
+	dir, file = filepath.Split(path)
+	// this enables a path like "somedir" (which filepath.Split() would call the "file")
+	// to be interpreted as a relative path "./somedir" to align with normal CLI expectations
+	if dir == "" {
+		dir = "."
+	}
+
+	// try to discover whether our path is actually a directory
+	stat, err := os.Stat(path)
+	if err != nil {
+		// since path may include "*" wildcards, which don't really exist, just return what we've managed so far.
+		return dir, file
+	}
+	// if it is a directory, file=* to match everything in the dir
+	if stat.IsDir() {
+		dir = path
+		file = "*"
+	}
+
+	return dir, file
+}
+
 // FilterWalk accepts a source directory and filter to return a list of matching files.
 func FilterWalk(srcDir, filter string) ([]string, error) {
 	var fileMatches []string
