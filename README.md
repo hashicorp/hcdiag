@@ -34,7 +34,7 @@ The following subsections cover product specific prerequisite items such as envi
     - CLI currently limited to self-managed TFE environments
 - API
     - Terraform Enterprise/Cloud API documentation is available [here](https://www.terraform.io/docs/cloud/api/index.html)
-    - Environment variable [TFE_HTTP_ADDR]() ...
+    - Environment variable `TFE_HTTP_ADDR` must be set to the HTTP address of a Terraform Enterprise or Terraform Cloud environment
     - Environment variable [TFE_TOKEN](https://www.terraform.io/docs/cloud/api/index.html#authentication) must be set to an appropriate bearer token (user, team, or organization)
 
 ### Vault
@@ -53,7 +53,7 @@ The following subsections cover product specific prerequisite items such as envi
 ### Input
 
 | Argument | Description | Type | Default Value |
-|------|-------------|------| ------------- |
+|----------|-------------|------| ------------- |
 | `dryrun` | Perform a dry run to display commands without executing them | bool | false |
 | `os` | Override operating system detection | string | "auto" |
 | `consul` | Run Consul diagnostics | bool | false |
