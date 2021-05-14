@@ -133,7 +133,7 @@ func (d *Diagnosticator) Cleanup() (err error) {
 	return err
 }
 
-// CopyIncludes copies the specified files over to our tempdir.
+// CopyIncludes copies user-specified files over to our tempdir.
 func (d *Diagnosticator) CopyIncludes() (err error) {
 	if len(d.Includes) == 0 {
 		return nil
