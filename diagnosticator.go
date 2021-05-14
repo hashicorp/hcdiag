@@ -165,7 +165,7 @@ func (d *Diagnosticator) CopyIncludes() (err error) {
 	return nil
 }
 
-// GetSeekers maps the products we're running into the seekers that we're executing.
+// GetSeekers maps the products we'll inspect into the seekers that we'll execute.
 func (d *Diagnosticator) GetSeekers() (err error) {
 	d.l.Debug("Gathering Seekers")
 
