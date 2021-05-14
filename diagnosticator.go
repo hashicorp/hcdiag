@@ -85,7 +85,7 @@ func (f *Flags) ParseFlags(args []string) {
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
 	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
-	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name (default: support.tar.gz)")
+	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
 	flags.Parse(args)
 }
 
