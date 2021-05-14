@@ -2,6 +2,7 @@ package products
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/hashicorp/host-diagnostics/apiclients"
 	s "github.com/hashicorp/host-diagnostics/seeker"
@@ -10,7 +11,8 @@ import (
 // NomadSeekers seek information about Nomad.
 func NomadSeekers(tmpDir string) []*s.Seeker {
 	api := apiclients.NewNomadAPI()
-	return []*s.Seeker{
+
+	seekers := []*s.Seeker{
 		s.NewCommander("nomad version", "string", true),
 		s.NewCommander("nomad node status -json", "json", false),
 		s.NewCommander("nomad agent-info -json", "json", false),
@@ -22,4 +24,13 @@ func NomadSeekers(tmpDir string) []*s.Seeker {
 		s.NewHTTPer(api, "/v1/operator/autopilot/configuration", false),
 		s.NewHTTPer(api, "/v1/operator/raft/configuration", false),
 	}
+
+	// try to detect log location to copy
+	if logPath, err := apiclients.GetNomadLogPath(api); err == nil {
+		dest := filepath.Join(tmpDir, "logs/nomad")
+		logCopier := s.NewCopier(logPath, dest, false)
+		seekers = append([]*s.Seeker{logCopier}, seekers...)
+	}
+
+	return seekers
 }
