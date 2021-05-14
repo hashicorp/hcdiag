@@ -40,3 +40,27 @@ func NewVaultAPI() (*APIClient, error) {
 
 	return NewAPIClient("vault", addr, headers), nil
 }
+
+func GetVaultAuditLogPath(api *APIClient) (string, error) {
+	// this assumes operators have not enabled a custom audit -path
+	// i.e. only the first example here: https://www.vaultproject.io/docs/audit/file
+	// $ vault audit enable file file_path=/some/log/file.log
+	// will be found.
+
+	path, err := api.GetStringValue(
+		"/v1/sys/audit",
+		// format ~ {"file/": {"options": {"file_path": "/some/path"}}}
+		"file/", "options", "file_path",
+	)
+
+	if err != nil {
+		return path, err
+	}
+	if path == "" {
+		return path, errors.New("empty Vault audit log file_path")
+	}
+
+	path = path + "*" // for if they use `logrotate` or similar
+
+	return path, nil
+}
