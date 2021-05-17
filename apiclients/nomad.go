@@ -3,7 +3,9 @@ package apiclients
 // https://www.nomadproject.io/api-docs
 
 import (
+	"errors"
 	"os"
+	"path/filepath"
 )
 
 const DefaultNomadAddr = "http://127.0.0.1:4646"
@@ -22,4 +24,30 @@ func NewNomadAPI() *APIClient {
 	}
 
 	return NewAPIClient("nomad", addr, headers)
+}
+
+func GetNomadLogPath(api *APIClient) (string, error) {
+	path, err := api.GetStringValue(
+		"/v1/agent/self",
+		// format ~ {"config": {"LogFile": "/some/path"}}
+		"config", "LogFile",
+	)
+
+	if err != nil {
+		return "", err
+	}
+	if path == "" {
+		return "", errors.New("empty Nomad LogFile")
+	}
+
+	// account for variable behavior depending on destination type
+	if _, file := filepath.Split(path); file == "" {
+		// this is a directory
+		path = path + "nomad-*"
+	} else {
+		// this is a "prefix"
+		path = path + "-*"
+	}
+
+	return path, nil
 }

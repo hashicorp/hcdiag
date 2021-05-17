@@ -12,7 +12,7 @@ func TFESeekers(tmpDir string) []*s.Seeker {
 	return []*s.Seeker{
 		s.NewCommander("replicatedctl support-bundle", "string", false),
 
-		s.NewCopier("/var/lib/replicated/support-bundles", "replicated-support*.tar.gz", tmpDir, false),
+		s.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", tmpDir, false),
 
 		s.NewHTTPer(api, "/api/v2/admin/cost-estimation-settings", false),
 		s.NewHTTPer(api, "/api/v2/admin/customization-settings", false),

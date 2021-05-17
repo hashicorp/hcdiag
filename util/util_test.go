@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -67,5 +68,23 @@ func TestSplitFilepath(t *testing.T) {
 		if file != data["file"] {
 			t.Errorf("Expected file: '%s'; got: '%s'", data["file"], file)
 		}
+	}
+}
+
+func TestFindInInterface(t *testing.T) {
+	bts := []byte(`{"one": {"two": {"three": "cool_value"}}}`)
+	var iface interface{}
+	json.Unmarshal(bts, &iface)
+
+	i, err := FindInInterface(iface, "one", "two", "three")
+	if err != nil {
+		t.Errorf("Failed to find 'cool_value' in %#v: %s", iface, err)
+	}
+	str, ok := i.(string)
+	if !ok {
+		t.Errorf("Failed to cast '%#v' as string", i)
+	}
+	if str != "cool_value" {
+		t.Errorf("Expected 'cool_value'; got: '%s'", str)
 	}
 }

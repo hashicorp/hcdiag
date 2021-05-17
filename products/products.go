@@ -21,7 +21,11 @@ func GetSeekers(consul bool, nomad bool, tfe bool, vault bool, all bool, tmpDir 
 		seekers = append(seekers, TFESeekers(tmpDir)...)
 	}
 	if vault || all {
-		seekers = append(seekers, VaultSeekers(tmpDir)...)
+		vaultSeekers, err := VaultSeekers(tmpDir)
+		if err != nil {
+			return seekers, err
+		}
+		seekers = append(seekers, vaultSeekers...)
 	}
 	return seekers, err
 }

@@ -8,20 +8,15 @@ import (
 	"testing"
 )
 
-const (
-	testProduct = "test"
-	testBaseURL = "test://local"
-	testBody    = `{"hello":"there"}`
-)
-
 type mockHTTP struct {
 	called []*http.Request
+	resp   string
 }
 
 func (m *mockHTTP) Do(r *http.Request) (*http.Response, error) {
 	m.called = append(m.called, r)
 	return &http.Response{
-		Body:       ioutil.NopCloser(strings.NewReader(testBody)),
+		Body:       ioutil.NopCloser(strings.NewReader(m.resp)),
 		StatusCode: 200,
 	}, nil
 }
@@ -29,11 +24,13 @@ func (m *mockHTTP) Do(r *http.Request) (*http.Response, error) {
 // This is not a super thorough test, but it's something
 func TestAPIClientGet(t *testing.T) {
 	// set up mock
+	testBaseURL := "test://local"
+	testResp := `{"hello":"there"}`
 	headers := map[string]string{
 		"special": "headeroni",
 	}
-	mock := &mockHTTP{}
-	c := NewAPIClient(testProduct, testBaseURL, headers)
+	mock := &mockHTTP{resp: testResp}
+	c := NewAPIClient("test", testBaseURL, headers)
 	c.http = mock
 
 	// make the request
@@ -65,9 +62,26 @@ func TestAPIClientGet(t *testing.T) {
 		t.Errorf("expected 'special' header 'headeroni'; got '%s'", req.Header["Special"][0])
 	}
 
-	// ensure response is an interface (be Marshal-able) and matches our testBody
+	// ensure response is an interface (be Marshal-able) and matches our testResp
 	bodyBts, _ := json.Marshal(resp)
-	if string(bodyBts) != testBody {
-		t.Errorf("expected url '%s'; got '%s'", testBody, bodyBts)
+	if string(bodyBts) != testResp {
+		t.Errorf("expected url '%s'; got '%s'", testResp, bodyBts)
 	}
+}
+
+func TestAPIClientGetStringValue(t *testing.T) {
+	// this also implicily tests APIClient.GetValue()
+
+	mock := &mockHTTP{resp: `{"one": {"two": "three"}}`}
+	c := NewAPIClient("test", "test://local", map[string]string{})
+	c.http = mock
+
+	resp, err := c.GetStringValue("/fake/path", "one", "two")
+	if err != nil {
+		t.Errorf("error making mock API call: %s", err)
+	}
+	if resp != "three" {
+		t.Errorf("expected resp='three', got: '%s'", resp)
+	}
+
 }
