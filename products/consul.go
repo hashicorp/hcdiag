@@ -14,7 +14,7 @@ func ConsulSeekers(tmpDir string) []*s.Seeker {
 
 	seekers := []*s.Seeker{
 		s.NewCommander("consul version", "string", true),
-		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%ds -interval=%ds", tmpDir, DebugSeconds, IntervalSeconds), "string", false),
+		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%ds -interval=%ds", tmpDir, DefaultDebugSeconds, DefaultIntervalSeconds), "string", false),
 
 		s.NewHTTPer(api, "/v1/agent/self", false),
 		s.NewHTTPer(api, "/v1/agent/metrics", false),

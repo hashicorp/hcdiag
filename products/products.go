@@ -5,10 +5,11 @@ import (
 )
 
 const (
-	DebugSeconds    = 10
-	IntervalSeconds = 5
+	DefaultDebugSeconds    = 10
+	DefaultIntervalSeconds = 5
 )
 
+// TODO(kit): refactor later, see https://hashicorp.atlassian.net/browse/ENGSYS-1199
 // GetSeekers provides product Seekers for gathering info.
 func GetSeekers(consul bool, nomad bool, tfe bool, vault bool, all bool, tmpDir string) (seekers []*s.Seeker, err error) {
 	if consul || all {

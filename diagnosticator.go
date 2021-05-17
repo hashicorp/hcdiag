@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/host-diagnostics/util"
 )
 
-// TODO: NewDryagnosticator() to simplify all the 'if d.Dryrun's ??
+// TODO: NewDryDiagnosticator() to simplify all the 'if d.Dryrun's ??
 
 func NewDiagnosticator(logger hclog.Logger) *Diagnosticator {
 	d := Diagnosticator{
@@ -28,6 +28,7 @@ func NewDiagnosticator(logger hclog.Logger) *Diagnosticator {
 	return &d
 }
 
+// Diagnosticator holds our set of seekers to be executed and their results.
 type Diagnosticator struct {
 	l       hclog.Logger
 	seekers []*seeker.Seeker
@@ -37,6 +38,7 @@ type Diagnosticator struct {
 	Manifest
 }
 
+// Manifest holds the metadata for a diagnostics run for rendering later.
 type Manifest struct {
 	Start      time.Time
 	End        time.Time
@@ -47,6 +49,7 @@ type Manifest struct {
 	Flags
 }
 
+// Flags stores our CLI inputs.
 type Flags struct {
 	OS          string
 	Dryrun      bool
@@ -98,6 +101,8 @@ func (d *Diagnosticator) end() {
 	d.Duration = fmt.Sprintf("%v seconds", d.End.Sub(d.Start).Seconds())
 }
 
+// CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
+//   artifact.
 func (d *Diagnosticator) CreateTemp() (err error) {
 	if d.Dryrun {
 		return nil
@@ -113,6 +118,7 @@ func (d *Diagnosticator) CreateTemp() (err error) {
 	return nil
 }
 
+// Cleanup attempts to delete the contents of the tempdir when the diagnostics are done.
 func (d *Diagnosticator) Cleanup() (err error) {
 	if d.Dryrun {
 		return nil
@@ -127,6 +133,7 @@ func (d *Diagnosticator) Cleanup() (err error) {
 	return err
 }
 
+// CopyIncludes copies user-specified files over to our tempdir.
 func (d *Diagnosticator) CopyIncludes() (err error) {
 	if len(d.Includes) == 0 {
 		return nil
@@ -157,6 +164,7 @@ func (d *Diagnosticator) CopyIncludes() (err error) {
 	return nil
 }
 
+// GetSeekers maps the products we'll inspect into the seekers that we'll execute.
 func (d *Diagnosticator) GetSeekers() (err error) {
 	d.l.Debug("Gathering Seekers")
 
@@ -165,11 +173,13 @@ func (d *Diagnosticator) GetSeekers() (err error) {
 		d.l.Error("products.GetSeekers", "error", err)
 		return err
 	}
+	// TODO(kit): We need multiple independent seeker sets to execute these concurrently.
 	d.seekers = append(d.seekers, hostdiag.NewHostSeeker(d.OS))
 	d.NumSeekers = len(d.seekers)
 	return nil
 }
 
+// RunSeekers executes all seekers for this run.
 func (d *Diagnosticator) RunSeekers() (err error) {
 	d.l.Info("Gathering diagnostics")
 
@@ -178,6 +188,8 @@ func (d *Diagnosticator) RunSeekers() (err error) {
 		return err
 	}
 
+	// TODO(kit): Parallelize seeker set execution
+	// TODO(kit): Extract the body of this loop out into a function?
 	for _, s := range d.seekers {
 		if d.Dryrun {
 			d.l.Info("would run", "seeker", s.Identifier)
@@ -201,6 +213,8 @@ func (d *Diagnosticator) RunSeekers() (err error) {
 		}
 	}
 
+	// TODO(kit): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
+	//  it as an error if we're over the 50% threshold. Maybe we only render it in the manifest or results?
 	if d.NumErrors > d.NumSeekers/2 {
 		return errors.New("more than 50% of Seekers failed")
 	}
@@ -208,6 +222,7 @@ func (d *Diagnosticator) RunSeekers() (err error) {
 	return nil
 }
 
+// WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
 func (d *Diagnosticator) WriteOutput() (err error) {
 	d.end()
 
