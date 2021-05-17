@@ -14,7 +14,7 @@ The following subsections cover product specific prerequisite items such as envi
 - API
     - Consul API documentation is available [here](https://www.consul.io/api-docs)
     - Environment variable [CONSUL_HTTP_ADDR](https://www.consul.io/commands#consul_http_addr) must be set to the HTTP address to the local Consul agent
-    - Environment variable [CONSUL_TOKEN](https://www.consul.io/commands#consul_http_token) must be set to the API access token
+    - Environment variable [CONSUL_TOKEN](https://www.consul.io/commands#consul_http_token) may be set to the API access token if ACLs are enabled.
 
 ### Nomad
 
@@ -24,7 +24,7 @@ The following subsections cover product specific prerequisite items such as envi
 - API
     - Nomad API documentation is available [here](https://www.nomadproject.io/api-docs)
     - Environment variable [NOMAD_ADDR](https://www.nomadproject.io/docs/commands#nomad_addr) must be set to the HTTP address of the Nomad server
-    - Environment variable [NOMAD_TOKEN](https://www.nomadproject.io/docs/commands#nomad_token) must be set to the SecretID of an ACL token for API requests
+    - Environment variable [NOMAD_TOKEN](https://www.nomadproject.io/docs/commands#nomad_token) may be set to the SecretID of an ACL token for API requests if ACLs are enabled.
 
 ### Terraform Enterprise/Cloud
 
@@ -47,6 +47,7 @@ The following subsections cover product specific prerequisite items such as envi
     - Environment variable [VAULT_ADDR](https://www.vaultproject.io/docs/commands#vault_addr) must be set to the HTTP address of the Vault server
     - Environment variable [VAULT_TOKEN](https://www.vaultproject.io/docs/commands#vault_token) must be set to the Vault authentication token
         - Alternatively, a token may also exist at ~/.vault-token
+        - If both are present, `VAULT_TOKEN` will be used.
 
 ## Usage
 
