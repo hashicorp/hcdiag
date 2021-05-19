@@ -59,7 +59,7 @@ type Flags struct {
 	Vault       bool
 	AllProducts bool
 	Includes    []string
-	Outfile     string
+	outfile     string
 }
 
 type CSVFlag struct {
@@ -88,7 +88,7 @@ func (f *Flags) ParseFlags(args []string) {
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
 	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
-	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
+	flags.StringVar(&f.outfile, "outfile", "support.tar.gz", "Output file name")
 	flags.Parse(args)
 }
 
@@ -251,12 +251,19 @@ func (d *Diagnosticator) WriteOutput() (err error) {
 	d.l.Info("Created Manifest.json file", "dest", mFile)
 
 	// Archive and compress outputs
-	err = util.TarGz(d.tmpDir, d.Outfile)
+	dest := d.DestinationFileName()
+	err = util.TarGz(d.tmpDir, dest)
 	if err != nil {
 		d.l.Error("util.TarGz", "error", err)
 		return err
 	}
-	d.l.Info("Compressed and archived output file", "dest", d.Outfile)
+	d.l.Info("Compressed and archived output file", "dest", dest)
 
 	return nil
+}
+
+// DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
+func (d Diagnosticator) DestinationFileName() string {
+	timestamp := time.Now().Format(time.RFC3339)
+	return fmt.Sprintf("%s-%s", d.outfile, timestamp)
 }

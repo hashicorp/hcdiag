@@ -187,7 +187,7 @@ func TestWriteOutput(t *testing.T) {
 	}
 
 	testOut := "test.tar.gz"
-	d.Outfile = testOut // ordinarily would come from ParseFlags() but see bottom of this file...
+	d.outfile = testOut // ordinarily would come from ParseFlags() but see bottom of this file...
 	d.CreateTemp()
 	defer d.Cleanup()
 	defer os.Remove(testOut)
@@ -199,6 +199,8 @@ func TestWriteOutput(t *testing.T) {
 	expectFiles := []string{
 		filepath.Join(d.tmpDir, "Manifest.json"),
 		filepath.Join(d.tmpDir, "Results.json"),
+		// PLSFIX(mkcp): We need to properly test the filename to merge this. Maybe we can match it off
+		//  disk based on the prefix and if we have a file there, consider it ok and written?
 		testOut,
 	}
 	for _, f := range expectFiles {
