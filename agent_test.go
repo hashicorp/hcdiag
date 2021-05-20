@@ -24,7 +24,10 @@ func TestNewAgent(t *testing.T) {
 func TestParsesFlags(t *testing.T) {
 	// not testing all flags, just that one is parsed appropriately
 	a := NewAgent(hclog.Default())
-	a.ParseFlags([]string{"-dryrun"})
+	err := a.ParseFlags([]string{"-dryrun"})
+	if err != nil {
+		t.Error(err)
+	}
 	if !a.Dryrun {
 		t.Error("-dryrun should enable Dryrun")
 	}
@@ -127,8 +130,13 @@ func TestCopyIncludes(t *testing.T) {
 	d := NewAgent(hclog.Default())
 	// the args here now amount to:
 	// -includes 'tests/resources/file.0,tests/resources/dir1/file.1,tests/resources/dir2/file*'
-	d.ParseFlags([]string{"-includes", strings.Join(includeStr, ",")})
-	d.CreateTemp()
+	includes := []string{"-includes", strings.Join(includeStr, ",")}
+	if err := d.ParseFlags(includes); err != nil {
+		t.Errorf("Error parsing flags: %s", err)
+	}
+	if err := d.CreateTemp(); err != nil {
+		t.Errorf("Error creating tmpDir: %s", err)
+	}
 	defer d.Cleanup()
 
 	// execute what we're aiming to test

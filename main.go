@@ -10,12 +10,18 @@ func main() {
 	os.Exit(realMain())
 }
 
+// NOTE(mkcp): Most of the steps after parsing flags feel like they ought to be executed by an agent's run fn, not
+//  orchestrated by main
 func realMain() (returnCode int) {
 	var err error
 	l := configureLogging("host-diagnostics")
 	a := NewAgent(l)
-	a.ParseFlags(os.Args[1:])
+	if err := a.ParseFlags(os.Args[1:]); err != nil {
+		// TODO(mkcp): Is there a specific return code for failing to parse input, or invalid input provided?
+		return 1
+	}
 	if err := a.CreateTemp(); err != nil {
+		// TODO(mkcp):  Is there a specific return code for failing to create a (temp) directory?
 		return 1
 	}
 

@@ -78,7 +78,7 @@ func (s CSVFlag) Set(v string) error {
 	return nil
 }
 
-func (f *Flags) ParseFlags(args []string) {
+func (f *Flags) ParseFlags(args []string) error {
 	flags := flag.NewFlagSet("hc-bundler", flag.ExitOnError)
 	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
@@ -89,7 +89,12 @@ func (f *Flags) ParseFlags(args []string) {
 	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
 	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
-	flags.Parse(args)
+
+	err := flags.Parse(args)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // FIXME(mkcp): I'm not sure there's a lot of value for wrapping this assignment in a point receiver method. It's simpler
@@ -105,7 +110,8 @@ func (a *Agent) end() {
 
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
 //   artifact.
-func (a *Agent) CreateTemp() (err error) {
+func (a *Agent) CreateTemp() error {
+	var err error
 	if a.Dryrun {
 		return nil
 	}
