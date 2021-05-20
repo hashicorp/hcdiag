@@ -13,9 +13,9 @@ func main() {
 func realMain() (returnCode int) {
 	var err error
 	l := configureLogging("host-diagnostics")
-	d := NewAgent(l)
-	d.ParseFlags(os.Args[1:])
-	if err := d.CreateTemp(); err != nil {
+	a := NewAgent(l)
+	a.ParseFlags(os.Args[1:])
+	if err := a.CreateTemp(); err != nil {
 		return 1
 	}
 
@@ -23,23 +23,23 @@ func realMain() (returnCode int) {
 	// but update 'rc' so we can still exit non-0 on errors.
 	// Cleanup being defer'd first makes it run last.
 	defer func() {
-		if err = d.Cleanup(); err != nil {
+		if err = a.Cleanup(); err != nil {
 			returnCode = 1
 		}
 	}()
 	defer func() {
-		if err = d.WriteOutput(); err != nil {
+		if err = a.WriteOutput(); err != nil {
 			returnCode = 1
 		}
 	}()
 
-	err = d.CopyIncludes()
+	err = a.CopyIncludes()
 	if err != nil {
 		l.Error("Failed to copyIncludes", "message", err)
 		return 1
 	}
 
-	err = d.RunSeekers()
+	err = a.RunSeekers()
 	if err != nil {
 		l.Error("Failed running Seekers", "message", err)
 		return 1

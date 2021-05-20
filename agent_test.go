@@ -15,59 +15,59 @@ import (
 // that would also allow us to run these tests in parallel if we wish.
 
 func TestNewAgent(t *testing.T) {
-	d := NewAgent(hclog.Default())
-	if d.Start.IsZero() {
-		t.Errorf("Start value still zero after start(): %s", d.Start)
+	a := NewAgent(hclog.Default())
+	if a.Start.IsZero() {
+		t.Errorf("Start value still zero after start(): %s", a.Start)
 	}
 }
 
 func TestParsesFlags(t *testing.T) {
 	// not testing all flags, just that one is parsed appropriately
-	d := NewAgent(hclog.Default())
-	d.ParseFlags([]string{"-dryrun"})
-	if !d.Dryrun {
+	a := NewAgent(hclog.Default())
+	a.ParseFlags([]string{"-dryrun"})
+	if !a.Dryrun {
 		t.Error("-dryrun should enable Dryrun")
 	}
 }
 
 func TestStartAndEnd(t *testing.T) {
-	d := Agent{l: hclog.Default()}
+	a := Agent{l: hclog.Default()}
 
 	// Start and End fields should be nil at first,
 	// and Duration should be empty ""
-	if !d.Start.IsZero() {
-		t.Errorf("Start value non-zero before start(): %s", d.Start)
+	if !a.Start.IsZero() {
+		t.Errorf("Start value non-zero before start(): %s", a.Start)
 	}
-	if !d.End.IsZero() {
-		t.Errorf("End value non-zero before start(): %s", d.Start)
+	if !a.End.IsZero() {
+		t.Errorf("End value non-zero before start(): %s", a.Start)
 	}
-	if d.Duration != "" {
-		t.Errorf("Duration value not an empty string before start(): %s", d.Duration)
+	if a.Duration != "" {
+		t.Errorf("Duration value not an empty string before start(): %s", a.Duration)
 	}
 
 	// after start() and end(), the above values should be set to something
-	d.start()
-	if d.Start.IsZero() {
-		t.Errorf("Start value still zero after start(): %s", d.Start)
+	a.start()
+	if a.Start.IsZero() {
+		t.Errorf("Start value still zero after start(): %s", a.Start)
 	}
-	d.end()
-	if d.End.IsZero() {
-		t.Errorf("End value still zero after start(): %s", d.Start)
+	a.end()
+	if a.End.IsZero() {
+		t.Errorf("End value still zero after start(): %s", a.Start)
 	}
-	if d.Duration == "" {
+	if a.Duration == "" {
 		t.Error("Duration value still an empty string after start()")
 	}
 }
 
 func TestCreateTemp(t *testing.T) {
-	d := NewAgent(hclog.Default())
-	defer d.Cleanup()
+	a := NewAgent(hclog.Default())
+	defer a.Cleanup()
 
-	if err := d.CreateTemp(); err != nil {
+	if err := a.CreateTemp(); err != nil {
 		t.Errorf("Failed creating temp dir: %s", err)
 	}
 
-	fileInfo, err := os.Stat(d.tmpDir)
+	fileInfo, err := os.Stat(a.tmpDir)
 	if err != nil {
 		t.Errorf("Error checking for temp dir: %s", err)
 	}
@@ -146,32 +146,32 @@ func TestCopyIncludes(t *testing.T) {
 }
 
 func TestGetSeekers(t *testing.T) {
-	d := Agent{l: hclog.Default()}
+	a := Agent{l: hclog.Default()}
 
 	// no product Seekers, host only
-	d.GetSeekers()
-	if len(d.seekers) != 1 {
-		t.Errorf("Expected 1 Seeker; got: %d", len(d.seekers))
+	a.GetSeekers()
+	if len(a.seekers) != 1 {
+		t.Errorf("Expected 1 Seeker; got: %d", len(a.seekers))
 	}
 
 	// include a product's Seekers
-	d.Nomad = true
-	d.GetSeekers() // replaces d.seekers, does not append.
-	if len(d.seekers) <= 1 {
-		t.Errorf("Expected >1 Seeker; got: %d", len(d.seekers))
+	a.Nomad = true
+	a.GetSeekers() // replaces a.seekers, does not append.
+	if len(a.seekers) <= 1 {
+		t.Errorf("Expected >1 Seeker; got: %d", len(a.seekers))
 	}
 }
 
 func TestRunSeekers(t *testing.T) {
-	d := Agent{
+	a := Agent{
 		l:       hclog.Default(),
 		results: make(map[string]interface{}),
 	}
 
-	if err := d.RunSeekers(); err != nil {
+	if err := a.RunSeekers(); err != nil {
 		t.Errorf("Error running Seekers: %s", err)
 	}
-	r, ok := d.results["host"]
+	r, ok := a.results["host"]
 	if !ok {
 		t.Error("Expected 'host' in results, not found")
 	}
@@ -181,24 +181,24 @@ func TestRunSeekers(t *testing.T) {
 }
 
 func TestWriteOutput(t *testing.T) {
-	d := Agent{
+	a := Agent{
 		l:       hclog.Default(),
 		results: make(map[string]interface{}),
 	}
 
 	testOut := "test.tar.gz"
-	d.Outfile = testOut // ordinarily would come from ParseFlags() but see bottom of this file...
-	d.CreateTemp()
-	defer d.Cleanup()
+	a.Outfile = testOut // ordinarily would come from ParseFlags() but see bottom of this file...
+	a.CreateTemp()
+	defer a.Cleanup()
 	defer os.Remove(testOut)
 
-	if err := d.WriteOutput(); err != nil {
+	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
 	}
 
 	expectFiles := []string{
-		filepath.Join(d.tmpDir, "Manifest.json"),
-		filepath.Join(d.tmpDir, "Results.json"),
+		filepath.Join(a.tmpDir, "Manifest.json"),
+		filepath.Join(a.tmpDir, "Results.json"),
 		testOut,
 	}
 	for _, f := range expectFiles {

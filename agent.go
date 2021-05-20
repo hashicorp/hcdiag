@@ -19,15 +19,14 @@ import (
 
 // TODO: NewDryAgent() to simplify all the 'if d.Dryrun's ??
 
-func NewAgent(logger hclog.Logger) *Agent {
-	d := Agent{
+func NewAgent(logger hclog.Logger) Agent {
+	a := Agent{
 		l:       logger,
 		results: make(map[string]interface{}),
 	}
-	d.start()
-	return &d
+	a.start()
+	return a
 }
-
 
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
@@ -93,71 +92,73 @@ func (f *Flags) ParseFlags(args []string) {
 	flags.Parse(args)
 }
 
-func (d *Agent) start() {
-	d.Start = time.Now()
+// FIXME(mkcp): I'm not sure there's a lot of value for wrapping this assignment in a point receiver method. It's simpler
+//  to set this value directly without mutating it when we create the agent.
+func (a *Agent) start() {
+	a.Start = time.Now()
 }
 
-func (d *Agent) end() {
-	d.End = time.Now()
-	d.Duration = fmt.Sprintf("%v seconds", d.End.Sub(d.Start).Seconds())
+func (a *Agent) end() {
+	a.End = time.Now()
+	a.Duration = fmt.Sprintf("%v seconds", a.End.Sub(a.Start).Seconds())
 }
 
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
 //   artifact.
-func (d *Agent) CreateTemp() (err error) {
-	if d.Dryrun {
+func (a *Agent) CreateTemp() (err error) {
+	if a.Dryrun {
 		return nil
 	}
 
-	d.tmpDir, err = ioutil.TempDir("./", "temp")
+	a.tmpDir, err = ioutil.TempDir("./", "temp")
 	if err != nil {
-		d.l.Error("Error creating temp directory", "name", hclog.Fmt("%s", d.tmpDir), "message", err)
+		a.l.Error("Error creating temp directory", "name", hclog.Fmt("%s", a.tmpDir), "message", err)
 		return err
 	}
-	d.l.Debug("Created temp directory", "name", hclog.Fmt("./%s", d.tmpDir))
+	a.l.Debug("Created temp directory", "name", hclog.Fmt("./%s", a.tmpDir))
 
 	return nil
 }
 
 // Cleanup attempts to delete the contents of the tempdir when the diagnostics are done.
-func (d *Agent) Cleanup() (err error) {
-	if d.Dryrun {
+func (a Agent) Cleanup() (err error) {
+	if a.Dryrun {
 		return nil
 	}
 
-	d.l.Debug("Cleaning up temporary files")
+	a.l.Debug("Cleaning up temporary files")
 
-	err = os.RemoveAll(d.tmpDir)
+	err = os.RemoveAll(a.tmpDir)
 	if err != nil {
-		d.l.Warn("Failed to clean up temp dir", "message", err)
+		a.l.Warn("Failed to clean up temp dir", "message", err)
 	}
 	return err
 }
 
 // CopyIncludes copies user-specified files over to our tempdir.
-func (d *Agent) CopyIncludes() (err error) {
-	if len(d.Includes) == 0 {
+func (a Agent) CopyIncludes() (err error) {
+	if len(a.Includes) == 0 {
 		return nil
 	}
 
-	d.l.Info("Copying includes")
+	a.l.Info("Copying includes")
 
-	dest := filepath.Join(d.tmpDir, "includes")
-	if !d.Dryrun {
+	dest := filepath.Join(a.tmpDir, "includes")
+	if !a.Dryrun {
 		err = os.MkdirAll(dest, 0755)
 		if err != nil {
 			return err
 		}
 	}
 
-	for _, f := range d.Includes {
-		if d.Dryrun {
-			d.l.Info("Would include", "from", f)
+	for _, f := range a.Includes {
+		if a.Dryrun {
+			a.l.Info("Would include", "from", f)
 			continue
 		}
-		d.l.Debug("getting Copier", "path", f)
-		seeker := seeker.NewCopier(f, dest, false)
-		if _, err = seeker.Run(); err != nil {
+		a.l.Debug("getting Copier", "path", f)
+		s := seeker.NewCopier(f, dest, false)
+		if _, err = s.Run(); err != nil {
 			return err
 		}
 	}
@@ -166,49 +167,49 @@ func (d *Agent) CopyIncludes() (err error) {
 }
 
 // GetSeekers maps the products we'll inspect into the seekers that we'll execute.
-func (d *Agent) GetSeekers() (err error) {
-	d.l.Debug("Gathering Seekers")
+func (a *Agent) GetSeekers() (err error) {
+	a.l.Debug("Gathering Seekers")
 
-	d.seekers, err = products.GetSeekers(d.Consul, d.Nomad, d.TFE, d.Vault, d.AllProducts, d.tmpDir)
+	a.seekers, err = products.GetSeekers(a.Consul, a.Nomad, a.TFE, a.Vault, a.AllProducts, a.tmpDir)
 	if err != nil {
-		d.l.Error("products.GetSeekers", "error", err)
+		a.l.Error("products.GetSeekers", "error", err)
 		return err
 	}
 	// TODO(kit): We need multiple independent seeker sets to execute these concurrently.
-	d.seekers = append(d.seekers, hostdiag.NewHostSeeker(d.OS))
-	d.NumSeekers = len(d.seekers)
+	a.seekers = append(a.seekers, hostdiag.NewHostSeeker(a.OS))
+	a.NumSeekers = len(a.seekers)
 	return nil
 }
 
 // RunSeekers executes all seekers for this run.
-func (d *Agent) RunSeekers() (err error) {
-	d.l.Info("Gathering diagnostics")
+func (a *Agent) RunSeekers() (err error) {
+	a.l.Info("Gathering diagnostics")
 
-	err = d.GetSeekers()
+	err = a.GetSeekers()
 	if err != nil {
 		return err
 	}
 
 	// TODO(kit): Parallelize seeker set execution
 	// TODO(kit): Extract the body of this loop out into a function?
-	for _, s := range d.seekers {
-		if d.Dryrun {
-			d.l.Info("would run", "seeker", s.Identifier)
+	for _, s := range a.seekers {
+		if a.Dryrun {
+			a.l.Info("would run", "seeker", s.Identifier)
 			continue
 		}
 
-		d.l.Info("running", "seeker", s.Identifier)
-		d.results[s.Identifier] = s
+		a.l.Info("running", "seeker", s.Identifier)
+		a.results[s.Identifier] = s
 		result, err := s.Run()
 		if err != nil {
-			d.NumErrors++
-			d.l.Warn("result",
+			a.NumErrors++
+			a.l.Warn("result",
 				"seeker", s.Identifier,
 				"result", fmt.Sprintf("%s", result),
 				"error", err,
 			)
 			if s.MustSucceed {
-				d.l.Error("A critical Seeker failed", "message", err)
+				a.l.Error("A critical Seeker failed", "message", err)
 				return err
 			}
 		}
@@ -216,7 +217,7 @@ func (d *Agent) RunSeekers() (err error) {
 
 	// TODO(kit): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
 	//  it as an error if we're over the 50% threshold. Maybe we only render it in the manifest or results?
-	if d.NumErrors > d.NumSeekers/2 {
+	if a.NumErrors > a.NumSeekers/2 {
 		return errors.New("more than 50% of Seekers failed")
 	}
 
@@ -224,40 +225,40 @@ func (d *Agent) RunSeekers() (err error) {
 }
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
-func (d *Agent) WriteOutput() (err error) {
-	d.end()
+func (a *Agent) WriteOutput() (err error) {
+	a.end()
 
-	if d.Dryrun {
+	if a.Dryrun {
 		return nil
 	}
 
-	d.l.Debug("Writing results and manifest, and creating tar.gz archive")
+	a.l.Debug("Writing results and manifest, and creating tar.gz archive")
 
 	// Write out results
-	rFile := filepath.Join(d.tmpDir, "Results.json")
-	err = util.WriteJSON(d.results, rFile)
+	rFile := filepath.Join(a.tmpDir, "Results.json")
+	err = util.WriteJSON(a.results, rFile)
 	if err != nil {
-		d.l.Error("util.WriteJSON", "error", err)
+		a.l.Error("util.WriteJSON", "error", err)
 		return err
 	}
-	d.l.Info("Created Results.json file", "dest", rFile)
+	a.l.Info("Created Results.json file", "dest", rFile)
 
 	// Write out manifest
-	mFile := filepath.Join(d.tmpDir, "Manifest.json")
-	err = util.WriteJSON(d, mFile)
+	mFile := filepath.Join(a.tmpDir, "Manifest.json")
+	err = util.WriteJSON(a, mFile)
 	if err != nil {
-		d.l.Error("util.WriteJSON", "error", err)
+		a.l.Error("util.WriteJSON", "error", err)
 		return err
 	}
-	d.l.Info("Created Manifest.json file", "dest", mFile)
+	a.l.Info("Created Manifest.json file", "dest", mFile)
 
 	// Archive and compress outputs
-	err = util.TarGz(d.tmpDir, d.Outfile)
+	err = util.TarGz(a.tmpDir, a.Outfile)
 	if err != nil {
-		d.l.Error("util.TarGz", "error", err)
+		a.l.Error("util.TarGz", "error", err)
 		return err
 	}
-	d.l.Info("Compressed and archived output file", "dest", d.Outfile)
+	a.l.Info("Compressed and archived output file", "dest", a.Outfile)
 
 	return nil
 }
