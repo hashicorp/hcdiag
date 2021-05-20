@@ -167,10 +167,12 @@ func (a Agent) CopyIncludes() (err error) {
 }
 
 // GetSeekers maps the products we'll inspect into the seekers that we'll execute.
-func (a *Agent) GetSeekers() (err error) {
-	a.l.Debug("Gathering Seekers")
+func (a *Agent) GetSeekers() error {
+	var err error
+	config := a.productConfig()
 
-	a.seekers, err = products.GetSeekers(a.Consul, a.Nomad, a.TFE, a.Vault, a.AllProducts, a.tmpDir)
+	a.l.Debug("Gathering Seekers")
+	a.seekers, err = products.GetSeekers(config)
 	if err != nil {
 		a.l.Error("products.GetSeekers", "error", err)
 		return err
@@ -261,4 +263,20 @@ func (a *Agent) WriteOutput() (err error) {
 	a.l.Info("Compressed and archived output file", "dest", a.Outfile)
 
 	return nil
+}
+
+// NOTE(mkcp): Not sure if this bridge should be in the agent package
+func (a Agent) productConfig() products.Config {
+	if a.AllProducts {
+		config := products.NewConfigAllEnabled()
+		config.TmpDir = a.tmpDir
+		return config
+	}
+	return products.Config{
+		Consul: a.Consul,
+		Nomad:  a.Nomad,
+		TFE:    a.TFE,
+		Vault:  a.Vault,
+		TmpDir: a.tmpDir,
+	}
 }
