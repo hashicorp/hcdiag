@@ -13,7 +13,7 @@ func main() {
 func realMain() (returnCode int) {
 	var err error
 	l := configureLogging("host-diagnostics")
-	d := NewDiagnosticator(l)
+	d := NewAgent(l)
 	d.ParseFlags(os.Args[1:])
 	if err := d.CreateTemp(); err != nil {
 		return 1

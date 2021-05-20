@@ -17,10 +17,10 @@ import (
 	"github.com/hashicorp/host-diagnostics/util"
 )
 
-// TODO: NewDryDiagnosticator() to simplify all the 'if d.Dryrun's ??
+// TODO: NewDryAgent() to simplify all the 'if d.Dryrun's ??
 
-func NewDiagnosticator(logger hclog.Logger) *Diagnosticator {
-	d := Diagnosticator{
+func NewAgent(logger hclog.Logger) *Agent {
+	d := Agent{
 		l:       logger,
 		results: make(map[string]interface{}),
 	}
@@ -28,8 +28,9 @@ func NewDiagnosticator(logger hclog.Logger) *Diagnosticator {
 	return &d
 }
 
-// Diagnosticator holds our set of seekers to be executed and their results.
-type Diagnosticator struct {
+
+// Agent holds our set of seekers to be executed and their results.
+type Agent struct {
 	l       hclog.Logger
 	seekers []*seeker.Seeker
 	results map[string]interface{}
@@ -79,7 +80,7 @@ func (s CSVFlag) Set(v string) error {
 }
 
 func (f *Flags) ParseFlags(args []string) {
-	flags := flag.NewFlagSet("hc-diagnosticator", flag.ExitOnError)
+	flags := flag.NewFlagSet("hc-bundler", flag.ExitOnError)
 	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
 	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
@@ -92,18 +93,18 @@ func (f *Flags) ParseFlags(args []string) {
 	flags.Parse(args)
 }
 
-func (d *Diagnosticator) start() {
+func (d *Agent) start() {
 	d.Start = time.Now()
 }
 
-func (d *Diagnosticator) end() {
+func (d *Agent) end() {
 	d.End = time.Now()
 	d.Duration = fmt.Sprintf("%v seconds", d.End.Sub(d.Start).Seconds())
 }
 
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
 //   artifact.
-func (d *Diagnosticator) CreateTemp() (err error) {
+func (d *Agent) CreateTemp() (err error) {
 	if d.Dryrun {
 		return nil
 	}
@@ -119,7 +120,7 @@ func (d *Diagnosticator) CreateTemp() (err error) {
 }
 
 // Cleanup attempts to delete the contents of the tempdir when the diagnostics are done.
-func (d *Diagnosticator) Cleanup() (err error) {
+func (d *Agent) Cleanup() (err error) {
 	if d.Dryrun {
 		return nil
 	}
@@ -134,7 +135,7 @@ func (d *Diagnosticator) Cleanup() (err error) {
 }
 
 // CopyIncludes copies user-specified files over to our tempdir.
-func (d *Diagnosticator) CopyIncludes() (err error) {
+func (d *Agent) CopyIncludes() (err error) {
 	if len(d.Includes) == 0 {
 		return nil
 	}
@@ -165,7 +166,7 @@ func (d *Diagnosticator) CopyIncludes() (err error) {
 }
 
 // GetSeekers maps the products we'll inspect into the seekers that we'll execute.
-func (d *Diagnosticator) GetSeekers() (err error) {
+func (d *Agent) GetSeekers() (err error) {
 	d.l.Debug("Gathering Seekers")
 
 	d.seekers, err = products.GetSeekers(d.Consul, d.Nomad, d.TFE, d.Vault, d.AllProducts, d.tmpDir)
@@ -180,7 +181,7 @@ func (d *Diagnosticator) GetSeekers() (err error) {
 }
 
 // RunSeekers executes all seekers for this run.
-func (d *Diagnosticator) RunSeekers() (err error) {
+func (d *Agent) RunSeekers() (err error) {
 	d.l.Info("Gathering diagnostics")
 
 	err = d.GetSeekers()
@@ -223,7 +224,7 @@ func (d *Diagnosticator) RunSeekers() (err error) {
 }
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
-func (d *Diagnosticator) WriteOutput() (err error) {
+func (d *Agent) WriteOutput() (err error) {
 	d.end()
 
 	if d.Dryrun {

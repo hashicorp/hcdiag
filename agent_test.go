@@ -14,8 +14,8 @@ import (
 // so mocks can be used instead of actually writing files?
 // that would also allow us to run these tests in parallel if we wish.
 
-func TestNewDiagnosticator(t *testing.T) {
-	d := NewDiagnosticator(hclog.Default())
+func TestNewAgent(t *testing.T) {
+	d := NewAgent(hclog.Default())
 	if d.Start.IsZero() {
 		t.Errorf("Start value still zero after start(): %s", d.Start)
 	}
@@ -23,7 +23,7 @@ func TestNewDiagnosticator(t *testing.T) {
 
 func TestParsesFlags(t *testing.T) {
 	// not testing all flags, just that one is parsed appropriately
-	d := NewDiagnosticator(hclog.Default())
+	d := NewAgent(hclog.Default())
 	d.ParseFlags([]string{"-dryrun"})
 	if !d.Dryrun {
 		t.Error("-dryrun should enable Dryrun")
@@ -31,7 +31,7 @@ func TestParsesFlags(t *testing.T) {
 }
 
 func TestStartAndEnd(t *testing.T) {
-	d := Diagnosticator{l: hclog.Default()}
+	d := Agent{l: hclog.Default()}
 
 	// Start and End fields should be nil at first,
 	// and Duration should be empty ""
@@ -60,7 +60,7 @@ func TestStartAndEnd(t *testing.T) {
 }
 
 func TestCreateTemp(t *testing.T) {
-	d := NewDiagnosticator(hclog.Default())
+	d := NewAgent(hclog.Default())
 	defer d.Cleanup()
 
 	if err := d.CreateTemp(); err != nil {
@@ -78,7 +78,7 @@ func TestCreateTemp(t *testing.T) {
 
 func TestCreateTempAndCleanup(t *testing.T) {
 	var err error
-	d := Diagnosticator{l: hclog.Default()}
+	d := Agent{l: hclog.Default()}
 
 	if err = d.CreateTemp(); err != nil {
 		t.Errorf("Error creating tmpDir: %s", err)
@@ -123,8 +123,8 @@ func TestCopyIncludes(t *testing.T) {
 		includeStr = append(includeStr, path)
 	}
 
-	// basic Diagnosticator setup
-	d := NewDiagnosticator(hclog.Default())
+	// basic Agent setup
+	d := NewAgent(hclog.Default())
 	// the args here now amount to:
 	// -includes 'tests/resources/file.0,tests/resources/dir1/file.1,tests/resources/dir2/file*'
 	d.ParseFlags([]string{"-includes", strings.Join(includeStr, ",")})
@@ -146,7 +146,7 @@ func TestCopyIncludes(t *testing.T) {
 }
 
 func TestGetSeekers(t *testing.T) {
-	d := Diagnosticator{l: hclog.Default()}
+	d := Agent{l: hclog.Default()}
 
 	// no product Seekers, host only
 	d.GetSeekers()
@@ -163,7 +163,7 @@ func TestGetSeekers(t *testing.T) {
 }
 
 func TestRunSeekers(t *testing.T) {
-	d := Diagnosticator{
+	d := Agent{
 		l:       hclog.Default(),
 		results: make(map[string]interface{}),
 	}
@@ -181,7 +181,7 @@ func TestRunSeekers(t *testing.T) {
 }
 
 func TestWriteOutput(t *testing.T) {
-	d := Diagnosticator{
+	d := Agent{
 		l:       hclog.Default(),
 		results: make(map[string]interface{}),
 	}
