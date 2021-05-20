@@ -157,14 +157,20 @@ func TestGetSeekers(t *testing.T) {
 	a := Agent{l: hclog.Default()}
 
 	// no product Seekers, host only
-	a.GetSeekers()
+	err := a.GetSeekers()
+	if err != nil {
+		t.Errorf("Error getting seekers: #{err}")
+	}
 	if len(a.seekers) != 1 {
 		t.Errorf("Expected 1 Seeker; got: %d", len(a.seekers))
 	}
 
 	// include a product's Seekers
 	a.Nomad = true
-	a.GetSeekers() // replaces a.seekers, does not append.
+	err = a.GetSeekers() // replaces a.seekers, does not append.
+	if err != nil {
+		t.Errorf("Error getting seekers: #{err}")
+	}
 	if len(a.seekers) <= 1 {
 		t.Errorf("Expected >1 Seeker; got: %d", len(a.seekers))
 	}

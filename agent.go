@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -178,19 +179,33 @@ func (a *Agent) GetSeekers() error {
 	config := a.productConfig()
 
 	a.l.Debug("Gathering Seekers")
-	a.seekers, err = products.GetSeekers(config)
+	var seekers map[string][]*seeker.Seeker
+	seekers, err = products.GetSeekers(config)
 	if err != nil {
 		a.l.Error("products.GetSeekers", "error", err)
 		return err
 	}
-	// TODO(kit): We need multiple independent seeker sets to execute these concurrently.
-	a.seekers = append(a.seekers, hostdiag.NewHostSeeker(a.OS))
-	a.NumSeekers = len(a.seekers)
+	seekers["host"] = hostdiag.GetSeekers(a.OS)
+	// TODO(mkcp): We should probably write a merge function to union seeker sets together under their keys
+	a.seekers = seekers
+	a.NumSeekers = countSeekers(seekers)
 	return nil
 }
 
+// TODO(mkcp): probably put this in the seekers package
+// TODO(mkcp): test this !
+// countSeekers iterates over each set of seekers and sums their counts
+func countSeekers(sets map[string][]*seeker.Seeker) int {
+	var count int
+	for _, s := range sets  {
+		count = count + len(s)
+	}
+	return count
+}
+
 // RunSeekers executes all seekers for this run.
-func (a *Agent) RunSeekers() (err error) {
+func (a *Agent) RunSeekers() error {
+	var err error
 	a.l.Info("Gathering diagnostics")
 
 	err = a.GetSeekers()
@@ -198,30 +213,18 @@ func (a *Agent) RunSeekers() (err error) {
 		return err
 	}
 
-	// TODO(kit): Parallelize seeker set execution
-	// TODO(kit): Extract the body of this loop out into a function?
-	for _, s := range a.seekers {
-		if a.Dryrun {
-			a.l.Info("would run", "seeker", s.Identifier)
-			continue
-		}
-
-		a.l.Info("running", "seeker", s.Identifier)
-		a.results[s.Identifier] = s
-		result, err := s.Run()
-		if err != nil {
-			a.NumErrors++
-			a.l.Warn("result",
-				"seeker", s.Identifier,
-				"result", fmt.Sprintf("%s", result),
-				"error", err,
-			)
-			if s.MustSucceed {
-				a.l.Error("A critical Seeker failed", "message", err)
-				return err
+	wg := sync.WaitGroup{}
+	wg.Add(len(a.seekers))
+	for product, set := range a.seekers {
+		go func(product string, set []*seeker.Seeker) {
+			if err := a.runSet(product, set); err != nil {
+				//
+				a.l.Error("Error running seekers", "product", product, "error", err)
 			}
-		}
+			wg.Done()
+		}(product, set)
 	}
+	wg.Wait()
 
 	// TODO(kit): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
 	//  it as an error if we're over the 50% threshold. Maybe we only render it in the manifest or results?
@@ -271,7 +274,8 @@ func (a *Agent) WriteOutput() (err error) {
 	return nil
 }
 
-// NOTE(mkcp): Not sure if this bridge should be in the agent package
+// NOTE(mkcp): Not sure if this state -> config fn should be in the agent package. I don't love that it's behavior
+//  on the agent struct
 func (a Agent) productConfig() products.Config {
 	if a.AllProducts {
 		config := products.NewConfigAllEnabled()
@@ -285,4 +289,33 @@ func (a Agent) productConfig() products.Config {
 		Vault:  a.Vault,
 		TmpDir: a.tmpDir,
 	}
+}
+
+// runSeekers runs the seekers
+// TODO(mkcp): Should we return a colleciton of errors from here?
+func (a *Agent) runSet(product string, set []*seeker.Seeker) error {
+	a.l.Info("Running seekers for", "product", product)
+	for _, s := range set  {
+		if a.Dryrun {
+			a.l.Info("would run", "seeker", s.Identifier)
+			continue
+		}
+
+		a.l.Info("running", "seeker", s.Identifier)
+		a.results[s.Identifier] = s
+		result, err := s.Run()
+		if err != nil {
+			a.NumErrors++
+			a.l.Warn("result",
+				"seeker", s.Identifier,
+				"result", fmt.Sprintf("%s", result),
+				"error", err,
+			)
+			if s.MustSucceed {
+				a.l.Error("A critical Seeker failed", "message", err)
+				return err
+			}
+		}
+	}
+	return nil
 }

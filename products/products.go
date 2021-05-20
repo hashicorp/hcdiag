@@ -1,7 +1,7 @@
 package products
 
 import (
-	s "github.com/hashicorp/host-diagnostics/seeker"
+	"github.com/hashicorp/host-diagnostics/seeker"
 )
 
 const (
@@ -27,23 +27,24 @@ func NewConfigAllEnabled () Config {
 	}
 }
 
-// GetSeekers provides product Seekers for gathering info.
-func GetSeekers(cfg Config) (seekers []*s.Seeker, err error) {
-	if cfg.Consul{
-		seekers = append(seekers, ConsulSeekers(cfg.TmpDir)...)
+// GetSeekers returns a map of enabled products to their seekers.
+func GetSeekers(cfg Config) (map[string][]*seeker.Seeker, error) {
+	sets := make(map[string][]*seeker.Seeker)
+	if cfg.Consul {
+		sets["consul"] = ConsulSeekers(cfg.TmpDir)
 	}
 	if cfg.Nomad {
-		seekers = append(seekers, NomadSeekers(cfg.TmpDir)...)
+		sets["nomad"] = NomadSeekers(cfg.TmpDir)
 	}
 	if cfg.TFE {
-		seekers = append(seekers, TFESeekers(cfg.TmpDir)...)
+		sets["TFE"] = TFESeekers(cfg.TmpDir)
 	}
 	if cfg.Vault {
 		vaultSeekers, err := VaultSeekers(cfg.TmpDir)
 		if err != nil {
-			return seekers, err
+			return sets, err
 		}
-		seekers = append(seekers, vaultSeekers...)
+		sets["vault"] = vaultSeekers
 	}
-	return seekers, err
+	return sets, nil
 }
