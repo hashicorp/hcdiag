@@ -20,20 +20,21 @@ import (
 
 // TODO: NewDryAgent() to simplify all the 'if d.Dryrun's ??
 
-func NewAgent(logger hclog.Logger) Agent {
+func NewAgent(logger hclog.Logger) *Agent {
 	a := Agent{
 		l:       logger,
 		results: make(map[string]interface{}),
 	}
 	a.start()
-	return a
+	return &a
 }
 
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
 	l       hclog.Logger
-	seekers []*seeker.Seeker
+	seekers map[string][]*seeker.Seeker
 	results map[string]interface{}
+	resultsLock sync.RWMutex
 	tmpDir  string
 
 	Manifest
@@ -128,7 +129,7 @@ func (a *Agent) CreateTemp() error {
 }
 
 // Cleanup attempts to delete the contents of the tempdir when the diagnostics are done.
-func (a Agent) Cleanup() (err error) {
+func (a *Agent) Cleanup() (err error) {
 	if a.Dryrun {
 		return nil
 	}
@@ -143,7 +144,7 @@ func (a Agent) Cleanup() (err error) {
 }
 
 // CopyIncludes copies user-specified files over to our tempdir.
-func (a Agent) CopyIncludes() (err error) {
+func (a *Agent) CopyIncludes() (err error) {
 	if len(a.Includes) == 0 {
 		return nil
 	}
@@ -276,7 +277,7 @@ func (a *Agent) WriteOutput() (err error) {
 
 // NOTE(mkcp): Not sure if this state -> config fn should be in the agent package. I don't love that it's behavior
 //  on the agent struct
-func (a Agent) productConfig() products.Config {
+func (a *Agent) productConfig() products.Config {
 	if a.AllProducts {
 		config := products.NewConfigAllEnabled()
 		config.TmpDir = a.tmpDir
@@ -302,8 +303,10 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) error {
 		}
 
 		a.l.Info("running", "seeker", s.Identifier)
-		a.results[s.Identifier] = s
 		result, err := s.Run()
+		a.resultsLock.Lock()
+		a.results[s.Identifier] = s
+		a.resultsLock.Unlock()
 		if err != nil {
 			a.NumErrors++
 			a.l.Warn("result",
