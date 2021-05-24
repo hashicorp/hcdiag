@@ -34,7 +34,7 @@ type Agent struct {
 	l       hclog.Logger
 	seekers map[string][]*seeker.Seeker
 	results map[string]interface{}
-	resultsLock sync.RWMutex
+	resultsLock sync.Mutex
 	tmpDir  string
 
 	Manifest
@@ -189,17 +189,6 @@ func (a *Agent) GetSeekers() error {
 	return nil
 }
 
-// TODO(mkcp): probably put this in the seekers package
-// TODO(mkcp): test this !
-// countSeekers iterates over each set of seekers and sums their counts
-func countSeekers(sets map[string][]*seeker.Seeker) int {
-	var count int
-	for _, s := range sets  {
-		count = count + len(s)
-	}
-	return count
-}
-
 // RunSeekers executes all seekers for this run.
 func (a *Agent) RunSeekers() error {
 	var err error
@@ -317,4 +306,16 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) error {
 		}
 	}
 	return nil
+}
+
+
+// TODO(mkcp): probably put this in the seekers package
+// TODO(mkcp): test this !
+// countSeekers iterates over each set of seekers and sums their counts
+func countSeekers(sets map[string][]*seeker.Seeker) int {
+	var count int
+	for _, s := range sets  {
+		count = count + len(s)
+	}
+	return count
 }

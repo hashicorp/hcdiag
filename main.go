@@ -14,11 +14,11 @@ func main() {
 //  orchestrated by main
 func realMain() (returnCode int) {
 	var err error
+	// TODO(mkcp): rename to support-bundler
 	l := configureLogging("host-diagnostics")
 	a := NewAgent(l)
 	if err := a.ParseFlags(os.Args[1:]); err != nil {
-		// TODO(mkcp): Is there a specific return code for failing to parse input, or invalid input provided?
-		return 1
+		return 64
 	}
 	if err := a.CreateTemp(); err != nil {
 		// TODO(mkcp):  Is there a specific return code for failing to create a (temp) directory?
