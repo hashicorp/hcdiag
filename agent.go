@@ -92,11 +92,7 @@ func (f *Flags) ParseFlags(args []string) error {
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
 	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
 
-	err := flags.Parse(args)
-	if err != nil {
-		return err
-	}
-	return nil
+	return flags.Parse(args)
 }
 
 // FIXME(mkcp): I'm not sure there's a lot of value for wrapping this assignment in a point receiver method. It's simpler
