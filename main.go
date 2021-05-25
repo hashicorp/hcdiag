@@ -10,47 +10,22 @@ func main() {
 	os.Exit(realMain())
 }
 
-// NOTE(mkcp): Most of the steps after parsing flags feel like they ought to be executed by an agent's run fn, not
-//  orchestrated by main
 func realMain() (returnCode int) {
-	var err error
 	// TODO(mkcp): rename to support-bundler
 	l := configureLogging("host-diagnostics")
 	a := NewAgent(l)
+
+	// Parse inputs
 	if err := a.ParseFlags(os.Args[1:]); err != nil {
 		return 64
 	}
-	if err := a.CreateTemp(); err != nil {
-		// TODO(mkcp):  Is there a specific return code for failing to create a (temp) directory?
+
+	// Run the agent
+	// NOTE(mkcp): Are there semantic returnCodes we can send based on the agent failure?
+	errs := a.Run()
+	if 0 < len(errs) {
 		return 1
 	}
-
-	// defer to ensure output-writing and cleanup even if there are seeker errors,
-	// but update 'rc' so we can still exit non-0 on errors.
-	// Cleanup being defer'd first makes it run last.
-	defer func() {
-		if err = a.Cleanup(); err != nil {
-			returnCode = 1
-		}
-	}()
-	defer func() {
-		if err = a.WriteOutput(); err != nil {
-			returnCode = 1
-		}
-	}()
-
-	err = a.CopyIncludes()
-	if err != nil {
-		l.Error("Failed to copyIncludes", "message", err)
-		return 1
-	}
-
-	err = a.RunSeekers()
-	if err != nil {
-		l.Error("Failed running Seekers", "message", err)
-		return 1
-	}
-
 	return 0
 }
 
