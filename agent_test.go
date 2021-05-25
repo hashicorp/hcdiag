@@ -152,7 +152,7 @@ func TestGetSeekers(t *testing.T) {
 	a := Agent{l: hclog.Default()}
 
 	// no product Seekers, host only
-	err := a.GetSeekers()
+	err := a.GetProductSeekers()
 	if err != nil {
 		t.Errorf("Error getting seekers: #{err}")
 	}
@@ -162,7 +162,7 @@ func TestGetSeekers(t *testing.T) {
 
 	// include a product's Seekers
 	a.Nomad = true
-	err = a.GetSeekers() // replaces a.seekers, does not append.
+	err = a.GetProductSeekers() // replaces a.seekers, does not append.
 	if err != nil {
 		t.Errorf("Error getting seekers: #{err}")
 	}
@@ -177,7 +177,7 @@ func TestRunSeekers(t *testing.T) {
 		results: make(map[string]interface{}),
 	}
 
-	if err := a.RunSeekers(); err != nil {
+	if err := a.RunProducts(); err != nil {
 		t.Errorf("Error running Seekers: %s", err)
 	}
 	r, ok := a.results["host"]
