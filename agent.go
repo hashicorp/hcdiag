@@ -97,6 +97,34 @@ func (f *Flags) ParseFlags(args []string) error {
 	return flags.Parse(args)
 }
 
+
+// Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
+//  and finally cleanup after ourselves. Each step must run, so we collect any errors up and return them to the caller.
+func (a *Agent) Run() []error {
+	var errs []error
+	if errTemp := a.CreateTemp(); errTemp != nil {
+		errs = append(errs, errTemp)
+		a.l.Error("Failed to create temp directory", "error", errTemp)
+	}
+	if errCopy := a.CopyIncludes(); errCopy != nil {
+		errs = append(errs, errCopy)
+		a.l.Error("Failed copying includes", "error", errCopy)
+	}
+	if errSeeker := a.RunSeekers(); errSeeker != nil {
+		errs = append(errs, errSeeker)
+		a.l.Error("Failed running Seekers", "error", errSeeker)
+	}
+	if errWrite := a.WriteOutput(); errWrite != nil {
+		errs = append(errs, errWrite)
+		a.l.Error("Failed running output", "error", errWrite)
+	}
+	if errCleanup := a.Cleanup(); errCleanup != nil {
+		errs = append(errs, errCleanup)
+		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
+	}
+	return errs
+}
+
 // FIXME(mkcp): I'm not sure there's a lot of value for wrapping this assignment in a point receiver method. It's simpler
 //  to set this value directly without mutating it when we create the agent.
 func (a *Agent) start() {
