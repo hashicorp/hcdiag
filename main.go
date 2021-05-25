@@ -21,7 +21,7 @@ func realMain() (returnCode int) {
 	}
 
 	// Run the agent
-	// NOTE(mkcp): Are there semantic returnCodes we can send based on the agent failure?
+	// NOTE(mkcp): Are there semantic returnCodes we can send based on the agent error type?
 	errs := a.Run()
 	if 0 < len(errs) {
 		return 1

@@ -25,7 +25,6 @@ func NewAgent(logger hclog.Logger) *Agent {
 		l:       logger,
 		results: make(map[string]interface{}),
 	}
-	a.start()
 	return &a
 }
 
@@ -100,6 +99,9 @@ func (f *Flags) ParseFlags(args []string) error {
 //  and finally cleanup after ourselves. Each step must run, so we collect any errors up and return them to the caller.
 func (a *Agent) Run() []error {
 	var errs []error
+
+	// Begin execution, copy files and run seekers
+	a.Start = time.Now()
 	if errTemp := a.CreateTemp(); errTemp != nil {
 		errs = append(errs, errTemp)
 		a.l.Error("Failed to create temp directory", "error", errTemp)
@@ -112,6 +114,9 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errSeeker)
 		a.l.Error("Failed running Seekers", "error", errSeeker)
 	}
+
+	// Execution finished, write our results and cleanup
+	a.recordEnd()
 	if errWrite := a.WriteOutput(); errWrite != nil {
 		errs = append(errs, errWrite)
 		a.l.Error("Failed running output", "error", errWrite)
@@ -123,13 +128,8 @@ func (a *Agent) Run() []error {
 	return errs
 }
 
-// FIXME(mkcp): I'm not sure there's a lot of value for wrapping this assignment in a point receiver method. It's simpler
-//  to set this value directly without mutating it when we create the agent.
-func (a *Agent) start() {
-	a.Start = time.Now()
-}
-
-func (a *Agent) end() {
+func (a *Agent) recordEnd() {
+	// Record the end timestamps so we can write it out.
 	a.End = time.Now()
 	a.Duration = fmt.Sprintf("%v seconds", a.End.Sub(a.Start).Seconds())
 }
@@ -251,8 +251,6 @@ func (a *Agent) RunSeekers() error {
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
 func (a *Agent) WriteOutput() (err error) {
-	a.end()
-
 	if a.Dryrun {
 		return nil
 	}
