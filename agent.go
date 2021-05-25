@@ -98,7 +98,7 @@ func (f *Flags) ParseFlags(args []string) error {
 
 
 // Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
-//  and finally cleanup after ourselves. Each step must run, so we collect any errors up and return them to the caller.
+// and finally cleanup after ourselves. Each step must run, so we collect any errors up and return them to the caller.
 func (a *Agent) Run() []error {
 	var errs []error
 
