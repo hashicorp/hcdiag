@@ -174,13 +174,14 @@ func TestGetSeekers(t *testing.T) {
 func TestRunSeekers(t *testing.T) {
 	a := Agent{
 		l:       hclog.Default(),
-		results: make(map[string]interface{}),
+		results: make(map[string]map[string]interface{}),
 	}
 
 	if err := a.RunSeekers(); err != nil {
 		t.Errorf("Error running Seekers: %s", err)
 	}
-	r, ok := a.results["host"]
+	// FIXME(mkcp): This host-host key is super awkward, need to work on the host some more
+	r, ok := a.results["host"]["host"]
 	if !ok {
 		t.Error("Expected 'host' in results, not found")
 	}
@@ -192,7 +193,7 @@ func TestRunSeekers(t *testing.T) {
 func TestWriteOutput(t *testing.T) {
 	a := Agent{
 		l:       hclog.Default(),
-		results: make(map[string]interface{}),
+		results: make(map[string]map[string]interface{}),
 	}
 
 	testOut := "test.tar.gz"

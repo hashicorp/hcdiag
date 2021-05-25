@@ -23,7 +23,7 @@ import (
 func NewAgent(logger hclog.Logger) *Agent {
 	a := Agent{
 		l:       logger,
-		results: make(map[string]interface{}),
+		results: make(map[string]map[string]interface{}),
 	}
 	return &a
 }
@@ -32,7 +32,7 @@ func NewAgent(logger hclog.Logger) *Agent {
 type Agent struct {
 	l       hclog.Logger
 	seekers map[string][]*seeker.Seeker
-	results map[string]interface{}
+	results map[string]map[string]interface{}
 	resultsLock sync.Mutex
 	tmpDir  string
 
@@ -236,7 +236,11 @@ func (a *Agent) RunSeekers() error {
 	// NOTE(mkcp): Create a closure around runSet and wg.Done(). This is a little complex, but saves us duplication
 	//   in the product loop. Maybe we extract this to a private package function in the future?
 	f := func(wg *sync.WaitGroup, product string, set []*seeker.Seeker) {
-		if err := a.runSet(product, set); err != nil {
+		result, err := a.runSet(product, set)
+		a.resultsLock.Lock()
+		a.results[product] = result
+		a.resultsLock.Unlock()
+		if err != nil {
 			a.l.Error("Error running seekers", "product", product, "error", err)
 		}
 		wg.Done()
@@ -321,8 +325,9 @@ func (a *Agent) productConfig() products.Config {
 
 // runSeekers runs the seekers
 // TODO(mkcp): Should we return a collection of errors from here?
-func (a *Agent) runSet(product string, set []*seeker.Seeker) error {
+func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interface{}, error) {
 	a.l.Info("Running seekers for", "product", product)
+	results := make(map[string]interface{})
 	for _, s := range set  {
 		if a.Dryrun {
 			a.l.Info("would run", "seeker", s.Identifier)
@@ -331,9 +336,7 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) error {
 
 		a.l.Info("running", "seeker", s.Identifier)
 		result, err := s.Run()
-		a.resultsLock.Lock()
-		a.results[s.Identifier] = s
-		a.resultsLock.Unlock()
+		results[s.Identifier] = s
 		if err != nil {
 			a.NumErrors++
 			a.l.Warn("result",
@@ -343,11 +346,11 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) error {
 			)
 			if s.MustSucceed {
 				a.l.Error("A critical Seeker failed", "message", err)
-				return err
+				return results, err
 			}
 		}
 	}
-	return nil
+	return results, nil
 }
 
 
