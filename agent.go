@@ -112,9 +112,9 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errCopy)
 		a.l.Error("Failed copying includes", "error", errCopy)
 	}
-	if errSeeker := a.RunSeekers(); errSeeker != nil {
-		errs = append(errs, errSeeker)
-		a.l.Error("Failed running Seekers", "error", errSeeker)
+	if errProduct := a.RunProducts(); errProduct != nil {
+		errs = append(errs, errProduct)
+		a.l.Error("Failed running Products", "error", errProduct)
 	}
 
 	// Execution finished, write our results and cleanup
@@ -201,7 +201,7 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // GetSeekers maps the products we'll inspect into the seekers that we'll execute.
-func (a *Agent) GetSeekers() error {
+func (a *Agent) GetProductSeekers() error {
 	var err error
 	config := a.productConfig()
 
@@ -212,12 +212,11 @@ func (a *Agent) GetSeekers() error {
 	if err != nil {
 		return err
 	}
-
-	a.l.Debug("Gathering Seekers")
+	a.l.Debug("Gathering Products' Seekers")
 	var seekers map[string][]*seeker.Seeker
 	seekers, err = products.GetSeekers(config)
 	if err != nil {
-		a.l.Error("products.GetSeekers", "error", err)
+		a.l.Error("agent.GetProductSeekers", "error", err)
 		return err
 	}
 	seekers["host"] = hostdiag.GetSeekers(a.OS)
@@ -228,11 +227,11 @@ func (a *Agent) GetSeekers() error {
 }
 
 // RunSeekers executes all seekers for this run.
-func (a *Agent) RunSeekers() error {
+func (a *Agent) RunProducts() error {
 	var err error
 	a.l.Info("Gathering diagnostics")
 
-	err = a.GetSeekers()
+	err = a.GetProductSeekers()
 	if err != nil {
 		return err
 	}
