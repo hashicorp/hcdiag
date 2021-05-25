@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,9 +17,7 @@ import (
 
 func TestNewAgent(t *testing.T) {
 	a := NewAgent(hclog.Default())
-	if a.Start.IsZero() {
-		t.Errorf("Start value still zero after start(): %s", a.Start)
-	}
+	assert.NotNil(t, a)
 }
 
 func TestParsesFlags(t *testing.T) {
