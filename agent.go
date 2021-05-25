@@ -161,7 +161,7 @@ func (a *Agent) CopyIncludes() (err error) {
 			continue
 		}
 		a.l.Debug("getting Copier", "path", f)
-		s := seeker.NewCopier(f, dest, false)
+		s := seeker.NewCopier(f, dest)
 		if _, err = s.Run(); err != nil {
 			return err
 		}
@@ -185,7 +185,7 @@ func (a *Agent) GetSeekers() error {
 	seekers["host"] = hostdiag.GetSeekers(a.OS)
 	// TODO(mkcp): We should probably write a merge function to union seeker sets together under their keys
 	a.seekers = seekers
-	a.NumSeekers = countSeekers(seekers)
+	a.NumSeekers = countInSets(seekers)
 	return nil
 }
 
@@ -299,20 +299,14 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) error {
 				"result", fmt.Sprintf("%s", result),
 				"error", err,
 			)
-			if s.MustSucceed {
-				a.l.Error("A critical Seeker failed", "message", err)
-				return err
-			}
 		}
 	}
 	return nil
 }
 
-
-// TODO(mkcp): probably put this in the seekers package
 // TODO(mkcp): test this !
-// countSeekers iterates over each set of seekers and sums their counts
-func countSeekers(sets map[string][]*seeker.Seeker) int {
+// count iterates over each set of seekers and sums their counts
+func countInSets(sets map[string][]*seeker.Seeker) int {
 	var count int
 	for _, s := range sets  {
 		count = count + len(s)

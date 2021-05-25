@@ -8,27 +8,32 @@ import (
 	s "github.com/hashicorp/host-diagnostics/seeker"
 )
 
+const (
+	NomadClientCheck = "nomad version"
+	NomadAgentCheck  = "nomad server members"
+)
+
 // NomadSeekers seek information about Nomad.
 func NomadSeekers(tmpDir string) []*s.Seeker {
 	api := apiclients.NewNomadAPI()
 
 	seekers := []*s.Seeker{
-		s.NewCommander("nomad version", "string", true),
-		s.NewCommander("nomad node status -json", "json", false),
-		s.NewCommander("nomad agent-info -json", "json", false),
-		s.NewCommander(fmt.Sprintf("nomad operator debug -output=%s -duration=%ds", tmpDir, DefaultDebugSeconds), "string", false),
+		s.NewCommander("nomad version", "string"),
+		s.NewCommander("nomad node status -json", "json"),
+		s.NewCommander("nomad agent-info -json", "json"),
+		s.NewCommander(fmt.Sprintf("nomad operator debug -output=%s -duration=%ds", tmpDir, DefaultDebugSeconds), "string"),
 		// s.NewCommander("nomad operator metrics", "json", false), // TODO: uncomment (it's very verbose, so not noisy during testing)
 
-		s.NewHTTPer(api, "/v1/agent/members", false),
-		s.NewHTTPer(api, "/v1/plugins?type=csi", false),
-		s.NewHTTPer(api, "/v1/operator/autopilot/configuration", false),
-		s.NewHTTPer(api, "/v1/operator/raft/configuration", false),
+		s.NewHTTPer(api, "/v1/agent/members"),
+		s.NewHTTPer(api, "/v1/plugins?type=csi"),
+		s.NewHTTPer(api, "/v1/operator/autopilot/configuration"),
+		s.NewHTTPer(api, "/v1/operator/raft/configuration"),
 	}
 
 	// try to detect log location to copy
 	if logPath, err := apiclients.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs/nomad")
-		logCopier := s.NewCopier(logPath, dest, false)
+		logCopier := s.NewCopier(logPath, dest)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
 

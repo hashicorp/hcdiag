@@ -15,7 +15,6 @@ type Seeker struct {
 	Identifier  string      `json:"-"`
 	Result      interface{} `json:"result"`
 	ErrString   string      `json:"error"` // this simplifies json marshaling
-	MustSucceed bool        `json:"must_succeed"`
 	Error       error       `json:"-"`
 }
 

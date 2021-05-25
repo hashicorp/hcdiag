@@ -7,12 +7,11 @@ import (
 )
 
 // NewCopier provides a Seeker for copying files to temp dir based on a filter.
-func NewCopier(path string, destDir string, mustSucceed bool) *Seeker {
+func NewCopier(path string, destDir string) *Seeker {
 	sourceDir, filter := util.SplitFilepath(path)
 	return &Seeker{
 		Identifier:  "copy " + sourceDir + "/" + filter,
 		Runner:      Copier{SourceDir: sourceDir, Filter: filter, DestDir: destDir},
-		MustSucceed: mustSucceed,
 	}
 }
 

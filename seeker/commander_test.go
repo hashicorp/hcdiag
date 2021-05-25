@@ -14,9 +14,8 @@ func TestNewCommander(t *testing.T) {
 			Command: "echo hello",
 			format:  "string",
 		},
-		MustSucceed: false,
 	}
-	actual := NewCommander("echo hello", "string", false)
+	actual := NewCommander("echo hello", "string")
 	// TODO: proper comparison, my IDE doesn't like this: "avoid using reflect.DeepEqual with errors"
 	if !reflect.DeepEqual(&expect, actual) {
 		t.Errorf("expected (%#v) does not match actual (%#v)", expect, actual)
@@ -24,7 +23,7 @@ func TestNewCommander(t *testing.T) {
 }
 
 func TestCommanderRunString(t *testing.T) {
-	c := NewCommander("echo hello", "string", false)
+	c := NewCommander("echo hello", "string")
 	out, err := c.Run()
 
 	if err != nil {
@@ -40,7 +39,7 @@ func TestCommanderRunJSON(t *testing.T) {
 	expect := make(map[string]interface{})
 	expect["hi"] = "there"
 
-	c := NewCommander("echo {\"hi\":\"there\"}", "json", false)
+	c := NewCommander("echo {\"hi\":\"there\"}", "json")
 	actual, err := c.Run()
 
 	if err != nil {
@@ -52,7 +51,7 @@ func TestCommanderRunJSON(t *testing.T) {
 }
 
 func TestCommanderRunError(t *testing.T) {
-	c := NewCommander("bogus-command", "string", false)
+	c := NewCommander("bogus-command", "string")
 	out, err := c.Run()
 
 	if out != nil {
@@ -65,7 +64,7 @@ func TestCommanderRunError(t *testing.T) {
 }
 
 func TestCommanderBadJSON(t *testing.T) {
-	c := NewCommander(`echo {"bad",}`, "json", false)
+	c := NewCommander(`echo {"bad",}`, "json")
 	_, err := c.Run()
 	if !strings.Contains(fmt.Sprintf("%s", err), "json.Unmarshal error") {
 		t.Errorf("got unexpected error instead of json.Unmarshal: \"%s\"", err)

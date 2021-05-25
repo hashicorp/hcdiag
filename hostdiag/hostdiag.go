@@ -39,7 +39,7 @@ func (hs *HostSeeker) Run() (interface{}, error) {
 	results := make(map[string]interface{})
 
 	// TODO: not throw away errors?  separate Seekers for each?  sheesh.
-	results["uname"], _ = s.NewCommander("uname -v", "string", false).Run()
+	results["uname"], _ = s.NewCommander("uname -v", "string").Run()
 	results["host"], _ = GetHost()
 	results["memory"], _ = GetMemory()
 	results["disk"], _ = GetDisk()
