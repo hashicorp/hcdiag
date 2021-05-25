@@ -25,7 +25,6 @@ func NewAgent(logger hclog.Logger) *Agent {
 		l:       logger,
 		results: make(map[string]interface{}),
 	}
-	a.start()
 	return &a
 }
 
@@ -97,13 +96,42 @@ func (f *Flags) ParseFlags(args []string) error {
 	return flags.Parse(args)
 }
 
-// FIXME(mkcp): I'm not sure there's a lot of value for wrapping this assignment in a point receiver method. It's simpler
-//  to set this value directly without mutating it when we create the agent.
-func (a *Agent) start() {
+
+// Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
+// and finally cleanup after ourselves. Each step must run, so we collect any errors up and return them to the caller.
+func (a *Agent) Run() []error {
+	var errs []error
+
+	// Begin execution, copy files and run seekers
 	a.Start = time.Now()
+	if errTemp := a.CreateTemp(); errTemp != nil {
+		errs = append(errs, errTemp)
+		a.l.Error("Failed to create temp directory", "error", errTemp)
+	}
+	if errCopy := a.CopyIncludes(); errCopy != nil {
+		errs = append(errs, errCopy)
+		a.l.Error("Failed copying includes", "error", errCopy)
+	}
+	if errSeeker := a.RunSeekers(); errSeeker != nil {
+		errs = append(errs, errSeeker)
+		a.l.Error("Failed running Seekers", "error", errSeeker)
+	}
+
+	// Execution finished, write our results and cleanup
+	a.recordEnd()
+	if errWrite := a.WriteOutput(); errWrite != nil {
+		errs = append(errs, errWrite)
+		a.l.Error("Failed running output", "error", errWrite)
+	}
+	if errCleanup := a.Cleanup(); errCleanup != nil {
+		errs = append(errs, errCleanup)
+		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
+	}
+	return errs
 }
 
-func (a *Agent) end() {
+func (a *Agent) recordEnd() {
+	// Record the end timestamps so we can write it out.
 	a.End = time.Now()
 	a.Duration = fmt.Sprintf("%v seconds", a.End.Sub(a.Start).Seconds())
 }
@@ -239,8 +267,6 @@ func (a *Agent) RunSeekers() error {
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
 func (a *Agent) WriteOutput() (err error) {
-	a.end()
-
 	if a.Dryrun {
 		return nil
 	}
