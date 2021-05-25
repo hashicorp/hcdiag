@@ -54,6 +54,7 @@ type Manifest struct {
 // Flags stores our CLI inputs.
 type Flags struct {
 	OS          string
+	Serial      bool
 	Dryrun      bool
 	Consul      bool
 	Nomad       bool
@@ -83,14 +84,15 @@ func (s CSVFlag) Set(v string) error {
 func (f *Flags) ParseFlags(args []string) error {
 	flags := flag.NewFlagSet("hc-bundler", flag.ExitOnError)
 	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
-	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
+	flags.BoolVar(&f.Serial, "serial", false, "Run products in sequence rather than concurrently")
 	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
 	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
 	flags.BoolVar(&f.TFE, "tfe", false, "Run Terraform Enterprise diagnostics")
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
 	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
-	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
+	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
 	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
+	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
 
 	return flags.Parse(args)
 }
@@ -199,17 +201,31 @@ func (a *Agent) RunSeekers() error {
 		return err
 	}
 
+	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
 	wg.Add(len(a.seekers))
+
+	// NOTE(mkcp): Create a closure around runSet and wg.Done(). This is a little complex, but saves us duplication
+	//   in the product loop. Maybe we extract this to a private package function in the future?
+	f := func(wg *sync.WaitGroup, product string, set []*seeker.Seeker) {
+		if err := a.runSet(product, set); err != nil {
+			a.l.Error("Error running seekers", "product", product, "error", err)
+		}
+		wg.Done()
+	}
 	for product, set := range a.seekers {
+		// Run synchronously if -serial is enabled
+		if a.Serial {
+			f(&wg, product, set)
+			continue
+		}
+		// Run concurrently by default
 		go func(product string, set []*seeker.Seeker) {
-			if err := a.runSet(product, set); err != nil {
-				//
-				a.l.Error("Error running seekers", "product", product, "error", err)
-			}
-			wg.Done()
+			f(&wg, product, set)
 		}(product, set)
 	}
+
+	// Wait until every product is finished
 	wg.Wait()
 
 	// TODO(kit): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
@@ -278,7 +294,7 @@ func (a *Agent) productConfig() products.Config {
 }
 
 // runSeekers runs the seekers
-// TODO(mkcp): Should we return a colleciton of errors from here?
+// TODO(mkcp): Should we return a collection of errors from here?
 func (a *Agent) runSet(product string, set []*seeker.Seeker) error {
 	a.l.Info("Running seekers for", "product", product)
 	for _, s := range set  {
