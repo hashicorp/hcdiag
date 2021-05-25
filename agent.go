@@ -248,9 +248,7 @@ func (a *Agent) RunSeekers() error {
 			continue
 		}
 		// Run concurrently by default
-		go func(product string, set []*seeker.Seeker) {
-			f(&wg, product, set)
-		}(product, set)
+		go f(&wg, product, set)
 	}
 
 	// Wait until every product is finished
