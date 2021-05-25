@@ -1,7 +1,7 @@
 package products
 
 import (
-	s "github.com/hashicorp/host-diagnostics/seeker"
+	"github.com/hashicorp/host-diagnostics/seeker"
 )
 
 const (
@@ -9,24 +9,42 @@ const (
 	DefaultIntervalSeconds = 5
 )
 
-// TODO(kit): refactor later, see https://hashicorp.atlassian.net/browse/ENGSYS-1199
-// GetSeekers provides product Seekers for gathering info.
-func GetSeekers(consul bool, nomad bool, tfe bool, vault bool, all bool, tmpDir string) (seekers []*s.Seeker, err error) {
-	if consul || all {
-		seekers = append(seekers, ConsulSeekers(tmpDir)...)
+type Config struct {
+	Consul bool
+	Nomad  bool
+	TFE    bool
+	Vault  bool
+	TmpDir string
+}
+
+// ConfigAllEnabled returns a Config struct with every product enabled
+func NewConfigAllEnabled () Config {
+	return Config{
+		Consul: true,
+		Nomad:  true,
+		TFE:    true,
+		Vault:  true,
 	}
-	if nomad || all {
-		seekers = append(seekers, NomadSeekers(tmpDir)...)
+}
+
+// GetSeekers returns a map of enabled products to their seekers.
+func GetSeekers(cfg Config) (map[string][]*seeker.Seeker, error) {
+	sets := make(map[string][]*seeker.Seeker)
+	if cfg.Consul {
+		sets["consul"] = ConsulSeekers(cfg.TmpDir)
 	}
-	if tfe || all {
-		seekers = append(seekers, TFESeekers(tmpDir)...)
+	if cfg.Nomad {
+		sets["nomad"] = NomadSeekers(cfg.TmpDir)
 	}
-	if vault || all {
-		vaultSeekers, err := VaultSeekers(tmpDir)
+	if cfg.TFE {
+		sets["terraform-ent"] = TFESeekers(cfg.TmpDir)
+	}
+	if cfg.Vault {
+		vaultSeekers, err := VaultSeekers(cfg.TmpDir)
 		if err != nil {
-			return seekers, err
+			return sets, err
 		}
-		seekers = append(seekers, vaultSeekers...)
+		sets["vault"] = vaultSeekers
 	}
-	return seekers, err
+	return sets, nil
 }

@@ -13,6 +13,12 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
+func GetSeekers(os string) []*s.Seeker{
+	return []*s.Seeker{
+		NewHostSeeker(os),
+	}
+}
+
 func NewHostSeeker(os string) *s.Seeker {
 	if os == "auto" {
 		os = runtime.GOOS
