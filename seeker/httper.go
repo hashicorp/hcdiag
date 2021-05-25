@@ -6,7 +6,7 @@ import (
 
 func NewHTTPer(client *apiclients.APIClient, path string, mustSucceed bool) *Seeker {
 	return &Seeker{
-		Identifier: client.Product + " " + path,
+		Identifier: "GET" + " " + path,
 		Runner: HTTPer{
 			Client: client,
 			Path:   path,
