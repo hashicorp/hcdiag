@@ -205,6 +205,14 @@ func (a *Agent) GetSeekers() error {
 	var err error
 	config := a.productConfig()
 
+	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
+	// users to send us incomplete diagnostics.
+	a.l.Info("Checking product availability")
+	err = products.CheckAvailable(config)
+	if err != nil {
+		return err
+	}
+
 	a.l.Debug("Gathering Seekers")
 	var seekers map[string][]*seeker.Seeker
 	seekers, err = products.GetSeekers(config)
