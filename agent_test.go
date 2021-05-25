@@ -48,12 +48,8 @@ func TestStartAndEnd(t *testing.T) {
 		t.Errorf("Duration value not an empty string before start(): %s", a.Duration)
 	}
 
-	// after start() and end(), the above values should be set to something
-	a.start()
-	if a.Start.IsZero() {
-		t.Errorf("Start value still zero after start(): %s", a.Start)
-	}
-	a.end()
+	// recordEnd should set a time and calculate a duration
+	a.recordEnd()
 	if a.End.IsZero() {
 		t.Errorf("End value still zero after start(): %s", a.Start)
 	}
