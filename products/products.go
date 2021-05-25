@@ -37,7 +37,7 @@ func GetSeekers(cfg Config) (map[string][]*seeker.Seeker, error) {
 		sets["nomad"] = NomadSeekers(cfg.TmpDir)
 	}
 	if cfg.TFE {
-		sets["terraform-enterprise"] = TFESeekers(cfg.TmpDir)
+		sets["terraform-ent"] = TFESeekers(cfg.TmpDir)
 	}
 	if cfg.Vault {
 		vaultSeekers, err := VaultSeekers(cfg.TmpDir)
