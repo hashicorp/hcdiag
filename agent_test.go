@@ -197,9 +197,12 @@ func TestWriteOutput(t *testing.T) {
 
 	testOut := "test.tar.gz"
 	a.Outfile = testOut // ordinarily would come from ParseFlags() but see bottom of this file...
-	a.CreateTemp()
-	// defer a.Cleanup()
-	// defer os.Remove(testOut)
+	err := a.CreateTemp()
+	if err != nil {
+		t.Errorf("failed to create tempDir, err=%s", err)
+	}
+	defer a.Cleanup()
+	defer os.Remove(testOut)
 
 	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
