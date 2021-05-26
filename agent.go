@@ -222,7 +222,7 @@ func (a *Agent) GetProductSeekers() error {
 	seekers["host"] = hostdiag.GetSeekers(a.OS)
 	// TODO(mkcp): We should probably write a merge function to union seeker sets together under their keys
 	a.seekers = seekers
-	a.NumSeekers = countInSets(seekers)
+	a.NumSeekers = seeker.CountInSets(seekers)
 	return nil
 }
 
@@ -352,14 +352,4 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 		}
 	}
 	return results, nil
-}
-
-// TODO(mkcp): test this !
-// count iterates over each set of seekers and sums their counts
-func countInSets(sets map[string][]*seeker.Seeker) int {
-	var count int
-	for _, s := range sets  {
-		count = count + len(s)
-	}
-	return count
 }
