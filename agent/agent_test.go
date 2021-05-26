@@ -174,14 +174,18 @@ func TestWriteOutput(t *testing.T) {
 		results: make(map[string]map[string]interface{}),
 	}
 
-	testOut := "test.tar.gz"
-	a.Config.Outfile = testOut // ordinarily would come from ParseFlags() but see bottom of this file...
+	testOut := "test"
+	a.Config.Outfile = testOut
 	err := a.CreateTemp()
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}
 	defer a.Cleanup()
-	defer os.Remove(testOut)
+	// NOTE(mkcp): Wrap this in a closure with a reference to the agent so we get the post-test value rather than a
+	//  snapshot of the value when the defer is declared.
+	defer func(a *Agent) {
+		os.Remove(a.resultsDest)
+	}(&a)
 
 	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
@@ -190,10 +194,11 @@ func TestWriteOutput(t *testing.T) {
 	expectFiles := []string{
 		filepath.Join(a.tmpDir, "Manifest.json"),
 		filepath.Join(a.tmpDir, "Results.json"),
-		testOut,
+		a.resultsDest,
 	}
 	for _, f := range expectFiles {
 		_, err := os.Stat(f)
 		assert.NoError(t, err, "Missing file %s", f)
 	}
+
 }

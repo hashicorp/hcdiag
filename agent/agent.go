@@ -34,6 +34,9 @@ type Agent struct {
 	seekers     map[string][]*seeker.Seeker
 	results     map[string]map[string]interface{}
 	resultsLock sync.Mutex
+	// FIXME(mkcp): This is a bit of a side-effecty hack so we can check the exact file w/ timestamp when we're testing.
+	//  I'd rather we replace this in the future with a WriteOut function that takes its dest as an argument.
+	resultsDest string
 	tmpDir      string
 	Start       time.Time `json:"started_at"`
 	End         time.Time `json:"ended_at"`
@@ -265,8 +268,8 @@ func (a *Agent) WriteOutput() (err error) {
 	a.l.Info("Created Manifest.json file", "dest", mFile)
 
 	// Archive and compress outputs
-	dest := strings.Join([]string{a.DestinationFileName(), ".tar.gz"}, "")
-	err = util.TarGz(a.tmpDir, dest)
+	a.resultsDest = strings.Join([]string{a.DestinationFileName(), ".tar.gz"}, "")
+	err = util.TarGz(a.tmpDir, a.resultsDest)
 	if err != nil {
 		a.l.Error("util.TarGz", "error", err)
 		return err
