@@ -56,7 +56,8 @@ type Config struct {
 }
 
 // Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
-// and finally cleanup after ourselves. Each step must run, so we collect any errors up and return them to the caller.
+// and finally cleanup after ourselves. We collect any errors up and return them to the caller, only returning when done
+// or if the error warrants ending the run early.
 func (a *Agent) Run() []error {
 	var errs []error
 
@@ -74,6 +75,8 @@ func (a *Agent) Run() []error {
 	if errProductChecks := a.CheckProducts(pConfig); errProductChecks != nil {
 		errs = append(errs, errProductChecks)
 		a.l.Error("Failed Product Checks", "error", errProductChecks)
+		// End the run if any product fails its checks.
+		return errs
 	}
 	if errProduct := a.RunProducts(pConfig); errProduct != nil {
 		errs = append(errs, errProduct)
