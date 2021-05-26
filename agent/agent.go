@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -264,7 +265,8 @@ func (a *Agent) WriteOutput() (err error) {
 	a.l.Info("Created Manifest.json file", "dest", mFile)
 
 	// Archive and compress outputs
-	err = util.TarGz(a.tmpDir, a.Config.Outfile)
+	dest := strings.Join([]string{a.DestinationFileName(), ".tar.gz"}, "")
+	err = util.TarGz(a.tmpDir, dest)
 	if err != nil {
 		a.l.Error("util.TarGz", "error", err)
 		return err
@@ -311,4 +313,10 @@ func (a *Agent) productConfig() products.Config {
 		Vault:  a.Config.Vault,
 		TmpDir: a.tmpDir,
 	}
+}
+
+// DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
+func (a *Agent) DestinationFileName() string {
+	timestamp := time.Now().Format(time.RFC3339)
+	return fmt.Sprintf("%s-%s", a.Config.Outfile, timestamp)
 }
