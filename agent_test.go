@@ -190,6 +190,7 @@ func TestRunProducts(t *testing.T) {
 }
 
 func TestWriteOutput(t *testing.T) {
+	t.Skip("Skipping TestWriteOutput")
 	a := Agent{
 		l:       hclog.Default(),
 		results: make(map[string]interface{}),
