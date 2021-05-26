@@ -148,7 +148,7 @@ func TestCopyIncludes(t *testing.T) {
 	}
 }
 
-func TestGetSeekers(t *testing.T) {
+func TestGetProductSeekers(t *testing.T) {
 	a := Agent{l: hclog.Default()}
 
 	// no product Seekers, host only
@@ -171,7 +171,7 @@ func TestGetSeekers(t *testing.T) {
 	}
 }
 
-func TestRunSeekers(t *testing.T) {
+func TestRunProducts(t *testing.T) {
 	a := Agent{
 		l:       hclog.Default(),
 		results: make(map[string]interface{}),
