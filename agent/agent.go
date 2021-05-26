@@ -1,13 +1,11 @@
-package main
+package agent
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -20,82 +18,42 @@ import (
 
 // TODO: NewDryAgent() to simplify all the 'if d.Dryrun's ??
 
-func NewAgent(logger hclog.Logger) *Agent {
+func NewAgent(config Config, logger hclog.Logger) *Agent {
 	a := Agent{
 		l:       logger,
 		results: make(map[string]map[string]interface{}),
+		Config:  config,
 	}
 	return &a
 }
 
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
-	l       hclog.Logger
-	seekers map[string][]*seeker.Seeker
-	results map[string]map[string]interface{}
+	l           hclog.Logger
+	seekers     map[string][]*seeker.Seeker
+	results     map[string]map[string]interface{}
 	resultsLock sync.Mutex
-	tmpDir  string
-
-	Manifest
+	tmpDir      string
+	Start       time.Time `json:"started_at"`
+	End         time.Time `json:"ended_at"`
+	Duration    string    `json:"duration"`
+	NumErrors   int       `json:"num_errors"`
+	NumSeekers  int       `json:"num_seekers"`
+	Config      Config    `json:"configuration"`
 }
 
-// Manifest holds the metadata for a diagnostics run for rendering later.
-type Manifest struct {
-	Start      time.Time
-	End        time.Time
-	Duration   string
-	NumErrors  int
-	NumSeekers int
-
-	Flags
+type Config struct {
+	OS          string   `json:"operating_system"`
+	Serial      bool     `json:"serial"`
+	Dryrun      bool     `json:"dry_run"`
+	Consul      bool     `json:"consul_enabled"`
+	Nomad       bool     `json:"nomad_enabled"`
+	TFE         bool     `json:"terraform_ent_enabled"`
+	Vault       bool     `json:"vault_enabled"`
+	AllProducts bool     `json:"all_products_enabled"`
+	Includes    []string `json:"includes"`
+	Outfile     string   `json:"out_file"`
 }
-
-// Flags stores our CLI inputs.
-type Flags struct {
-	OS          string
-	Serial      bool
-	Dryrun      bool
-	Consul      bool
-	Nomad       bool
-	TFE         bool
-	Vault       bool
-	AllProducts bool
-	Includes    []string
-	Outfile     string
-}
-
-type CSVFlag struct {
-	Values *[]string
-}
-
-func (s CSVFlag) String() string {
-	if s.Values == nil {
-		return ""
-	}
-	return strings.Join(*s.Values, ",")
-}
-
-func (s CSVFlag) Set(v string) error {
-	*s.Values = strings.Split(v, ",")
-	return nil
-}
-
-func (f *Flags) ParseFlags(args []string) error {
-	flags := flag.NewFlagSet("hc-bundler", flag.ExitOnError)
-	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
-	flags.BoolVar(&f.Serial, "serial", false, "Run products in sequence rather than concurrently")
-	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
-	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
-	flags.BoolVar(&f.TFE, "tfe", false, "Run Terraform Enterprise diagnostics")
-	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
-	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
-	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
-	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
-	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
-
-	return flags.Parse(args)
-}
-
 
 // Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
 // and finally cleanup after ourselves. Each step must run, so we collect any errors up and return them to the caller.
@@ -112,9 +70,14 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errCopy)
 		a.l.Error("Failed copying includes", "error", errCopy)
 	}
-	if errSeeker := a.RunSeekers(); errSeeker != nil {
-		errs = append(errs, errSeeker)
-		a.l.Error("Failed running Seekers", "error", errSeeker)
+	pConfig := a.productConfig()
+	if errProductChecks := a.CheckProducts(pConfig); errProductChecks != nil {
+		errs = append(errs, errProductChecks)
+		a.l.Error("Failed Product Checks", "error", errProductChecks)
+	}
+	if errProduct := a.RunProducts(pConfig); errProduct != nil {
+		errs = append(errs, errProduct)
+		a.l.Error("Failed running Products", "error", errProduct)
 	}
 
 	// Execution finished, write our results and cleanup
@@ -130,6 +93,13 @@ func (a *Agent) Run() []error {
 	return errs
 }
 
+func (a *Agent) CheckProducts(config products.Config) error {
+	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
+	// users to send us incomplete diagnostics.
+	a.l.Info("Checking product availability")
+	return products.CheckAvailable(config)
+}
+
 func (a *Agent) recordEnd() {
 	// Record the end timestamps so we can write it out.
 	a.End = time.Now()
@@ -137,10 +107,10 @@ func (a *Agent) recordEnd() {
 }
 
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
-//   artifact.
+//  artifact.
 func (a *Agent) CreateTemp() error {
 	var err error
-	if a.Dryrun {
+	if a.Config.Dryrun {
 		return nil
 	}
 
@@ -156,7 +126,7 @@ func (a *Agent) CreateTemp() error {
 
 // Cleanup attempts to delete the contents of the tempdir when the diagnostics are done.
 func (a *Agent) Cleanup() (err error) {
-	if a.Dryrun {
+	if a.Config.Dryrun {
 		return nil
 	}
 
@@ -171,27 +141,27 @@ func (a *Agent) Cleanup() (err error) {
 
 // CopyIncludes copies user-specified files over to our tempdir.
 func (a *Agent) CopyIncludes() (err error) {
-	if len(a.Includes) == 0 {
+	if len(a.Config.Includes) == 0 {
 		return nil
 	}
 
 	a.l.Info("Copying includes")
 
 	dest := filepath.Join(a.tmpDir, "includes")
-	if !a.Dryrun {
+	if !a.Config.Dryrun {
 		err = os.MkdirAll(dest, 0755)
 		if err != nil {
 			return err
 		}
 	}
 
-	for _, f := range a.Includes {
-		if a.Dryrun {
+	for _, f := range a.Config.Includes {
+		if a.Config.Dryrun {
 			a.l.Info("Would include", "from", f)
 			continue
 		}
 		a.l.Debug("getting Copier", "path", f)
-		s := seeker.NewCopier(f, dest, false)
+		s := seeker.NewCopier(f, dest)
 		if _, err = s.Run(); err != nil {
 			return err
 		}
@@ -201,30 +171,27 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // GetSeekers maps the products we'll inspect into the seekers that we'll execute.
-func (a *Agent) GetSeekers() error {
+func (a *Agent) GetProductSeekers(config products.Config) error {
+	a.l.Debug("Gathering Products' Seekers")
 	var err error
-	config := a.productConfig()
-
-	a.l.Debug("Gathering Seekers")
 	var seekers map[string][]*seeker.Seeker
 	seekers, err = products.GetSeekers(config)
 	if err != nil {
-		a.l.Error("products.GetSeekers", "error", err)
+		a.l.Error("agent.GetProductSeekers", "error", err)
 		return err
 	}
-	seekers["host"] = hostdiag.GetSeekers(a.OS)
-	// TODO(mkcp): We should probably write a merge function to union seeker sets together under their keys
+	seekers["host"] = hostdiag.GetSeekers(a.Config.OS)
 	a.seekers = seekers
-	a.NumSeekers = countSeekers(seekers)
+	a.NumSeekers = seeker.CountInSets(seekers)
 	return nil
 }
 
 // RunSeekers executes all seekers for this run.
-func (a *Agent) RunSeekers() error {
+func (a *Agent) RunProducts(config products.Config) error {
 	var err error
 	a.l.Info("Gathering diagnostics")
 
-	err = a.GetSeekers()
+	err = a.GetProductSeekers(config)
 	if err != nil {
 		return err
 	}
@@ -247,7 +214,7 @@ func (a *Agent) RunSeekers() error {
 	}
 	for product, set := range a.seekers {
 		// Run synchronously if -serial is enabled
-		if a.Serial {
+		if a.Config.Serial {
 			f(&wg, product, set)
 			continue
 		}
@@ -269,7 +236,7 @@ func (a *Agent) RunSeekers() error {
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
 func (a *Agent) WriteOutput() (err error) {
-	if a.Dryrun {
+	if a.Config.Dryrun {
 		return nil
 	}
 
@@ -294,31 +261,14 @@ func (a *Agent) WriteOutput() (err error) {
 	a.l.Info("Created Manifest.json file", "dest", mFile)
 
 	// Archive and compress outputs
-	err = util.TarGz(a.tmpDir, a.Outfile)
+	err = util.TarGz(a.tmpDir, a.Config.Outfile)
 	if err != nil {
 		a.l.Error("util.TarGz", "error", err)
 		return err
 	}
-	a.l.Info("Compressed and archived output file", "dest", a.Outfile)
+	a.l.Info("Compressed and archived output file", "dest", a.Config.Outfile)
 
 	return nil
-}
-
-// NOTE(mkcp): Not sure if this state -> config fn should be in the agent package. I don't love that it's behavior
-//  on the agent struct
-func (a *Agent) productConfig() products.Config {
-	if a.AllProducts {
-		config := products.NewConfigAllEnabled()
-		config.TmpDir = a.tmpDir
-		return config
-	}
-	return products.Config{
-		Consul: a.Consul,
-		Nomad:  a.Nomad,
-		TFE:    a.TFE,
-		Vault:  a.Vault,
-		TmpDir: a.tmpDir,
-	}
 }
 
 // runSeekers runs the seekers
@@ -327,7 +277,7 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 	a.l.Info("Running seekers for", "product", product)
 	results := make(map[string]interface{})
 	for _, s := range set  {
-		if a.Dryrun {
+		if a.Config.Dryrun {
 			a.l.Info("would run", "seeker", s.Identifier)
 			continue
 		}
@@ -342,23 +292,20 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 				"result", fmt.Sprintf("%s", result),
 				"error", err,
 			)
-			if s.MustSucceed {
-				a.l.Error("A critical Seeker failed", "message", err)
-				return results, err
-			}
 		}
 	}
 	return results, nil
 }
 
-
-// TODO(mkcp): probably put this in the seekers package
-// TODO(mkcp): test this !
-// countSeekers iterates over each set of seekers and sums their counts
-func countSeekers(sets map[string][]*seeker.Seeker) int {
-	var count int
-	for _, s := range sets  {
-		count = count + len(s)
+func (a *Agent) productConfig() products.Config {
+	if a.Config.AllProducts{
+		return products.NewConfigAllEnabled()
 	}
-	return count
+	return products.Config{
+		Consul: a.Config.Consul,
+		Nomad:  a.Config.Nomad,
+		TFE:    a.Config.TFE,
+		Vault:  a.Config.Vault,
+		TmpDir: a.tmpDir,
+	}
 }

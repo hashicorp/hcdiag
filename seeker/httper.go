@@ -4,14 +4,13 @@ import (
 	"github.com/hashicorp/host-diagnostics/apiclients"
 )
 
-func NewHTTPer(client *apiclients.APIClient, path string, mustSucceed bool) *Seeker {
+func NewHTTPer(client *apiclients.APIClient, path string) *Seeker {
 	return &Seeker{
 		Identifier: "GET" + " " + path,
 		Runner: HTTPer{
 			Client: client,
 			Path:   path,
 		},
-		MustSucceed: mustSucceed,
 	}
 }
 

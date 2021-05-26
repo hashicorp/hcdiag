@@ -9,11 +9,10 @@ import (
 )
 
 // NewCommander provides a Seeker for running shell commands.
-func NewCommander(command string, format string, mustSucceed bool) *Seeker {
+func NewCommander(command string, format string) *Seeker {
 	return &Seeker{
 		Identifier:  command,
 		Runner:      Commander{Command: command, format: format},
-		MustSucceed: mustSucceed,
 	}
 }
 

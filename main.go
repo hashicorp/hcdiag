@@ -1,9 +1,12 @@
 package main
 
 import (
+	"flag"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/host-diagnostics/agent"
 )
 
 func main() {
@@ -11,14 +14,30 @@ func main() {
 }
 
 func realMain() (returnCode int) {
-	// TODO(mkcp): rename to support-bundler
-	l := configureLogging("host-diagnostics")
-	a := NewAgent(l)
-
 	// Parse inputs
-	if err := a.ParseFlags(os.Args[1:]); err != nil {
+	flags := Flags{}
+	err := flags.parseFlags(os.Args[1:])
+	if err != nil {
 		return 64
 	}
+
+	// Convert our flag input to agent configuration
+	cfg := agent.Config{
+		OS:          flags.OS,
+		Serial:      flags.Serial,
+		Dryrun:      flags.Dryrun,
+		Consul:      flags.Consul,
+		Nomad:       flags.Nomad,
+		TFE:         flags.TFE,
+		Vault:       flags.Vault,
+		AllProducts: flags.AllProducts,
+		Includes:    flags.Includes,
+		Outfile:     flags.Outfile,
+	}
+
+	// TODO(mkcp): rename to support-bundler
+	l := configureLogging("host-diagnostics")
+	a := agent.NewAgent(cfg, l)
 
 	// Run the agent
 	// NOTE(mkcp): Are there semantic returnCodes we can send based on the agent error type?
@@ -44,4 +63,50 @@ func configureLogging(loggerName string) hclog.Logger {
 		}
 	}
 	return hclog.Default()
+}
+
+// Flags stores our CLI inputs.
+type Flags struct {
+	OS          string
+	Serial      bool
+	Dryrun      bool
+	Consul      bool
+	Nomad       bool
+	TFE         bool
+	Vault       bool
+	AllProducts bool
+	Includes    []string
+	Outfile     string
+}
+
+type CSVFlag struct {
+	Values *[]string
+}
+
+func (s CSVFlag) String() string {
+	if s.Values == nil {
+		return ""
+	}
+	return strings.Join(*s.Values, ",")
+}
+
+func (s CSVFlag) Set(v string) error {
+	*s.Values = strings.Split(v, ",")
+	return nil
+}
+
+func (f *Flags) parseFlags(args []string) error {
+	flags := flag.NewFlagSet("hc-bundler", flag.ExitOnError)
+	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
+	flags.BoolVar(&f.Serial, "serial", false, "Run products in sequence rather than concurrently")
+	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
+	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
+	flags.BoolVar(&f.TFE, "tfe", false, "Run Terraform Enterprise diagnostics")
+	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
+	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
+	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
+	flags.StringVar(&f.Outfile, "outfile", "support.tar.gz", "Output file name")
+	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
+
+	return flags.Parse(args)
 }
