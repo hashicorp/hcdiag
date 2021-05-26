@@ -18,7 +18,7 @@ type Config struct {
 	TmpDir string
 }
 
-// ConfigAllEnabled returns a Config struct with every product enabled
+// NewConfigAllEnabled returns a Config struct with every product enabled
 func NewConfigAllEnabled () Config {
 	return Config{
 		Consul: true,
