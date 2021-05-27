@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -34,9 +33,6 @@ type Agent struct {
 	seekers     map[string][]*seeker.Seeker
 	results     map[string]map[string]interface{}
 	resultsLock sync.Mutex
-	// FIXME(mkcp): This is a bit of a side-effecty hack so we can check the exact file w/ timestamp when we're testing.
-	//  I'd rather we replace this in the future with a WriteOut function that takes its dest as an argument.
-	resultsDest string
 	tmpDir      string
 	Start       time.Time `json:"started_at"`
 	End         time.Time `json:"ended_at"`
@@ -89,7 +85,7 @@ func (a *Agent) Run() []error {
 
 	// Execution finished, write our results and cleanup
 	a.recordEnd()
-	if errWrite := a.WriteOutput(); errWrite != nil {
+	if errWrite := a.WriteOutput(a.DestinationFileName()); errWrite != nil {
 		errs = append(errs, errWrite)
 		a.l.Error("Failed running output", "error", errWrite)
 	}
@@ -242,7 +238,7 @@ func (a *Agent) RunProducts(config products.Config) error {
 }
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
-func (a *Agent) WriteOutput() (err error) {
+func (a *Agent) WriteOutput(resultsDest string) (err error) {
 	if a.Config.Dryrun {
 		return nil
 	}
@@ -268,8 +264,8 @@ func (a *Agent) WriteOutput() (err error) {
 	a.l.Info("Created Manifest.json file", "dest", mFile)
 
 	// Archive and compress outputs
-	a.resultsDest = strings.Join([]string{a.DestinationFileName(), ".tar.gz"}, "")
-	err = util.TarGz(a.tmpDir, a.resultsDest)
+	// a.resultsDest = strings.Join([]string{a.DestinationFileName(), ".tar.gz"}, "")
+	err = util.TarGz(a.tmpDir, resultsDest)
 	if err != nil {
 		a.l.Error("util.TarGz", "error", err)
 		return err
@@ -284,7 +280,7 @@ func (a *Agent) WriteOutput() (err error) {
 func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interface{}, error) {
 	a.l.Info("Running seekers for", "product", product)
 	results := make(map[string]interface{})
-	for _, s := range set  {
+	for _, s := range set {
 		if a.Config.Dryrun {
 			a.l.Info("would run", "seeker", s.Identifier)
 			continue
@@ -306,7 +302,7 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 }
 
 func (a *Agent) productConfig() products.Config {
-	if a.Config.AllProducts{
+	if a.Config.AllProducts {
 		return products.NewConfigAllEnabled()
 	}
 	return products.Config{
@@ -321,5 +317,5 @@ func (a *Agent) productConfig() products.Config {
 // DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
 func (a *Agent) DestinationFileName() string {
 	timestamp := time.Now().Format(time.RFC3339)
-	return fmt.Sprintf("%s-%s", a.Config.Outfile, timestamp)
+	return fmt.Sprintf("%s-%s.tar.gz", a.Config.Outfile, timestamp)
 }
