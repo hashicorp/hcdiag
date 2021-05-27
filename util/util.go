@@ -5,12 +5,12 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/hashicorp/go-hclog"
+	"time"
 )
 
 // TarGz accepts a source directory and destination file name to archive and compress files.
@@ -130,8 +130,29 @@ func SplitFilepath(path string) (dir string, file string) {
 	return dir, file
 }
 
-// FilterWalk accepts a source directory and filter to return a list of matching files.
-func FilterWalk(srcDir, filter string) ([]string, error) {
+func isInRange(path string, from, to time.Time) (bool, error) {
+	// When we only get a `from` value, the `to` is now
+	if to.IsZero() {
+		to = time.Now()
+	}
+	// Default true if no range provided
+	if !from.IsZero() {
+		info, err := os.Stat(path)
+		if err != nil {
+			return false, err
+		}
+		mod := info.ModTime()
+		// Has our file been modified within the time range?
+		if mod.After(to) && mod.Before(from) {
+			return true, nil
+		}
+		return false, nil
+	}
+	return true, nil
+}
+
+// FilterWalk accepts a source directory, filter string, and from and to Times to return a list of matching files.
+func FilterWalk(srcDir, filter string, from, to time.Time) ([]string, error) {
 	var fileMatches []string
 
 	// Filter the files
@@ -140,12 +161,17 @@ func FilterWalk(srcDir, filter string) ([]string, error) {
 			return err
 		}
 
-		// Check for files that match the filter
+		// Check for files that match the filter then check for time matches
 		match, err := filepath.Match(filter, filepath.Base(path))
 		if match && err == nil {
-			fileMatches = append(fileMatches, path)
+			inRange, err := isInRange(path, from, to)
+			if err != nil {
+				return err
+			}
+			if inRange {
+				fileMatches = append(fileMatches, path)
+			}
 		}
-
 		return err
 	})
 	if err != nil {

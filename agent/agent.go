@@ -18,15 +18,6 @@ import (
 
 // TODO: NewDryAgent() to simplify all the 'if d.Dryrun's ??
 
-func NewAgent(config Config, logger hclog.Logger) *Agent {
-	a := Agent{
-		l:       logger,
-		results: make(map[string]map[string]interface{}),
-		Config:  config,
-	}
-	return &a
-}
-
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
 	l           hclog.Logger
@@ -43,16 +34,27 @@ type Agent struct {
 }
 
 type Config struct {
-	OS          string   `json:"operating_system"`
-	Serial      bool     `json:"serial"`
-	Dryrun      bool     `json:"dry_run"`
-	Consul      bool     `json:"consul_enabled"`
-	Nomad       bool     `json:"nomad_enabled"`
-	TFE         bool     `json:"terraform_ent_enabled"`
-	Vault       bool     `json:"vault_enabled"`
-	AllProducts bool     `json:"all_products_enabled"`
-	Includes    []string `json:"includes"`
-	Outfile     string   `json:"out_file"`
+	OS          string    `json:"operating_system"`
+	Serial      bool      `json:"serial"`
+	Dryrun      bool      `json:"dry_run"`
+	Consul      bool      `json:"consul_enabled"`
+	Nomad       bool      `json:"nomad_enabled"`
+	TFE         bool      `json:"terraform_ent_enabled"`
+	Vault       bool      `json:"vault_enabled"`
+	AllProducts bool      `json:"all_products_enabled"`
+	Includes    []string  `json:"includes"`
+	IncludeFrom time.Time `json:"include_from"`
+	IncludeTo   time.Time `json:"include_to"`
+	Outfile     string    `json:"out_file"`
+}
+
+func NewAgent(config Config, logger hclog.Logger) *Agent {
+	a := Agent{
+		l:       logger,
+		results: make(map[string]map[string]interface{}),
+		Config:  config,
+	}
+	return &a
 }
 
 // Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
@@ -164,7 +166,7 @@ func (a *Agent) CopyIncludes() (err error) {
 			continue
 		}
 		a.l.Debug("getting Copier", "path", f)
-		s := seeker.NewCopier(f, dest)
+		s := seeker.NewCopier(f, dest, a.Config.IncludeFrom, a.Config.IncludeTo)
 		if _, err = s.Run(); err != nil {
 			return err
 		}
@@ -301,8 +303,8 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 }
 
 func (a *Agent) productConfig() products.Config {
-	if a.Config.AllProducts {
-		return products.NewConfigAllEnabled()
+	if a.Config.AllProducts{
+		return products.NewConfigAllEnabled(a.tmpDir, a.Config.IncludeFrom, a.Config.IncludeTo)
 	}
 	return products.Config{
 		Consul: a.Config.Consul,
@@ -310,6 +312,8 @@ func (a *Agent) productConfig() products.Config {
 		TFE:    a.Config.TFE,
 		Vault:  a.Config.Vault,
 		TmpDir: a.tmpDir,
+		From:   a.Config.IncludeFrom,
+		To:     a.Config.IncludeTo,
 	}
 }
 

@@ -3,16 +3,17 @@ package products
 import (
 	"github.com/hashicorp/host-diagnostics/apiclients"
 	s "github.com/hashicorp/host-diagnostics/seeker"
+	"time"
 )
 
 // TFESeekers seek information about Terraform Enterprise/Cloud.
-func TFESeekers(tmpDir string) []*s.Seeker {
+func TFESeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	api := apiclients.NewTFEAPI()
 
 	return []*s.Seeker{
 		s.NewCommander("replicatedctl support-bundle", "string"),
 
-		s.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", tmpDir),
+		s.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", tmpDir, from, to),
 
 		s.NewHTTPer(api, "/api/v2/admin/cost-estimation-settings"),
 		s.NewHTTPer(api, "/api/v2/admin/customization-settings"),

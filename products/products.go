@@ -3,6 +3,7 @@ package products
 import (
 	"fmt"
 	"github.com/hashicorp/host-diagnostics/seeker"
+	"time"
 )
 
 const (
@@ -16,15 +17,20 @@ type Config struct {
 	TFE    bool
 	Vault  bool
 	TmpDir string
+	From   time.Time
+	To     time.Time
 }
 
 // NewConfigAllEnabled returns a Config struct with every product enabled
-func NewConfigAllEnabled () Config {
+func NewConfigAllEnabled (tmpDir string, from, to time.Time) Config {
 	return Config{
 		Consul: true,
 		Nomad:  true,
 		TFE:    true,
 		Vault:  true,
+		TmpDir: tmpDir,
+		From:   from,
+		To:     to,
 	}
 }
 
@@ -58,16 +64,16 @@ func CheckAvailable(cfg Config) error {
 func GetSeekers(cfg Config) (map[string][]*seeker.Seeker, error) {
 	sets := make(map[string][]*seeker.Seeker)
 	if cfg.Consul {
-		sets["consul"] = ConsulSeekers(cfg.TmpDir)
+		sets["consul"] = ConsulSeekers(cfg.TmpDir, cfg.From, cfg.To)
 	}
 	if cfg.Nomad {
-		sets["nomad"] = NomadSeekers(cfg.TmpDir)
+		sets["nomad"] = NomadSeekers(cfg.TmpDir, cfg.From, cfg.To)
 	}
 	if cfg.TFE {
-		sets["terraform-ent"] = TFESeekers(cfg.TmpDir)
+		sets["terraform-ent"] = TFESeekers(cfg.TmpDir, cfg.From, cfg.To)
 	}
 	if cfg.Vault {
-		vaultSeekers, err := VaultSeekers(cfg.TmpDir)
+		vaultSeekers, err := VaultSeekers(cfg.TmpDir, cfg.From, cfg.To)
 		if err != nil {
 			return sets, err
 		}
