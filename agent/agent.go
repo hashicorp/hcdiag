@@ -264,7 +264,6 @@ func (a *Agent) WriteOutput(resultsDest string) (err error) {
 	a.l.Info("Created Manifest.json file", "dest", mFile)
 
 	// Archive and compress outputs
-	// a.resultsDest = strings.Join([]string{a.DestinationFileName(), ".tar.gz"}, "")
 	err = util.TarGz(a.tmpDir, resultsDest)
 	if err != nil {
 		a.l.Error("util.TarGz", "error", err)
