@@ -183,11 +183,7 @@ func TestWriteOutput(t *testing.T) {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}
 	defer a.Cleanup()
-	// NOTE(mkcp): Wrap this in a closure with a reference to the agent so we get the post-test value rather than a
-	//  snapshot of the value when the defer is declared.
-	defer func(a *Agent) {
-		os.Remove(resultsDest)
-	}(&a)
+	defer os.Remove(resultsDest)
 
 	if err := a.WriteOutput(resultsDest); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
