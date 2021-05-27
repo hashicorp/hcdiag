@@ -303,7 +303,7 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 }
 
 func (a *Agent) productConfig() products.Config {
-	if a.Config.AllProducts{
+	if a.Config.AllProducts {
 		return products.NewConfigAllEnabled(a.tmpDir, a.Config.IncludeFrom, a.Config.IncludeTo)
 	}
 	return products.Config{
