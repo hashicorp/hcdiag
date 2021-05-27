@@ -1,10 +1,11 @@
 package agent
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/host-diagnostics/seeker"
@@ -97,7 +98,7 @@ func TestCopyIncludes(t *testing.T) {
 			"expect": filepath.Join("dir1", "file.1"),
 		},
 		{
-			"path":   filepath.Join("dir2","file*"),
+			"path":   filepath.Join("dir2", "file*"),
 			"expect": filepath.Join("dir2", "file.2"),
 		},
 	}
@@ -174,26 +175,28 @@ func TestWriteOutput(t *testing.T) {
 		results: make(map[string]map[string]interface{}),
 	}
 
-	testOut := "test.tar.gz"
-	a.Config.Outfile = testOut // ordinarily would come from ParseFlags() but see bottom of this file...
+	testOut := "test"
+	resultsDest := a.DestinationFileName()
+	a.Config.Outfile = testOut
 	err := a.CreateTemp()
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}
 	defer a.Cleanup()
-	defer os.Remove(testOut)
+	defer os.Remove(resultsDest)
 
-	if err := a.WriteOutput(); err != nil {
+	if err := a.WriteOutput(resultsDest); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
 	}
 
 	expectFiles := []string{
 		filepath.Join(a.tmpDir, "Manifest.json"),
 		filepath.Join(a.tmpDir, "Results.json"),
-		testOut,
+		resultsDest,
 	}
 	for _, f := range expectFiles {
 		_, err := os.Stat(f)
 		assert.NoError(t, err, "Missing file %s", f)
 	}
+
 }
