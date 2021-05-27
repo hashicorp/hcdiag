@@ -1,10 +1,11 @@
 package agent
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/host-diagnostics/seeker"
@@ -97,7 +98,7 @@ func TestCopyIncludes(t *testing.T) {
 			"expect": filepath.Join("dir1", "file.1"),
 		},
 		{
-			"path":   filepath.Join("dir2","file*"),
+			"path":   filepath.Join("dir2", "file*"),
 			"expect": filepath.Join("dir2", "file.2"),
 		},
 	}
@@ -175,6 +176,7 @@ func TestWriteOutput(t *testing.T) {
 	}
 
 	testOut := "test"
+	resultsDest := a.DestinationFileName()
 	a.Config.Outfile = testOut
 	err := a.CreateTemp()
 	if err != nil {
@@ -184,17 +186,17 @@ func TestWriteOutput(t *testing.T) {
 	// NOTE(mkcp): Wrap this in a closure with a reference to the agent so we get the post-test value rather than a
 	//  snapshot of the value when the defer is declared.
 	defer func(a *Agent) {
-		os.Remove(a.resultsDest)
+		os.Remove(resultsDest)
 	}(&a)
 
-	if err := a.WriteOutput(); err != nil {
+	if err := a.WriteOutput(resultsDest); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
 	}
 
 	expectFiles := []string{
 		filepath.Join(a.tmpDir, "Manifest.json"),
 		filepath.Join(a.tmpDir, "Results.json"),
-		a.resultsDest,
+		resultsDest,
 	}
 	for _, f := range expectFiles {
 		_, err := os.Stat(f)
