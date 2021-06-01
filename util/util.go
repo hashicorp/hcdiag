@@ -5,12 +5,12 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/hashicorp/go-hclog"
+	"time"
 )
 
 // TarGz accepts a source directory and destination file name to archive and compress files.
@@ -130,8 +130,40 @@ func SplitFilepath(path string) (dir string, file string) {
 	return dir, file
 }
 
-// FilterWalk accepts a source directory and filter to return a list of matching files.
-func FilterWalk(srcDir, filter string) ([]string, error) {
+func isInRange(path string, from, to time.Time) (bool, error) {
+	// Default true if no range provided
+	if !from.IsZero() {
+		return true, nil
+	}
+
+	// When we only get a `from` value, the `to` is now
+	if to.IsZero() {
+		to = time.Now()
+	}
+
+	// Grab our file's last modified time
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	mod := info.ModTime()
+
+	// Check if the mod time is outside of the range
+	// NOTE(mkcp): Can this "after" check bug if there's no range provided, so we set it to "now" and the file is being
+	//  updated in parallel? Would that mean the modified time becomes _after_ Now even though we've statted the file?
+	//  There's no read snapshot happening of the file... maybe we should completely cut the "after" check if it's zero
+	//  rather than fudging a range check with a defaulted value. That's more semantic anyway, considering we're not
+	//  checking a range at all, but just a before
+	if mod.Before(from) || mod.After(to) {
+		return false, nil
+	}
+
+	// Yes, it's in the range!
+	return true, nil
+}
+
+// FilterWalk accepts a source directory, filter string, and from and to Times to return a list of matching files.
+func FilterWalk(srcDir, filter string, from, to time.Time) ([]string, error) {
 	var fileMatches []string
 
 	// Filter the files
@@ -140,12 +172,17 @@ func FilterWalk(srcDir, filter string) ([]string, error) {
 			return err
 		}
 
-		// Check for files that match the filter
+		// Check for files that match the filter then check for time matches
 		match, err := filepath.Match(filter, filepath.Base(path))
 		if match && err == nil {
-			fileMatches = append(fileMatches, path)
+			inRange, err := isInRange(path, from, to)
+			if err != nil {
+				return err
+			}
+			if inRange {
+				fileMatches = append(fileMatches, path)
+			}
 		}
-
 		return err
 	})
 	if err != nil {

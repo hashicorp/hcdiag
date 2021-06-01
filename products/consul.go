@@ -3,6 +3,7 @@ package products
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/host-diagnostics/apiclients"
 	s "github.com/hashicorp/host-diagnostics/seeker"
@@ -14,7 +15,7 @@ const (
 )
 
 // ConsulSeekers seek information about Consul.
-func ConsulSeekers(tmpDir string) []*s.Seeker {
+func ConsulSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	api := apiclients.NewConsulAPI()
 
 	seekers := []*s.Seeker{
@@ -33,7 +34,7 @@ func ConsulSeekers(tmpDir string) []*s.Seeker {
 	// try to detect log location to copy
 	if logPath, err := apiclients.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs/consul")
-		logCopier := s.NewCopier(logPath, dest)
+		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
 

@@ -3,6 +3,7 @@ package products
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/host-diagnostics/apiclients"
 	s "github.com/hashicorp/host-diagnostics/seeker"
@@ -14,7 +15,7 @@ const (
 )
 
 // VaultSeekers seek information about Vault.
-func VaultSeekers(tmpDir string) ([]*s.Seeker, error) {
+func VaultSeekers(tmpDir string, from, to time.Time) ([]*s.Seeker, error) {
 	api, err := apiclients.NewVaultAPI()
 	if err != nil {
 		return nil, err
@@ -32,7 +33,7 @@ func VaultSeekers(tmpDir string) ([]*s.Seeker, error) {
 	// try to detect log location to copy
 	if logPath, err := apiclients.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs/vault")
-		logCopier := s.NewCopier(logPath, dest)
+		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
 

@@ -88,3 +88,28 @@ func TestFindInInterface(t *testing.T) {
 		t.Errorf("Expected 'cool_value'; got: '%s'", str)
 	}
 }
+
+// FIXME(mkcp): Ensure the from and to works with modtime properly
+// func TestFilterWalk(t *testing.T) {
+// 	testTable := []struct{
+// 		filter   string
+// 		from     time.Time
+// 		to       time.Time
+// 		testCase func(t *testing.T)
+// 		expect   what
+// 	}{
+// 		{
+// 			filter: "",
+// 			from:   time.Time{},
+// 			to:     time.Time{},
+// 		},
+// 	}
+// 	for _, test := range testTable {
+// 		path := GenerateAbsolutePathIntoTestsResources()
+// 		res, err := FilterWalk(path, test.filter, test.from, test.to)
+// 		assert.NoError(t, err)
+// 		for _, r := range res {
+// 			expect == r
+// 		}
+// 	}
+// }

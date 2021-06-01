@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/host-diagnostics/agent"
@@ -22,7 +23,9 @@ func realMain() (returnCode int) {
 	}
 
 	// Convert our flag input to agent configuration
-	cfg := agent.Config{
+	from := time.Unix(0, flags.IncludeSince.Nanoseconds())
+	to   := time.Now()
+	cfg  := agent.Config{
 		OS:          flags.OS,
 		Serial:      flags.Serial,
 		Dryrun:      flags.Dryrun,
@@ -32,6 +35,8 @@ func realMain() (returnCode int) {
 		Vault:       flags.Vault,
 		AllProducts: flags.AllProducts,
 		Includes:    flags.Includes,
+		IncludeFrom: from,
+		IncludeTo:   to,
 		Outfile:     flags.Outfile,
 	}
 
@@ -67,16 +72,17 @@ func configureLogging(loggerName string) hclog.Logger {
 
 // Flags stores our CLI inputs.
 type Flags struct {
-	OS          string
-	Serial      bool
-	Dryrun      bool
-	Consul      bool
-	Nomad       bool
-	TFE         bool
-	Vault       bool
-	AllProducts bool
-	Includes    []string
-	Outfile     string
+	OS           string
+	Serial       bool
+	Dryrun       bool
+	Consul       bool
+	Nomad        bool
+	TFE          bool
+	Vault        bool
+	AllProducts  bool
+	Includes     []string
+	IncludeSince time.Duration
+	Outfile      string
 }
 
 type CSVFlag struct {
@@ -106,6 +112,7 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
 	flags.StringVar(&f.Outfile, "outfile", "support", "Output file name")
+	flags.DurationVar(&f.IncludeSince, "include-since", time.Duration(0), "How long ago until now to include files. Examples: 72h, 25m, 45s, 120h1m90s")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
 
 	return flags.Parse(args)
