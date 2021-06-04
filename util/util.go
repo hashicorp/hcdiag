@@ -130,36 +130,20 @@ func SplitFilepath(path string) (dir string, file string) {
 	return dir, file
 }
 
-func isInRange(path string, from, to time.Time) (bool, error) {
+func isInRange(fileTime, from, to time.Time) bool {
 	// Default true if no range provided
 	if !from.IsZero() {
-		return true, nil
+		return true
 	}
 
-	// When we only get a `from` value, the `to` is now
+	// Check if the end of our range is zero
 	if to.IsZero() {
-		to = time.Now()
+		// Anything after the start time is valid
+		return fileTime.After(from)
 	}
 
-	// Grab our file's last modified time
-	info, err := os.Stat(path)
-	if err != nil {
-		return false, err
-	}
-	mod := info.ModTime()
-
-	// Check if the mod time is outside of the range
-	// NOTE(mkcp): Can this "after" check bug if there's no range provided, so we set it to "now" and the file is being
-	//  updated in parallel? Would that mean the modified time becomes _after_ Now even though we've statted the file?
-	//  There's no read snapshot happening of the file... maybe we should completely cut the "after" check if it's zero
-	//  rather than fudging a range check with a defaulted value. That's more semantic anyway, considering we're not
-	//  checking a range at all, but just a before
-	if mod.Before(from) || mod.After(to) {
-		return false, nil
-	}
-
-	// Yes, it's in the range!
-	return true, nil
+	// Check if the fileTime is within range
+	return fileTime.After(from) && fileTime.Before(to)
 }
 
 // FilterWalk accepts a source directory, filter string, and from and to Times to return a list of matching files.
@@ -175,11 +159,13 @@ func FilterWalk(srcDir, filter string, from, to time.Time) ([]string, error) {
 		// Check for files that match the filter then check for time matches
 		match, err := filepath.Match(filter, filepath.Base(path))
 		if match && err == nil {
-			inRange, err := isInRange(path, from, to)
+			// grab our file's last modified time
+			info, err := os.Stat(path)
 			if err != nil {
 				return err
 			}
-			if inRange {
+			mod := info.ModTime()
+			if isInRange(mod, from, to) {
 				fileMatches = append(fileMatches, path)
 			}
 		}
