@@ -132,7 +132,7 @@ func SplitFilepath(path string) (dir string, file string) {
 
 func isInRange(fileTime, from, to time.Time) bool {
 	// Default true if no range provided
-	if !from.IsZero() {
+	if from.IsZero() {
 		return true
 	}
 
