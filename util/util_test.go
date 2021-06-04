@@ -2,9 +2,11 @@ package util
 
 import (
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // TarGz(sourceDir string, destFileName string) error
@@ -86,6 +88,58 @@ func TestFindInInterface(t *testing.T) {
 	}
 	if str != "cool_value" {
 		t.Errorf("Expected 'cool_value'; got: '%s'", str)
+	}
+}
+
+func TestIsInRange(t *testing.T) {
+	testTable := []struct{
+		desc string
+		target, from, to time.Time
+		expect bool
+	}{
+		{
+			desc:   "Target within range is valid",
+			target: time.Date(2000, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			to:     time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			expect: true,
+		},
+		{
+			desc:   "Target after range is invalid",
+			target: time.Date(2300, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			to:     time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			expect: false,
+		},
+		{
+			desc:   "Target before range is invalid",
+			target: time.Date(1800, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			to:     time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			expect: false,
+		},
+		{
+			desc: "Zeroed `from` is always in range",
+			target: time.Now(),
+			expect: true,
+		},
+		{
+			desc:   "Zeroed `to` includes recent files",
+			target: time.Now(),
+			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			expect: true,
+		},
+		{
+			desc:   "Zeroed `to` does not include files before `from`",
+			target: time.Date(1800, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			expect: false,
+		},
+	}
+
+	for _, c := range testTable{
+		res := IsInRange(c.target, c.from, c.to)
+		assert.Equal(t, res, c.expect, c.desc)
 	}
 }
 

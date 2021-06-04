@@ -130,7 +130,7 @@ func SplitFilepath(path string) (dir string, file string) {
 	return dir, file
 }
 
-func isInRange(fileTime, from, to time.Time) bool {
+func IsInRange(fileTime, from, to time.Time) bool {
 	// Default true if no range provided
 	if from.IsZero() {
 		return true
@@ -165,7 +165,7 @@ func FilterWalk(srcDir, filter string, from, to time.Time) ([]string, error) {
 				return err
 			}
 			mod := info.ModTime()
-			if isInRange(mod, from, to) {
+			if IsInRange(mod, from, to) {
 				fileMatches = append(fileMatches, path)
 			}
 		}
