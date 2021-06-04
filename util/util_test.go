@@ -124,13 +124,13 @@ func TestIsInRange(t *testing.T) {
 			expect: true,
 		},
 		{
-			desc:   "Zeroed `to` includes recent files",
+			desc:   "Zeroed `to` includes recent and/or actively-written-to target",
 			target: time.Now(),
 			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
 			expect: true,
 		},
 		{
-			desc:   "Zeroed `to` does not include files before `from`",
+			desc:   "Zeroed `to` does not include target before `from`",
 			target: time.Date(1800, 0, 0, 0, 0, 0, 0, &time.Location{}),
 			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
 			expect: false,

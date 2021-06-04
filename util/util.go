@@ -130,7 +130,7 @@ func SplitFilepath(path string) (dir string, file string) {
 	return dir, file
 }
 
-func IsInRange(fileTime, from, to time.Time) bool {
+func IsInRange(target, from, to time.Time) bool {
 	// Default true if no range provided
 	if from.IsZero() {
 		return true
@@ -139,11 +139,11 @@ func IsInRange(fileTime, from, to time.Time) bool {
 	// Check if the end of our range is zero
 	if to.IsZero() {
 		// Anything after the start time is valid
-		return fileTime.After(from)
+		return target.After(from)
 	}
 
 	// Check if the fileTime is within range
-	return fileTime.After(from) && fileTime.Before(to)
+	return target.After(from) && target.Before(to)
 }
 
 // FilterWalk accepts a source directory, filter string, and from and to Times to return a list of matching files.
