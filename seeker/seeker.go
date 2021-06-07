@@ -4,11 +4,6 @@ import (
 	"fmt"
 )
 
-// Runner runs things to get information.
-type Runner interface {
-	Run() (interface{}, error)
-}
-
 // Seeker seeks information via its Runner then stores the results.
 type Seeker struct {
 	Runner      Runner      `json:"runner"`
@@ -16,6 +11,11 @@ type Seeker struct {
 	Result      interface{} `json:"result"`
 	ErrString   string      `json:"error"` // this simplifies json marshaling
 	Error       error       `json:"-"`
+}
+
+// Runner runs things to get information.
+type Runner interface {
+	Run() (interface{}, error)
 }
 
 func (s *Seeker) Run() (result interface{}, err error) {
@@ -29,7 +29,6 @@ func (s *Seeker) Run() (result interface{}, err error) {
 	}
 	return result, err
 }
-
 
 // CountInSets iterates over each set of seekers and sums their counts
 func CountInSets(sets map[string][]*Seeker) int {
