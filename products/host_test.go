@@ -1,4 +1,4 @@
-package hostdiag
+package products
 
 import "testing"
 

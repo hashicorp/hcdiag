@@ -14,6 +14,13 @@ const (
 	NomadAgentCheck  = "nomad server members"
 )
 
+// FIXME(mkcp): doccomment
+func NewNomad(cfg Config) *Product {
+	return &Product{
+		Seekers:     NomadSeekers(cfg.TmpDir, cfg.From, cfg.To),
+	}
+}
+
 // NomadSeekers seek information about Nomad.
 func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	api := apiclients.NewNomadAPI()

@@ -14,6 +14,13 @@ const (
 	ConsulAgentCheck  = "consul info"
 )
 
+// FIXME(mkcp): doccomment
+func NewConsul(cfg Config) *Product {
+	return &Product{
+		Seekers:     ConsulSeekers(cfg.TmpDir, cfg.From, cfg.To),
+	}
+}
+
 // ConsulSeekers seek information about Consul.
 func ConsulSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	api := apiclients.NewConsulAPI()

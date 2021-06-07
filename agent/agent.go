@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/hostdiag"
 	"github.com/hashicorp/host-diagnostics/products"
 	"github.com/hashicorp/host-diagnostics/seeker"
 	"github.com/hashicorp/host-diagnostics/util"
@@ -21,7 +19,7 @@ import (
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
 	l           hclog.Logger
-	seekers     map[string][]*seeker.Seeker
+	products    map[string]*products.Product
 	results     map[string]map[string]interface{}
 	resultsLock sync.Mutex
 	tmpDir      string
@@ -65,6 +63,8 @@ func (a *Agent) Run() []error {
 
 	// Begin execution, copy files and run seekers
 	a.Start = time.Now()
+
+	// File processing
 	if errTemp := a.CreateTemp(); errTemp != nil {
 		errs = append(errs, errTemp)
 		a.l.Error("Failed to create temp directory", "error", errTemp)
@@ -73,7 +73,10 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errCopy)
 		a.l.Error("Failed copying includes", "error", errCopy)
 	}
+
+	// Product runs
 	pConfig := a.productConfig()
+
 	if errProductChecks := a.CheckProducts(pConfig); errProductChecks != nil {
 		errs = append(errs, errProductChecks)
 		a.l.Error("Failed Product Checks", "error", errProductChecks)
@@ -96,13 +99,6 @@ func (a *Agent) Run() []error {
 		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
 	}
 	return errs
-}
-
-func (a *Agent) CheckProducts(config products.Config) error {
-	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
-	// users to send us incomplete diagnostics.
-	a.l.Info("Checking product availability")
-	return products.CheckAvailable(config)
 }
 
 func (a *Agent) recordEnd() {
@@ -175,66 +171,79 @@ func (a *Agent) CopyIncludes() (err error) {
 	return nil
 }
 
-// GetSeekers maps the products we'll inspect into the seekers that we'll execute.
-func (a *Agent) GetProductSeekers(config products.Config) error {
-	a.l.Debug("Gathering Products' Seekers")
-	var err error
-	var seekers map[string][]*seeker.Seeker
-	seekers, err = products.GetSeekers(config)
-	if err != nil {
-		a.l.Error("agent.GetProductSeekers", "error", err)
-		return err
-	}
-	seekers["host"] = hostdiag.GetSeekers(a.Config.OS)
-	a.seekers = seekers
-	a.NumSeekers = seeker.CountInSets(seekers)
-	return nil
+func (a *Agent) CheckProducts(config products.Config) error {
+	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
+	// users to send us incomplete diagnostics.
+	a.l.Info("Checking product availability")
+	return products.CheckAvailable(config)
 }
 
-// RunSeekers executes all seekers for this run.
-func (a *Agent) RunProducts(config products.Config) error {
-	var err error
+// RunProducts executes all seekers for this run.
+// FIXME(mkcp): Migrate much of this functionality into the products package
+func (a *Agent) RunProducts(cfg products.Config) error {
 	a.l.Info("Gathering diagnostics")
 
-	err = a.GetProductSeekers(config)
-	if err != nil {
-		return err
+	a.l.Debug("Gathering Products' Seekers")
+	p := make(map[string]*products.Product)
+	if cfg.Consul {
+		p["consul"] = products.NewConsul(cfg)
 	}
+	if cfg.Nomad {
+		p["nomad"] = products.NewNomad(cfg)
+	}
+	if cfg.TFE {
+		p["terraform-ent"] = products.NewTFE(cfg)
+	}
+	if cfg.Vault {
+		vaultSeekers, err := products.NewVault(cfg)
+		if err != nil {
+			return err
+		}
+		p["vault"] = vaultSeekers
+	}
+	p["host"] = products.NewHost(cfg)
+	a.products = p
+
+	// FIXME(mkcp): Regression. This is going to need to sum up each products' seeker count
+	// a.NumSeekers = CountResults(p)
 
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
-	wg.Add(len(a.seekers))
+	wg.Add(len(a.products))
 
 	// NOTE(mkcp): Create a closure around runSet and wg.Done(). This is a little complex, but saves us duplication
 	//   in the product loop. Maybe we extract this to a private package function in the future?
-	f := func(wg *sync.WaitGroup, product string, set []*seeker.Seeker) {
-		result, err := a.runSet(product, set)
+	f := func(wg *sync.WaitGroup, name string, product *products.Product) {
+		set := product.Seekers
+		result, err := a.runSet(name, set)
 		a.resultsLock.Lock()
-		a.results[product] = result
+		a.results[name] = result
 		a.resultsLock.Unlock()
 		if err != nil {
 			a.l.Error("Error running seekers", "product", product, "error", err)
 		}
 		wg.Done()
 	}
-	for product, set := range a.seekers {
+	for name, product := range a.products {
 		// Run synchronously if -serial is enabled
 		if a.Config.Serial {
-			f(&wg, product, set)
+			f(&wg, name, product)
 			continue
 		}
 		// Run concurrently by default
-		go f(&wg, product, set)
+		go f(&wg, name, product)
 	}
 
 	// Wait until every product is finished
 	wg.Wait()
 
-	// TODO(kit): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
+	// TODO(mkcp): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
 	//  it as an error if we're over the 50% threshold. Maybe we only render it in the manifest or results?
+	/* FIXME(mkcp): Regression. We need to add seeker counting back in at a product level, then sum them up across products on the agent
 	if a.NumErrors > a.NumSeekers/2 {
 		return errors.New("more than 50% of Seekers failed")
 	}
+	*/
 
 	return nil
 }
@@ -307,6 +316,7 @@ func (a *Agent) productConfig() products.Config {
 		return products.NewConfigAllEnabled(a.tmpDir, a.Config.IncludeFrom, a.Config.IncludeTo)
 	}
 	return products.Config{
+		Logger: &a.l,
 		Consul: a.Config.Consul,
 		Nomad:  a.Config.Nomad,
 		TFE:    a.Config.TFE,
@@ -314,6 +324,7 @@ func (a *Agent) productConfig() products.Config {
 		TmpDir: a.tmpDir,
 		From:   a.Config.IncludeFrom,
 		To:     a.Config.IncludeTo,
+		OS:     a.Config.OS,
 	}
 }
 

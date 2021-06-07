@@ -2,6 +2,7 @@ package products
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/host-diagnostics/seeker"
 	"time"
 )
@@ -12,6 +13,7 @@ const (
 )
 
 type Config struct {
+	Logger *hclog.Logger
 	Consul bool
 	Nomad  bool
 	TFE    bool
@@ -19,6 +21,11 @@ type Config struct {
 	TmpDir string
 	From   time.Time
 	To     time.Time
+	OS     string
+}
+
+type Product struct {
+	Seekers     []*seeker.Seeker
 }
 
 // NewConfigAllEnabled returns a Config struct with every product enabled
@@ -58,28 +65,6 @@ func CheckAvailable(cfg Config) error {
 		}
 	}
 	return nil
-}
-
-// GetSeekers returns a map of enabled products to their seekers.
-func GetSeekers(cfg Config) (map[string][]*seeker.Seeker, error) {
-	sets := make(map[string][]*seeker.Seeker)
-	if cfg.Consul {
-		sets["consul"] = ConsulSeekers(cfg.TmpDir, cfg.From, cfg.To)
-	}
-	if cfg.Nomad {
-		sets["nomad"] = NomadSeekers(cfg.TmpDir, cfg.From, cfg.To)
-	}
-	if cfg.TFE {
-		sets["terraform-ent"] = TFESeekers(cfg.TmpDir, cfg.From, cfg.To)
-	}
-	if cfg.Vault {
-		vaultSeekers, err := VaultSeekers(cfg.TmpDir, cfg.From, cfg.To)
-		if err != nil {
-			return sets, err
-		}
-		sets["vault"] = vaultSeekers
-	}
-	return sets, nil
 }
 
 // CommanderHealthCheck employs the the CLI to check if the client and then the agent are available.

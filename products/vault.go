@@ -14,6 +14,17 @@ const (
 	VaultAgentCheck  = "vault status"
 )
 
+// FIXME(mkcp): doccomment
+func NewVault(cfg Config) (*Product, error) {
+	seekers, err := VaultSeekers(cfg.TmpDir, cfg.From, cfg.To)
+	if err != nil {
+		return nil, err
+	}
+	return &Product{
+		Seekers: seekers,
+	}, nil
+}
+
 // VaultSeekers seek information about Vault.
 func VaultSeekers(tmpDir string, from, to time.Time) ([]*s.Seeker, error) {
 	api, err := apiclients.NewVaultAPI()

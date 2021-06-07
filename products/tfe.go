@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+// FIXME(mkcp): doccomment
+func NewTFE(cfg Config) *Product {
+	return &Product{
+		Seekers:     TFESeekers(cfg.TmpDir, cfg.From, cfg.To),
+	}
+}
+
 // TFESeekers seek information about Terraform Enterprise/Cloud.
 func TFESeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	api := apiclients.NewTFEAPI()
