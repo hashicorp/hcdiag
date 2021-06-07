@@ -3,7 +3,6 @@ package seeker
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -44,16 +43,4 @@ func TestSeekerRun(t *testing.T) {
 		t.Errorf("resp should be '%s'; got '%s'", mockResult, result)
 	}
 
-}
-
-func TestCountInSets(t *testing.T) {
-	sets := map[string][]*Seeker {
-		"zero": {},
-		"one": {{}},
-		"two": {{}, {}},
-		"three": {{}, {}, {}},
-	}
-	expected := 6
-	count    := CountInSets(sets)
-	assert.Equal(t, count, expected)
 }

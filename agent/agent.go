@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -183,6 +184,7 @@ func (a *Agent) CheckProducts(config products.Config) error {
 func (a *Agent) RunProducts(cfg products.Config) error {
 	a.l.Info("Gathering diagnostics")
 
+	// Create products
 	a.l.Debug("Gathering Products' Seekers")
 	p := make(map[string]*products.Product)
 	if cfg.Consul {
@@ -204,8 +206,9 @@ func (a *Agent) RunProducts(cfg products.Config) error {
 	p["host"] = products.NewHost(cfg)
 	a.products = p
 
-	// FIXME(mkcp): Regression. This is going to need to sum up each products' seeker count
-	// a.NumSeekers = CountResults(p)
+	a.NumSeekers = products.CountSeekers(p)
+
+	// Run products
 
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
@@ -239,11 +242,9 @@ func (a *Agent) RunProducts(cfg products.Config) error {
 
 	// TODO(mkcp): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
 	//  it as an error if we're over the 50% threshold. Maybe we only render it in the manifest or results?
-	/* FIXME(mkcp): Regression. We need to add seeker counting back in at a product level, then sum them up across products on the agent
 	if a.NumErrors > a.NumSeekers/2 {
 		return errors.New("more than 50% of Seekers failed")
 	}
-	*/
 
 	return nil
 }

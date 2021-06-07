@@ -79,3 +79,11 @@ func CommanderHealthCheck(client, agent string) error {
 	}
 	return nil
 }
+
+func CountSeekers(products map[string]*Product) int {
+	var count int
+	for _, product := range products {
+		count += len(product.Seekers)
+	}
+	return count
+}
