@@ -81,7 +81,7 @@ func TestParseHCL(t *testing.T) {
 						{Run: "consul operator raft list-peers", Format: "json"},
 					},
 					GETs: []GETConfig{
-						{Path: "localhost:8500/v1/api/metrics?format=prometheus"},
+						{Path: "/v1/api/metrics?format=prometheus"},
 					},
 					Copies: []CopyConfig{
 						{Path: "/some/test/log"},
