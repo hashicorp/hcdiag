@@ -28,12 +28,13 @@ func realMain() (returnCode int) {
 	}
 
 	// FIXME(mkcp): pipe our configuration data into the agent
-	config, err := ParseHCL(flags.Config)
-	if err != nil {
-		log.Fatalf("Failed to load configuration: %s", err)
+	if flags.Config != "" {
+		config, err := ParseHCL(flags.Config)
+		if err != nil {
+			log.Fatalf("Failed to load configuration: %s", err)
+		}
+		l.Debug("Config is", "config", config)
 	}
-	l.Debug("Config is", "config", config)
-
 
 	// Convert our flag input to agent configuration
 	from := time.Unix(0, flags.IncludeSince.Nanoseconds())
