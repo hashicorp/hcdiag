@@ -17,8 +17,8 @@ func TestParseHCL(t *testing.T) {
 			expect: Config{},
 		},
 		{
-			desc:   "Host with no attributes is valid",
-			path:   "tests/resources/config/host_no_seekers.hcl",
+			desc: "Host with no attributes is valid",
+			path: "tests/resources/config/host_no_seekers.hcl",
 			expect: Config{
 				Host: &HostConfig{},
 			},
@@ -29,21 +29,13 @@ func TestParseHCL(t *testing.T) {
 			expect: Config{
 				Host: &HostConfig{
 					Commands: []CommandConfig{
-						{
-							Run:    "testing",
-							Format: "string",
-						},
+						{Run: "testing", Format: "string"},
 					},
 					GETs: []GETConfig{
-						{
-							Url: "/v1/api/lol",
-						},
+						{Path: "/v1/api/lol"},
 					},
 					Copies: []CopyConfig{
-						{
-							Path:  "./*",
-							Since: "10h",
-						},
+						{Path: "./*", Since: "10h"},
 					},
 				},
 			},
@@ -79,7 +71,7 @@ func TestParseHCL(t *testing.T) {
 						{Run: "ps aux", Format: "string"},
 					},
 					Copies: []CopyConfig{
-						{"/var/log/syslog", ""},
+						{Path: "/var/log/syslog", Since: ""},
 					},
 				},
 				Product: &ProductConfig{
@@ -88,15 +80,15 @@ func TestParseHCL(t *testing.T) {
 						{Run: "consul version", Format: "json"},
 						{Run: "consul operator raft list-peers", Format: "json"},
 					},
-					GETs:     []GETConfig{
-						{"localhost:8500/v1/api/metrics?format=prometheus",},
+					GETs: []GETConfig{
+						{Path: "localhost:8500/v1/api/metrics?format=prometheus"},
 					},
-					Copies:   []CopyConfig{
-						{Path:  "/some/test/log"},
-						{Path:  "/another/test/log", Since: "10d"},
+					Copies: []CopyConfig{
+						{Path: "/some/test/log"},
+						{Path: "/another/test/log", Since: "10d"},
 					},
 					Excludes: []string{"consul some-awfully-long-command"},
-					Selects:  []string{
+					Selects: []string{
 						"consul just this",
 						"consul and this",
 					},

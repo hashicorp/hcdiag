@@ -160,7 +160,7 @@ type CommandConfig struct {
 }
 
 type GETConfig struct {
-	Url string `hcl:"url"`
+	Path string `hcl:"path"`
 }
 
 type CopyConfig struct {

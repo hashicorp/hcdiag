@@ -5,7 +5,7 @@ host {
   }
 
   GET {
-    url = "/v1/api/lol"
+    path = "/v1/api/lol"
   }
 
   copy {

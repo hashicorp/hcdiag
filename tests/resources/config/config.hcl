@@ -20,7 +20,7 @@ product "consul" {
   }
 
   GET {
-    url = "localhost:8500/v1/api/metrics?format=prometheus"
+    path = "/v1/api/metrics?format=prometheus"
   }
 
   copy {
