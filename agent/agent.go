@@ -98,6 +98,12 @@ func (a *Agent) Run() []error {
 		return errs
 	}
 
+	// Filter products
+	a.l.Debug("Applying Products' Excludes and Selects")
+	for _, p := range a.products {
+		p.Filter()
+	}
+
 	a.products = p
 	a.NumSeekers = products.CountSeekers(p)
 
