@@ -1,14 +1,12 @@
 package agent
 
 import (
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/host-diagnostics/products"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/seeker"
 )
 
 // TODO: abstract away filesystem-related actions,
@@ -131,44 +129,40 @@ func TestCopyIncludes(t *testing.T) {
 	}
 }
 
-/* FIXME(mkcp): Reimplement this test at a product level
-func TestGetProductSeekers(t *testing.T) {
+func TestSetupProducts(t *testing.T) {
 	t.Run("Should only get host if no products enabled", func(t *testing.T) {
 		a := Agent{l: hclog.Default()}
 		pCfg := a.productConfig()
-		err := a.GetProductSeekers(pCfg)
+		err := a.SetupProducts(pCfg)
 		assert.NoError(t, err)
-		assert.Equal(t, len(a.seekers), 1)
+		assert.Len(t, a.products, 1)
 	})
 	t.Run("Should have host and nomad enabled", func(t *testing.T) {
-		a := Agent{l: hclog.Default()}
-		a.Config.Nomad = true
+		a := Agent{
+			l:      hclog.Default(),
+			Config: Config{Nomad: true},
+		}
 		pCfg := a.productConfig()
-		err := a.GetProductSeekers(pCfg)
+		err := a.SetupProducts(pCfg)
 		assert.NoError(t, err)
-		assert.Greater(t, len(a.seekers), 1)
+		assert.Len(t, a.products, 2)
 	})
 }
-*/
 
 func TestRunProducts(t *testing.T) {
+	pCfg := products.Config{OS: "auto"}
+	p := make(map[string]*products.Product)
+	p["host"] = products.NewHost(pCfg)
 	a := Agent{
-		l:       hclog.Default(),
-		results: make(map[string]map[string]interface{}),
+		l:        hclog.Default(),
+		products: p,
+		results:  make(map[string]map[string]interface{}),
 	}
-	pCfg := a.productConfig()
 
-	if err := a.RunProducts(pCfg); err != nil {
-		t.Errorf("Error running Seekers: %s", err)
-	}
-	// FIXME(mkcp): This host-host key is super awkward, need to work on the host some more
-	r, ok := a.results["host"]["host"]
-	if !ok {
-		t.Error("Expected 'host' in results, not found")
-	}
-	if _, ok := r.(*seeker.Seeker); !ok {
-		t.Errorf("Expected 'host' result to be a Seeker; got: %#v", r)
-	}
+	err := a.RunProducts()
+	assert.NoError(t, err)
+	assert.Len(t, a.products, 1, "has one product")
+	assert.NotNil(t, a.products["host"], "product is under \"host\" key")
 }
 
 func TestWriteOutput(t *testing.T) {
@@ -200,5 +194,4 @@ func TestWriteOutput(t *testing.T) {
 		_, err := os.Stat(f)
 		assert.NoError(t, err, "Missing file %s", f)
 	}
-
 }

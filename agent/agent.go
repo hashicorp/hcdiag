@@ -75,16 +75,28 @@ func (a *Agent) Run() []error {
 		a.l.Error("Failed copying includes", "error", errCopy)
 	}
 
-	// Product runs
+	// Product handling
+
 	pConfig := a.productConfig()
 
-	if errProductChecks := a.CheckProducts(pConfig); errProductChecks != nil {
+	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
+	// users to send us incomplete diagnostics.
+	a.l.Info("Checking product availability")
+	if errProductChecks := products.CheckAvailable(pConfig); errProductChecks != nil {
 		errs = append(errs, errProductChecks)
 		a.l.Error("Failed Product Checks", "error", errProductChecks)
 		// End the run if any product fails its checks.
 		return errs
 	}
-	if errProduct := a.RunProducts(pConfig); errProduct != nil {
+
+	if errProductSetup := a.SetupProducts(pConfig); errProductSetup != nil {
+		errs = append(errs, errProductSetup)
+		a.l.Error("Failed running Products", "error", errProductSetup)
+		return errs
+	}
+
+	a.l.Info("Gathering diagnostics")
+	if errProduct := a.RunProducts(); errProduct != nil {
 		errs = append(errs, errProduct)
 		a.l.Error("Failed running Products", "error", errProduct)
 	}
@@ -172,18 +184,7 @@ func (a *Agent) CopyIncludes() (err error) {
 	return nil
 }
 
-func (a *Agent) CheckProducts(config products.Config) error {
-	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
-	// users to send us incomplete diagnostics.
-	a.l.Info("Checking product availability")
-	return products.CheckAvailable(config)
-}
-
-// RunProducts executes all seekers for this run.
-// FIXME(mkcp): Migrate much of this functionality into the products package
-func (a *Agent) RunProducts(cfg products.Config) error {
-	a.l.Info("Gathering diagnostics")
-
+func (a *Agent) SetupProducts(cfg products.Config) error {
 	// Create products
 	a.l.Debug("Gathering Products' Seekers")
 	p := make(map[string]*products.Product)
@@ -207,9 +208,12 @@ func (a *Agent) RunProducts(cfg products.Config) error {
 	a.products = p
 
 	a.NumSeekers = products.CountSeekers(p)
+	return nil
+}
 
-	// Run products
-
+// RunProducts executes all seekers for this run.
+// FIXME(mkcp): Migrate much of this functionality into the products package
+func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
 	wg.Add(len(a.products))
@@ -313,10 +317,7 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 }
 
 func (a *Agent) productConfig() products.Config {
-	if a.Config.AllProducts {
-		return products.NewConfigAllEnabled(a.tmpDir, a.Config.IncludeFrom, a.Config.IncludeTo)
-	}
-	return products.Config{
+	cfg := products.Config{
 		Logger: &a.l,
 		Consul: a.Config.Consul,
 		Nomad:  a.Config.Nomad,
@@ -327,6 +328,13 @@ func (a *Agent) productConfig() products.Config {
 		To:     a.Config.IncludeTo,
 		OS:     a.Config.OS,
 	}
+	if a.Config.AllProducts {
+		cfg.Consul = true
+		cfg.Nomad = true
+		cfg.TFE = true
+		cfg.Vault = true
+	}
+	return cfg
 }
 
 // DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.

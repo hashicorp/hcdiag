@@ -28,19 +28,6 @@ type Product struct {
 	Seekers     []*seeker.Seeker
 }
 
-// NewConfigAllEnabled returns a Config struct with every product enabled
-func NewConfigAllEnabled (tmpDir string, from, to time.Time) Config {
-	return Config{
-		Consul: true,
-		Nomad:  true,
-		TFE:    true,
-		Vault:  true,
-		TmpDir: tmpDir,
-		From:   from,
-		To:     to,
-	}
-}
-
 // CheckAvailable runs healthchecks for each enabled product
 func CheckAvailable(cfg Config) error {
 	if cfg.Consul {
