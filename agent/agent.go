@@ -89,11 +89,19 @@ func (a *Agent) Run() []error {
 		return errs
 	}
 
-	if errProductSetup := a.SetupProducts(pConfig); errProductSetup != nil {
+	// Create products
+	a.l.Debug("Gathering Products' Seekers")
+	p, errProductSetup := products.Setup(pConfig)
+	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
 		a.l.Error("Failed running Products", "error", errProductSetup)
 		return errs
 	}
+
+	a.products = p
+	a.NumSeekers = products.CountSeekers(p)
+
+	// Run products
 
 	a.l.Info("Gathering diagnostics")
 	if errProduct := a.RunProducts(); errProduct != nil {
@@ -181,33 +189,6 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 	}
 
-	return nil
-}
-
-func (a *Agent) SetupProducts(cfg products.Config) error {
-	// Create products
-	a.l.Debug("Gathering Products' Seekers")
-	p := make(map[string]*products.Product)
-	if cfg.Consul {
-		p["consul"] = products.NewConsul(cfg)
-	}
-	if cfg.Nomad {
-		p["nomad"] = products.NewNomad(cfg)
-	}
-	if cfg.TFE {
-		p["terraform-ent"] = products.NewTFE(cfg)
-	}
-	if cfg.Vault {
-		vaultSeekers, err := products.NewVault(cfg)
-		if err != nil {
-			return err
-		}
-		p["vault"] = vaultSeekers
-	}
-	p["host"] = products.NewHost(cfg)
-	a.products = p
-
-	a.NumSeekers = products.CountSeekers(p)
 	return nil
 }
 

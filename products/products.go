@@ -25,7 +25,7 @@ type Config struct {
 }
 
 type Product struct {
-	Seekers     []*seeker.Seeker
+	Seekers []*seeker.Seeker
 }
 
 // CheckAvailable runs healthchecks for each enabled product
@@ -52,6 +52,28 @@ func CheckAvailable(cfg Config) error {
 		}
 	}
 	return nil
+}
+
+func Setup(cfg Config) (map[string]*Product, error) {
+	p := make(map[string]*Product)
+	if cfg.Consul {
+		p["consul"] = NewConsul(cfg)
+	}
+	if cfg.Nomad {
+		p["nomad"] = NewNomad(cfg)
+	}
+	if cfg.TFE {
+		p["terraform-ent"] = NewTFE(cfg)
+	}
+	if cfg.Vault {
+		vaultSeekers, err := NewVault(cfg)
+		if err != nil {
+			return nil, err
+		}
+		p["vault"] = vaultSeekers
+	}
+	p["host"] = NewHost(cfg)
+	return p, nil
 }
 
 // CommanderHealthCheck employs the the CLI to check if the client and then the agent are available.

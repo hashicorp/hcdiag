@@ -129,26 +129,6 @@ func TestCopyIncludes(t *testing.T) {
 	}
 }
 
-func TestSetupProducts(t *testing.T) {
-	t.Run("Should only get host if no products enabled", func(t *testing.T) {
-		a := Agent{l: hclog.Default()}
-		pCfg := a.productConfig()
-		err := a.SetupProducts(pCfg)
-		assert.NoError(t, err)
-		assert.Len(t, a.products, 1)
-	})
-	t.Run("Should have host and nomad enabled", func(t *testing.T) {
-		a := Agent{
-			l:      hclog.Default(),
-			Config: Config{Nomad: true},
-		}
-		pCfg := a.productConfig()
-		err := a.SetupProducts(pCfg)
-		assert.NoError(t, err)
-		assert.Len(t, a.products, 2)
-	})
-}
-
 func TestRunProducts(t *testing.T) {
 	pCfg := products.Config{OS: "auto"}
 	p := make(map[string]*products.Product)
