@@ -14,10 +14,10 @@ const (
 	NomadAgentCheck  = "nomad server members"
 )
 
-// FIXME(mkcp): doccomment
+// NewNomad takes a product config and creates a Product with all of Nomad's default seekers
 func NewNomad(cfg Config) *Product {
 	return &Product{
-		Seekers:     NomadSeekers(cfg.TmpDir, cfg.From, cfg.To),
+		Seekers: NomadSeekers(cfg.TmpDir, cfg.From, cfg.To),
 	}
 }
 

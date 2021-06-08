@@ -14,10 +14,10 @@ const (
 	ConsulAgentCheck  = "consul info"
 )
 
-// FIXME(mkcp): doccomment
+// NewConsul takes a product config and creates a Product with all of Consul's default seekers
 func NewConsul(cfg Config) *Product {
 	return &Product{
-		Seekers:     ConsulSeekers(cfg.TmpDir, cfg.From, cfg.To),
+		Seekers: ConsulSeekers(cfg.TmpDir, cfg.From, cfg.To),
 	}
 }
 

@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// FIXME(mkcp): doccomment
+// NewTFE takes a product config and creates a Product containing all of TFE's seekers.
 func NewTFE(cfg Config) *Product {
 	return &Product{
-		Seekers:     TFESeekers(cfg.TmpDir, cfg.From, cfg.To),
+		Seekers: TFESeekers(cfg.TmpDir, cfg.From, cfg.To),
 	}
 }
 
