@@ -25,7 +25,26 @@ type Config struct {
 }
 
 type Product struct {
-	Seekers []*seeker.Seeker
+	Seekers  []*seeker.Seeker
+	excludes []string
+	selects  []string
+}
+
+// Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers
+func (p *Product) Filter() {
+	if p.Seekers == nil {
+		p.Seekers = []*seeker.Seeker{}
+	}
+	// The presence of selects takes precedence over excludes
+	if p.selects != nil && 0 < len(p.selects) {
+		p.Seekers = seeker.Select(p.selects, p.Seekers)
+		// Skip any excludes
+		return
+	}
+	// No selects, we can apply excludes
+	if p.excludes != nil {
+		p.Seekers = seeker.Exclude(p.excludes, p.Seekers)
+	}
 }
 
 // CheckAvailable runs healthchecks for each enabled product

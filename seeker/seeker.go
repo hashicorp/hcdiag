@@ -6,11 +6,11 @@ import (
 
 // Seeker seeks information via its Runner then stores the results.
 type Seeker struct {
-	Runner      Runner      `json:"runner"`
-	Identifier  string      `json:"-"`
-	Result      interface{} `json:"result"`
-	ErrString   string      `json:"error"` // this simplifies json marshaling
-	Error       error       `json:"-"`
+	Runner     Runner      `json:"runner"`
+	Identifier string      `json:"-"`
+	Result     interface{} `json:"result"`
+	ErrString  string      `json:"error"` // this simplifies json marshaling
+	Error      error       `json:"-"`
 }
 
 // Runner runs things to get information.
@@ -36,7 +36,7 @@ func (s *Seeker) Run() (result interface{}, err error) {
 //  of filtering in one pass one rather than iterating over all the seekers several times. Not likely to be a huge speed
 //  increase though... we're not even remotely bottlenecked on seeker filtering.
 func Exclude(excludes []string, seekers []*Seeker) []*Seeker {
-	var newSeekers []*Seeker
+	newSeekers := make([]*Seeker, 0)
 	for _, s := range seekers {
 		// Set our match flag if we get a hit for any of the matchers on this seeker
 		var match bool
@@ -57,7 +57,7 @@ func Exclude(excludes []string, seekers []*Seeker) []*Seeker {
 // Select takes a slice of matcher strings and a slice of seekers. The only seekers returned will be those exactly
 // matching the given select strings.
 func Select(selects []string, seekers []*Seeker) []*Seeker {
-	var newSeekers []*Seeker
+	newSeekers := make([]*Seeker, 0)
 	for _, s := range seekers {
 		// Set our match flag if we get a hit for any of the matchers on this seeker
 		var match bool
