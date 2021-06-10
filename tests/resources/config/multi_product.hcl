@@ -1,37 +1,20 @@
-host {
-  command {
-    run = "ps aux"
-    format = "string"
-  }
-  copy {
-    path = "/var/log/syslog"
-  }
-}
-
 product "consul" {
   command {
     run = "consul version"
-    format = "json"
+    format = "string"
   }
+}
 
+product "nomad" {
   command {
-    run = "consul operator raft list-peers"
-    format = "json"
+    run = "nomad version"
+    format = "string"
   }
+}
 
-  GET {
-    path = "/v1/api/metrics?format=prometheus"
+product "vault" {
+  command {
+    run = "vault version"
+    format = "string"
   }
-
-  copy {
-    path = "/some/test/log"
-  }
-
-  copy {
-    path = "/another/test/log"
-    since = "10d"
-  }
-
-  excludes = ["consul some-awfully-long-command"]
-  selects = ["consul just this", "consul and this"]
 }
