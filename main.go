@@ -134,8 +134,8 @@ func (f *Flags) parseFlags(args []string) error {
 
 // FIXME(mkcp): maybe move this out to another package?
 type Config struct {
-	Host    *HostConfig    `hcl:"host,block"`
-	Product *ProductConfig `hcl:"product,block"`
+	Host    *HostConfig      `hcl:"host,block"`
+	Product []*ProductConfig `hcl:"product,block"`
 }
 
 type HostConfig struct {
@@ -147,7 +147,7 @@ type HostConfig struct {
 }
 
 type ProductConfig struct {
- 	Name     string          `hcl:"name,label"`
+	Name     string          `hcl:"name,label"`
 	Commands []CommandConfig `hcl:"command,block"`
 	GETs     []GETConfig     `hcl:"GET,block"`
 	Copies   []CopyConfig    `hcl:"copy,block"`

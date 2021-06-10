@@ -74,23 +74,45 @@ func TestParseHCL(t *testing.T) {
 						{Path: "/var/log/syslog", Since: ""},
 					},
 				},
-				Product: &ProductConfig{
-					Name: "consul",
-					Commands: []CommandConfig{
-						{Run: "consul version", Format: "json"},
-						{Run: "consul operator raft list-peers", Format: "json"},
+				Product: []*ProductConfig{
+					{
+						Name: "consul",
+						Commands: []CommandConfig{
+							{Run: "consul version", Format: "json"},
+							{Run: "consul operator raft list-peers", Format: "json"},
+						},
+						GETs: []GETConfig{
+							{Path: "/v1/api/metrics?format=prometheus"},
+						},
+						Copies: []CopyConfig{
+							{Path: "/some/test/log"},
+							{Path: "/another/test/log", Since: "10d"},
+						},
+						Excludes: []string{"consul some-awfully-long-command"},
+						Selects: []string{
+							"consul just this",
+							"consul and this",
+						},
 					},
-					GETs: []GETConfig{
-						{Path: "/v1/api/metrics?format=prometheus"},
+				},
+			},
+		},
+		{
+			desc: "Config with multiple products is valid",
+			path: "tests/resources/config/multi_product.hcl",
+			expect: Config{
+				Product: []*ProductConfig{
+					{
+						Name:     "consul",
+						Commands: []CommandConfig{{Run: "consul version", Format: "string"}},
 					},
-					Copies: []CopyConfig{
-						{Path: "/some/test/log"},
-						{Path: "/another/test/log", Since: "10d"},
+					{
+						Name:     "nomad",
+						Commands: []CommandConfig{{Run: "nomad version", Format: "string"}},
 					},
-					Excludes: []string{"consul some-awfully-long-command"},
-					Selects: []string{
-						"consul just this",
-						"consul and this",
+					{
+						Name:     "vault",
+						Commands: []CommandConfig{{Run: "vault version", Format: "string"}},
 					},
 				},
 			},
