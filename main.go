@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcl/v2/hclsimple"
 	"github.com/hashicorp/host-diagnostics/agent"
 )
 
@@ -28,32 +27,16 @@ func realMain() (returnCode int) {
 	}
 
 	// FIXME(mkcp): pipe our configuration data into the agent
+	var config agent.Config
 	if flags.Config != "" {
-		config, err := ParseHCL(flags.Config)
+		config, err := agent.ParseHCL(flags.Config)
 		if err != nil {
 			log.Fatalf("Failed to load configuration: %s", err)
 		}
 		l.Debug("Config is", "config", config)
 	}
 
-	// Convert our flag input to agent configuration
-	from := time.Unix(0, flags.IncludeSince.Nanoseconds())
-	to := time.Now()
-	cfg := agent.Config{
-		OS:          flags.OS,
-		Serial:      flags.Serial,
-		Dryrun:      flags.Dryrun,
-		Consul:      flags.Consul,
-		Nomad:       flags.Nomad,
-		TFE:         flags.TFE,
-		Vault:       flags.Vault,
-		AllProducts: flags.AllProducts,
-		Includes:    flags.Includes,
-		IncludeFrom: from,
-		IncludeTo:   to,
-		Outfile:     flags.Outfile,
-	}
-
+	cfg := mergeAgentConfig(config, flags)
 	a := agent.NewAgent(cfg, l)
 
 	// Run the agent
@@ -132,50 +115,22 @@ func (f *Flags) parseFlags(args []string) error {
 	return flags.Parse(args)
 }
 
-// FIXME(mkcp): maybe move this out to another package?
-type Config struct {
-	Host    *HostConfig      `hcl:"host,block"`
-	Product []*ProductConfig `hcl:"product,block"`
-}
-
-type HostConfig struct {
-	Commands []CommandConfig `hcl:"command,block"`
-	GETs     []GETConfig     `hcl:"GET,block"`
-	Copies   []CopyConfig    `hcl:"copy,block"`
-	Excludes []string        `hcl:"excludes,optional"`
-	Selects  []string        `hcl:"selects,optional"`
-}
-
-type ProductConfig struct {
-	Name     string          `hcl:"name,label"`
-	Commands []CommandConfig `hcl:"command,block"`
-	GETs     []GETConfig     `hcl:"GET,block"`
-	Copies   []CopyConfig    `hcl:"copy,block"`
-	Excludes []string        `hcl:"excludes,optional"`
-	Selects  []string        `hcl:"selects,optional"`
-}
-
-type CommandConfig struct {
-	Run    string `hcl:"run"`
-	Format string `hcl:"format"`
-}
-
-type GETConfig struct {
-	Path string `hcl:"path"`
-}
-
-type CopyConfig struct {
-	Path string `hcl:"path"`
-	// FIXME(mkcp): This should be a duration that we parse
-	Since string `hcl:"since,optional"`
-}
-
-func ParseHCL(path string) (Config, error) {
-	// Parse our HCL
-	var config Config
-	err := hclsimple.DecodeFile(path, nil, &config)
-	if err != nil {
-		return Config{}, err
-	}
-	return config, nil
+// FIXME(mkcp): Don't love how this fits together yet
+// mergeAgentConfig merges flags into the agent.Config, prioritizing flags over HCL config.
+func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
+	// Convert our flag input to agent configuration
+	from := time.Unix(0, flags.IncludeSince.Nanoseconds())
+	to := time.Now()
+	config.OS = flags.OS
+	config.Serial = flags.Serial
+	config.Dryrun = flags.Dryrun
+	config.Consul = flags.AllProducts || flags.Consul
+	config.Nomad = flags.AllProducts || flags.Nomad
+	config.TFE = flags.AllProducts || flags.TFE
+	config.Vault = flags.AllProducts || flags.Vault
+	config.Includes = flags.Includes
+	config.IncludeFrom = from
+	config.IncludeTo = to
+	config.Outfile = flags.Outfile
+	return config
 }

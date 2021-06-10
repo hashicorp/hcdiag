@@ -14,20 +14,31 @@ const (
 
 type Config struct {
 	Logger *hclog.Logger
-	Consul bool
-	Nomad  bool
-	TFE    bool
-	Vault  bool
+	Name   string
 	TmpDir string
 	From   time.Time
 	To     time.Time
 	OS     string
 }
 
+type Name string
+
+var (
+	Consul Name = "consul"
+	Host   Name = "host"
+	Nomad  Name = "nomad"
+	TFE    Name = "tfe"
+	Vault  Name = "vault"
+)
+
 type Product struct {
-	Seekers  []*seeker.Seeker
-	excludes []string
-	selects  []string
+	Name             Name
+	Seekers          []*seeker.Seeker
+	customCommanders []seeker.Commander
+	customHTTPers    []seeker.HTTPer
+	customCopiers    []seeker.Copier
+	excludes         []string
+	selects          []string
 }
 
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers
@@ -45,54 +56,6 @@ func (p *Product) Filter() {
 	if p.excludes != nil {
 		p.Seekers = seeker.Exclude(p.excludes, p.Seekers)
 	}
-}
-
-// CheckAvailable runs healthchecks for each enabled product
-func CheckAvailable(cfg Config) error {
-	if cfg.Consul {
-		err := CommanderHealthCheck(ConsulClientCheck, ConsulAgentCheck)
-		if err != nil {
-			return err
-		}
-	}
-	if cfg.Nomad {
-		err := CommanderHealthCheck(NomadClientCheck, NomadAgentCheck)
-		if err != nil {
-			return err
-		}
-	}
-	// NOTE(mkcp): We don't have a TFE healthcheck because we don't support API checks yet.
-	// if cfg.TFE {
-	// }
-	if cfg.Vault {
-		err := CommanderHealthCheck(VaultClientCheck, VaultAgentCheck)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func Setup(cfg Config) (map[string]*Product, error) {
-	p := make(map[string]*Product)
-	if cfg.Consul {
-		p["consul"] = NewConsul(cfg)
-	}
-	if cfg.Nomad {
-		p["nomad"] = NewNomad(cfg)
-	}
-	if cfg.TFE {
-		p["terraform-ent"] = NewTFE(cfg)
-	}
-	if cfg.Vault {
-		vaultSeekers, err := NewVault(cfg)
-		if err != nil {
-			return nil, err
-		}
-		p["vault"] = vaultSeekers
-	}
-	p["host"] = NewHost(cfg)
-	return p, nil
 }
 
 // CommanderHealthCheck employs the the CLI to check if the client and then the agent are available.

@@ -3,6 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/hcl/v2/hclsimple"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -30,21 +31,6 @@ type Agent struct {
 	NumErrors   int       `json:"num_errors"`
 	NumSeekers  int       `json:"num_seekers"`
 	Config      Config    `json:"configuration"`
-}
-
-type Config struct {
-	OS          string    `json:"operating_system"`
-	Serial      bool      `json:"serial"`
-	Dryrun      bool      `json:"dry_run"`
-	Consul      bool      `json:"consul_enabled"`
-	Nomad       bool      `json:"nomad_enabled"`
-	TFE         bool      `json:"terraform_ent_enabled"`
-	Vault       bool      `json:"vault_enabled"`
-	AllProducts bool      `json:"all_products_enabled"`
-	Includes    []string  `json:"includes"`
-	IncludeFrom time.Time `json:"include_from"`
-	IncludeTo   time.Time `json:"include_to"`
-	Outfile     string    `json:"out_file"`
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
@@ -82,7 +68,7 @@ func (a *Agent) Run() []error {
 	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
 	// users to send us incomplete diagnostics.
 	a.l.Info("Checking product availability")
-	if errProductChecks := products.CheckAvailable(pConfig); errProductChecks != nil {
+	if errProductChecks := a.CheckAvailable(); errProductChecks != nil {
 		errs = append(errs, errProductChecks)
 		a.l.Error("Failed Product Checks", "error", errProductChecks)
 		// End the run if any product fails its checks.
@@ -91,7 +77,7 @@ func (a *Agent) Run() []error {
 
 	// Create products
 	a.l.Debug("Gathering Products' Seekers")
-	p, errProductSetup := products.Setup(pConfig)
+	p, errProductSetup := a.Setup(pConfig)
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
 		a.l.Error("Failed running Products", "error", errProductSetup)
@@ -199,7 +185,7 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // RunProducts executes all seekers for this run.
-// FIXME(mkcp): Migrate much of this functionality into the products package
+// TODO(mkcp): Migrate much of this functionality into the products package
 func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
@@ -279,6 +265,7 @@ func (a *Agent) WriteOutput(resultsDest string) (err error) {
 
 // runSeekers runs the seekers
 // TODO(mkcp): Should we return a collection of errors from here?
+// TODO(mkcp): Migrate this onto the product
 func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interface{}, error) {
 	a.l.Info("Running seekers for", "product", product)
 	results := make(map[string]interface{})
@@ -306,20 +293,10 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 func (a *Agent) productConfig() products.Config {
 	cfg := products.Config{
 		Logger: &a.l,
-		Consul: a.Config.Consul,
-		Nomad:  a.Config.Nomad,
-		TFE:    a.Config.TFE,
-		Vault:  a.Config.Vault,
 		TmpDir: a.tmpDir,
 		From:   a.Config.IncludeFrom,
 		To:     a.Config.IncludeTo,
 		OS:     a.Config.OS,
-	}
-	if a.Config.AllProducts {
-		cfg.Consul = true
-		cfg.Nomad = true
-		cfg.TFE = true
-		cfg.Vault = true
 	}
 	return cfg
 }
@@ -328,4 +305,62 @@ func (a *Agent) productConfig() products.Config {
 func (a *Agent) DestinationFileName() string {
 	timestamp := time.Now().Format(time.RFC3339)
 	return fmt.Sprintf("%s-%s.tar.gz", a.Config.Outfile, timestamp)
+}
+
+// CheckAvailable runs healthchecks for each enabled product
+func (a *Agent) CheckAvailable() error {
+	if a.Config.Consul {
+		err := products.CommanderHealthCheck(products.ConsulClientCheck, products.ConsulAgentCheck)
+		if err != nil {
+			return err
+		}
+	}
+	if a.Config.Nomad {
+		err := products.CommanderHealthCheck(products.NomadClientCheck, products.NomadAgentCheck)
+		if err != nil {
+			return err
+		}
+	}
+	// NOTE(mkcp): We don't have a TFE healthcheck because we don't support API checks yet.
+	// if cfg.TFE {
+	// }
+	if a.Config.Vault {
+		err := products.CommanderHealthCheck(products.VaultClientCheck, products.VaultAgentCheck)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *Agent) Setup(cfg products.Config) (map[string]*products.Product, error) {
+	p := make(map[string]*products.Product)
+	if a.Config.Consul {
+		p["consul"] = products.NewConsul(cfg)
+	}
+	if a.Config.Nomad {
+		p["nomad"] = products.NewNomad(cfg)
+	}
+	if a.Config.TFE {
+		p["terraform-ent"] = products.NewTFE(cfg)
+	}
+	if a.Config.Vault {
+		vaultSeekers, err := products.NewVault(cfg)
+		if err != nil {
+			return nil, err
+		}
+		p["vault"] = vaultSeekers
+	}
+	p["host"] = products.NewHost(cfg)
+	return p, nil
+}
+
+func ParseHCL(path string) (Config, error) {
+	// Parse our HCL
+	var config Config
+	err := hclsimple.DecodeFile(path, nil, &config)
+	if err != nil {
+		return Config{}, err
+	}
+	return config, nil
 }
