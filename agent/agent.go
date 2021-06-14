@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/hcl/v2/hclsimple"
+	"github.com/hashicorp/host-diagnostics/apiclients"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -61,10 +62,7 @@ func (a *Agent) Run() []error {
 		a.l.Error("Failed copying includes", "error", errCopy)
 	}
 
-	// Product handling
-
-	pConfig := a.productConfig()
-
+	// Product processing
 	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
 	// users to send us incomplete diagnostics.
 	a.l.Info("Checking product availability")
@@ -77,24 +75,24 @@ func (a *Agent) Run() []error {
 
 	// Create products
 	a.l.Debug("Gathering Products' Seekers")
-	p, errProductSetup := a.Setup(pConfig)
+	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
 		a.l.Error("Failed running Products", "error", errProductSetup)
 		return errs
 	}
 
-	// Filter products
-	a.l.Debug("Applying Products' Excludes and Selects")
-	for _, p := range a.products {
-		p.Filter()
+	// Filter the seekers on each product
+	a.l.Debug("Applying Exclude and Select filters to products")
+	for _, prod := range p {
+		prod.Filter()
 	}
 
+	// Store products and metadata
 	a.products = p
-	a.NumSeekers = products.CountSeekers(p)
+	a.NumSeekers = products.CountSeekers(a.products)
 
 	// Run products
-
 	a.l.Info("Gathering diagnostics")
 	if errProduct := a.RunProducts(); errProduct != nil {
 		errs = append(errs, errProduct)
@@ -290,17 +288,6 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 	return results, nil
 }
 
-func (a *Agent) productConfig() products.Config {
-	cfg := products.Config{
-		Logger: &a.l,
-		TmpDir: a.tmpDir,
-		From:   a.Config.IncludeFrom,
-		To:     a.Config.IncludeTo,
-		OS:     a.Config.OS,
-	}
-	return cfg
-}
-
 // DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
 func (a *Agent) DestinationFileName() string {
 	timestamp := time.Now().Format(time.RFC3339)
@@ -333,25 +320,106 @@ func (a *Agent) CheckAvailable() error {
 	return nil
 }
 
-func (a *Agent) Setup(cfg products.Config) (map[string]*products.Product, error) {
+func (a *Agent) Setup() (map[string]*products.Product, error) {
+	// TODO(mkcp): Products.Config and agent ProductConfig is hella confusing and should be refactored
+	// NOTE(mkcp): products.Config is a config struct with common params between products. while ProductConfig are the
+	//  product-specific values we take in from HCL. Very confusing and needs work!
+	var consul, nomad, tfe, vault *ProductConfig
+
+	for _, p := range a.Config.Products {
+		switch p.Name {
+		case products.Consul:
+			consul = p
+		case products.Nomad:
+			nomad = p
+		case products.TFE:
+			tfe = p
+		case products.Vault:
+			vault = p
+		}
+	}
+
+	cfg := products.Config{
+		Logger: &a.l,
+		TmpDir: a.tmpDir,
+		From:   a.Config.IncludeFrom,
+		To:     a.Config.IncludeTo,
+		OS:     a.Config.OS,
+	}
 	p := make(map[string]*products.Product)
 	if a.Config.Consul {
-		p["consul"] = products.NewConsul(cfg)
+		product := products.NewConsul(cfg)
+		if consul != nil {
+			customSeekers, err := customSeekers(consul, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			product.Seekers = append(product.Seekers, customSeekers...)
+			product.Excludes = consul.Excludes
+			product.Selects = consul.Selects
+		}
+		p[products.Consul] = product
+
 	}
 	if a.Config.Nomad {
-		p["nomad"] = products.NewNomad(cfg)
+		product := products.NewNomad(cfg)
+		if nomad != nil {
+			customSeekers, err := customSeekers(nomad, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			product.Seekers = append(product.Seekers, customSeekers...)
+			product.Excludes = nomad.Excludes
+			product.Selects = nomad.Selects
+		}
+		p[products.Nomad] = product
 	}
 	if a.Config.TFE {
-		p["terraform-ent"] = products.NewTFE(cfg)
+		product := products.NewTFE(cfg)
+		if tfe != nil {
+			customSeekers, err := customSeekers(tfe, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			product.Seekers = append(product.Seekers, customSeekers...)
+			product.Excludes = tfe.Excludes
+			product.Selects = tfe.Selects
+		}
+		p[products.TFE] = product
 	}
 	if a.Config.Vault {
-		vaultSeekers, err := products.NewVault(cfg)
+		product, err := products.NewVault(cfg)
 		if err != nil {
 			return nil, err
 		}
-		p["vault"] = vaultSeekers
+		if vault != nil {
+			customSeekers, err := customSeekers(vault, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			product.Seekers = append(product.Seekers, customSeekers...)
+			product.Excludes = vault.Excludes
+			product.Selects = vault.Selects
+		}
+		p[products.Vault] = product
 	}
-	p["host"] = products.NewHost(cfg)
+
+	product := products.NewHost(cfg)
+	/* TODO(mkcp): implement hosts. This will require a refactor of hosts
+	if a.Config.Host != nil {
+		customSeekers, err := customSeekers(a.Config.Host, a.tmpDir)
+		if err != nil {
+			return nil, err
+		}
+		product.Seekers = append(product.Seekers, customSeekers...)
+		product.Excludes = host.Excludes
+		product.Selects = host.Selects
+	}
+
+	*/
+	p[products.Host] = product
+
+	// products.Config is a config struct with common params between products
 	return p, nil
 }
 
@@ -363,4 +431,50 @@ func ParseHCL(path string) (Config, error) {
 		return Config{}, err
 	}
 	return config, nil
+}
+
+func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) {
+	seekers := make([]*seeker.Seeker, 0)
+	// Build Commanders
+	for _, c := range cfg.Commands {
+		cmder := seeker.NewCommander(c.Run, c.Format)
+		seekers = append(seekers, cmder)
+	}
+
+	// Build HTTPers
+	var client *apiclients.APIClient
+	var err error
+	switch cfg.Name {
+	case products.Consul:
+		client = apiclients.NewConsulAPI()
+	// NOTE(mkcp): No Host clients. This may come up in the future if host becomes a generalized HTTP query location
+	case products.Nomad:
+		client = apiclients.NewNomadAPI()
+	case products.TFE:
+		client = apiclients.NewTFEAPI()
+	case products.Vault:
+		client, err = apiclients.NewVaultAPI()
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, g := range cfg.GETs {
+		httper := seeker.NewHTTPer(client, g.Path)
+		seekers = append(seekers, httper)
+	}
+
+	// Build copiers
+	dest := tmpDir + "/" + cfg.Name
+	for _, c := range cfg.Copies {
+		since, err := time.ParseDuration(c.Since)
+		if err != nil {
+			return nil, err
+		}
+		// Get the timestamp which marks the start of our duration
+		from := time.Now().Add(-since)
+		copier := seeker.NewCopier(c.Path, dest, from, time.Time{})
+		seekers = append(seekers, copier)
+	}
+
+	return seekers, nil
 }

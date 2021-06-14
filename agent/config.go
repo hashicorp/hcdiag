@@ -3,8 +3,8 @@ package agent
 import "time"
 
 type Config struct {
-	Host    *HostConfig      `hcl:"host,block" json:"-"`
-	Product []*ProductConfig `hcl:"product,block" json:"-"`
+	Host     *HostConfig      `hcl:"host,block" json:"-"`
+	Products []*ProductConfig `hcl:"product,block" json:"-"`
 
 	OS          string    `json:"operating_system"`
 	Serial      bool      `json:"serial"`

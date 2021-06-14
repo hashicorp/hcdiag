@@ -23,7 +23,7 @@ func TestFilters(t *testing.T) {
 			desc: "Handles empty seekers with non-empty filters",
 			product: &Product{
 				Seekers:  []*seeker.Seeker{},
-				excludes: []string{"hello"},
+				Excludes: []string{"hello"},
 			},
 			expect: []*seeker.Seeker{},
 		},
@@ -37,7 +37,7 @@ func TestFilters(t *testing.T) {
 		{
 			desc: "Handles nil seekers",
 			product: &Product{
-				excludes: []string{"nope"},
+				Excludes: []string{"nope"},
 			},
 			expect: []*seeker.Seeker{},
 		},
@@ -47,8 +47,8 @@ func TestFilters(t *testing.T) {
 				Seekers: []*seeker.Seeker{
 					{Identifier: "still here"},
 				},
-				excludes: []string{},
-				selects:  []string{},
+				Excludes: []string{},
+				Selects:  []string{},
 			},
 			expect: []*seeker.Seeker{{Identifier: "still here"}},
 		},
@@ -58,7 +58,7 @@ func TestFilters(t *testing.T) {
 				Seekers: []*seeker.Seeker{
 					{Identifier: "goodbye"},
 				},
-				excludes: []string{"goodbye"},
+				Excludes: []string{"goodbye"},
 			},
 			expect: []*seeker.Seeker{},
 		},
@@ -66,23 +66,23 @@ func TestFilters(t *testing.T) {
 			desc: "Does not apply non-matching excludes",
 			product: &Product{
 				Seekers:  []*seeker.Seeker{{Identifier: "goodbye"}},
-				excludes: []string{"hello"},
+				Excludes: []string{"hello"},
 			},
 			expect: []*seeker.Seeker{{Identifier: "goodbye"}},
 		},
 		{
-			desc: "Applies matching selects",
+			desc: "Applies matching Selects",
 			product: &Product{
 				Seekers: []*seeker.Seeker{
 					{Identifier: "goodbye"},
 					{Identifier: "hello"},
 				},
-				selects: []string{"hello"},
+				Selects: []string{"hello"},
 			},
 			expect: []*seeker.Seeker{{Identifier: "hello"}},
 		},
 		{
-			desc: "Ignores excludes when selects are present, and ignores order",
+			desc: "Ignores excludes when Selects are present, and ignores order",
 			product: &Product{
 				Seekers: []*seeker.Seeker{
 					{Identifier: "select3"},
@@ -90,8 +90,8 @@ func TestFilters(t *testing.T) {
 					{Identifier: "goodbye"},
 					{Identifier: "select2"},
 				},
-				excludes: []string{"select2", "select3"},
-				selects:  []string{"select2", "select1", "select3"},
+				Excludes: []string{"select2", "select3"},
+				Selects:  []string{"select2", "select1", "select3"},
 			},
 			expect: []*seeker.Seeker{
 				{Identifier: "select3"},

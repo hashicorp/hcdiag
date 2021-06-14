@@ -18,8 +18,8 @@ func NewTFEAPI() *APIClient {
 	headers := map[string]string{}
 	token := os.Getenv("TFE_TOKEN")
 	if token != "" {
-		headers["Authorization"] = ("Bearer " + token)
+		headers["Authorization"] = "Bearer " + token
 	}
 
-	return NewAPIClient("tfe", addr, headers)
+	return NewAPIClient("terraform-ent", addr, headers)
 }

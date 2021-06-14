@@ -8,6 +8,14 @@ import (
 )
 
 const (
+	Consul = "consul"
+	Host   = "host"
+	Nomad  = "nomad"
+	TFE    = "terraform-ent"
+	Vault  = "vault"
+)
+
+const (
 	DefaultDebugSeconds    = 10
 	DefaultIntervalSeconds = 5
 )
@@ -21,24 +29,11 @@ type Config struct {
 	OS     string
 }
 
-type Name string
-
-var (
-	Consul Name = "consul"
-	Host   Name = "host"
-	Nomad  Name = "nomad"
-	TFE    Name = "tfe"
-	Vault  Name = "vault"
-)
-
 type Product struct {
-	Name             Name
-	Seekers          []*seeker.Seeker
-	customCommanders []seeker.Commander
-	customHTTPers    []seeker.HTTPer
-	customCopiers    []seeker.Copier
-	excludes         []string
-	selects          []string
+	Name     string
+	Seekers  []*seeker.Seeker
+	Excludes []string
+	Selects  []string
 }
 
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers
@@ -46,15 +41,15 @@ func (p *Product) Filter() {
 	if p.Seekers == nil {
 		p.Seekers = []*seeker.Seeker{}
 	}
-	// The presence of selects takes precedence over excludes
-	if p.selects != nil && 0 < len(p.selects) {
-		p.Seekers = seeker.Select(p.selects, p.Seekers)
-		// Skip any excludes
+	// The presence of Selects takes precedence over Excludes
+	if p.Selects != nil && 0 < len(p.Selects) {
+		p.Seekers = seeker.Select(p.Selects, p.Seekers)
+		// Skip any Excludes
 		return
 	}
-	// No selects, we can apply excludes
-	if p.excludes != nil {
-		p.Seekers = seeker.Exclude(p.excludes, p.Seekers)
+	// No Selects, we can apply Excludes
+	if p.Excludes != nil {
+		p.Seekers = seeker.Exclude(p.Excludes, p.Seekers)
 	}
 }
 

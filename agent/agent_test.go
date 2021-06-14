@@ -183,8 +183,7 @@ func TestSetup(t *testing.T) {
 			l:      hclog.Default(),
 			Config: cfg,
 		}
-		pCfg := a.productConfig()
-		p, err := a.Setup(pCfg)
+		p, err := a.Setup()
 		assert.NoError(t, err)
 		assert.Len(t, p, 1)
 	})
@@ -197,8 +196,7 @@ func TestSetup(t *testing.T) {
 			l:      hclog.Default(),
 			Config: cfg,
 		}
-		pCfg := a.productConfig()
-		p, err := a.Setup(pCfg)
+		p, err := a.Setup()
 		assert.NoError(t, err)
 		assert.Len(t, p, 2)
 	})
@@ -273,7 +271,7 @@ func TestParseHCL(t *testing.T) {
 						{Path: "/var/log/syslog", Since: ""},
 					},
 				},
-				Product: []*ProductConfig{
+				Products: []*ProductConfig{
 					{
 						Name: "consul",
 						Commands: []CommandConfig{
@@ -300,7 +298,7 @@ func TestParseHCL(t *testing.T) {
 			desc: "Config with multiple products is valid",
 			path: "../tests/resources/config/multi_product.hcl",
 			expect: Config{
-				Product: []*ProductConfig{
+				Products: []*ProductConfig{
 					{
 						Name:     "consul",
 						Commands: []CommandConfig{{Run: "consul version", Format: "string"}},
