@@ -7,6 +7,15 @@ import (
 	"github.com/hashicorp/host-diagnostics/util"
 )
 
+// Copier copies files to temp dir based on a filter.
+type Copier struct {
+	SourceDir string    `json:"source_directory"`
+	Filter    string    `json:"filter"`
+	DestDir   string    `json:"destination_directory"`
+	From      time.Time `json:"from"`
+	To        time.Time `json:"to"`
+}
+
 // NewCopier provides a Seeker for copying files to temp dir based on a filter.
 func NewCopier(path, destDir string, from, to time.Time) *Seeker {
 	sourceDir, filter := util.SplitFilepath(path)
@@ -20,15 +29,6 @@ func NewCopier(path, destDir string, from, to time.Time) *Seeker {
 			To: to,
 		},
 	}
-}
-
-// Copier copies files to temp dir based on a filter.
-type Copier struct {
-	SourceDir string    `json:"source_directory"`
-	Filter    string    `json:"filter"`
-	DestDir   string    `json:"destination_directory"`
-	From      time.Time `json:"from"`
-	To        time.Time `json:"to"`
 }
 
 // Run satisfies the Runner interface and copies the filtered source files to the destination.

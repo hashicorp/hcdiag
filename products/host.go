@@ -1,4 +1,4 @@
-package hostdiag
+package products
 
 import (
 	"net"
@@ -13,7 +13,14 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-func GetSeekers(os string) []*s.Seeker{
+// NewHost takes a product config and creates a Product containing all of the host's seekers.
+func NewHost(cfg Config) *Product {
+	return &Product{
+		Seekers: HostSeekers(cfg.OS),
+	}
+}
+
+func HostSeekers(os string) []*s.Seeker {
 	return []*s.Seeker{
 		NewHostSeeker(os),
 	}

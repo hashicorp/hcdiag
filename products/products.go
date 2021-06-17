@@ -2,8 +2,17 @@ package products
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/host-diagnostics/seeker"
 	"time"
+)
+
+const (
+	Consul = "consul"
+	Host   = "host"
+	Nomad  = "nomad"
+	TFE    = "terraform-ent"
+	Vault  = "vault"
 )
 
 const (
@@ -12,74 +21,36 @@ const (
 )
 
 type Config struct {
-	Consul bool
-	Nomad  bool
-	TFE    bool
-	Vault  bool
+	Logger *hclog.Logger
+	Name   string
 	TmpDir string
 	From   time.Time
 	To     time.Time
+	OS     string
 }
 
-// NewConfigAllEnabled returns a Config struct with every product enabled
-func NewConfigAllEnabled (tmpDir string, from, to time.Time) Config {
-	return Config{
-		Consul: true,
-		Nomad:  true,
-		TFE:    true,
-		Vault:  true,
-		TmpDir: tmpDir,
-		From:   from,
-		To:     to,
-	}
+type Product struct {
+	Name     string
+	Seekers  []*seeker.Seeker
+	Excludes []string
+	Selects  []string
 }
 
-// CheckAvailable runs healthchecks for each enabled product
-func CheckAvailable(cfg Config) error {
-	if cfg.Consul {
-		err := CommanderHealthCheck(ConsulClientCheck, ConsulAgentCheck)
-		if err != nil {
-			return err
-		}
+// Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers
+func (p *Product) Filter() {
+	if p.Seekers == nil {
+		p.Seekers = []*seeker.Seeker{}
 	}
-	if cfg.Nomad {
-		err := CommanderHealthCheck(NomadClientCheck, NomadAgentCheck)
-		if err != nil {
-			return err
-		}
+	// The presence of Selects takes precedence over Excludes
+	if p.Selects != nil && 0 < len(p.Selects) {
+		p.Seekers = seeker.Select(p.Selects, p.Seekers)
+		// Skip any Excludes
+		return
 	}
-	// NOTE(mkcp): We don't have a TFE healthcheck because we don't support API checks yet.
-	// if cfg.TFE {
-	// }
-	if cfg.Vault {
-		err := CommanderHealthCheck(VaultClientCheck, VaultAgentCheck)
-		if err != nil {
-			return err
-		}
+	// No Selects, we can apply Excludes
+	if p.Excludes != nil {
+		p.Seekers = seeker.Exclude(p.Excludes, p.Seekers)
 	}
-	return nil
-}
-
-// GetSeekers returns a map of enabled products to their seekers.
-func GetSeekers(cfg Config) (map[string][]*seeker.Seeker, error) {
-	sets := make(map[string][]*seeker.Seeker)
-	if cfg.Consul {
-		sets["consul"] = ConsulSeekers(cfg.TmpDir, cfg.From, cfg.To)
-	}
-	if cfg.Nomad {
-		sets["nomad"] = NomadSeekers(cfg.TmpDir, cfg.From, cfg.To)
-	}
-	if cfg.TFE {
-		sets["terraform-ent"] = TFESeekers(cfg.TmpDir, cfg.From, cfg.To)
-	}
-	if cfg.Vault {
-		vaultSeekers, err := VaultSeekers(cfg.TmpDir, cfg.From, cfg.To)
-		if err != nil {
-			return sets, err
-		}
-		sets["vault"] = vaultSeekers
-	}
-	return sets, nil
 }
 
 // CommanderHealthCheck employs the the CLI to check if the client and then the agent are available.
@@ -93,4 +64,12 @@ func CommanderHealthCheck(client, agent string) error {
 		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, result, err)
 	}
 	return nil
+}
+
+func CountSeekers(products map[string]*Product) int {
+	var count int
+	for _, product := range products {
+		count += len(product.Seekers)
+	}
+	return count
 }

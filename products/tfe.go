@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+// NewTFE takes a product config and creates a Product containing all of TFE's seekers.
+func NewTFE(cfg Config) *Product {
+	return &Product{
+		Seekers: TFESeekers(cfg.TmpDir, cfg.From, cfg.To),
+	}
+}
+
 // TFESeekers seek information about Terraform Enterprise/Cloud.
 func TFESeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	api := apiclients.NewTFEAPI()

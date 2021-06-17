@@ -46,14 +46,113 @@ func TestSeekerRun(t *testing.T) {
 
 }
 
-func TestCountInSets(t *testing.T) {
-	sets := map[string][]*Seeker {
-		"zero": {},
-		"one": {{}},
-		"two": {{}, {}},
-		"three": {{}, {}, {}},
+func TestExclude(t *testing.T) {
+	testTable := []struct{
+		desc     string
+		matchers []string
+		seekers  []*Seeker
+		expect   int
+	}{
+		{
+			desc: "Can exclude none",
+			matchers: []string{"hello"},
+			seekers: []*Seeker{
+				{Identifier: "nope"},
+				{Identifier: "nah"},
+				{Identifier: "sry"},
+			},
+			expect: 3,
+		},
+		{
+			desc: "Can exclude one",
+			matchers: []string{"hi"},
+			seekers: []*Seeker{{Identifier: "hi"}},
+			expect: 0,
+		},
+		{
+			desc: "Can exclude two",
+			matchers: []string{"hi", "sup"},
+			seekers: []*Seeker{
+				{Identifier: "hi"},
+				{Identifier: "sup"},
+			},
+			expect: 0,
+		},
+		{
+			desc: "Can exclude many and and ignore one",
+			matchers: []string{"exclude1", "exclude2", "exclude3"},
+			seekers: []*Seeker{
+				{Identifier: "exclude1"},
+				{Identifier: "exclude2"},
+				{Identifier: "exclude3"},
+				{Identifier: "keep"},
+			},
+			expect: 1,
+		},
 	}
-	expected := 6
-	count    := CountInSets(sets)
-	assert.Equal(t, count, expected)
+
+	for _, tc := range testTable {
+		res := Exclude(tc.matchers, tc.seekers)
+		assert.Len(t, res, tc.expect, tc.desc)
+	}
+}
+
+func TestSelect(t *testing.T) {
+	testTable := []struct{
+		desc     string
+		matchers []string
+		seekers  []*Seeker
+		expect   int
+	}{
+		{
+			desc: "Can select none",
+			matchers: []string{"hello"},
+			seekers: []*Seeker{
+				{Identifier: "nope"},
+				{Identifier: "nah"},
+				{Identifier: "sry"},
+			},
+			expect: 0,
+		},
+		{
+			desc: "Can select one",
+			matchers: []string{"match"},
+			seekers: []*Seeker{
+				{Identifier: "nope"},
+				{Identifier: "nah"},
+				{Identifier: "sry"},
+				{Identifier: "match"}},
+			expect: 1,
+		},
+		{
+			desc: "Can select two",
+			matchers: []string{"match1", "match2"},
+			seekers: []*Seeker{
+				{Identifier: "nope"},
+				{Identifier: "nah"},
+				{Identifier: "sry"},
+				{Identifier: "match1"},
+				{Identifier: "match2"},
+			},
+			expect: 2,
+		},
+		{
+			desc: "Can select many regardless of order",
+			matchers: []string{"select1", "select2", "select3"},
+			seekers: []*Seeker{
+				{Identifier: "skip1"},
+				{Identifier: "select2"},
+				{Identifier: "skip2"},
+				{Identifier: "skip3"},
+				{Identifier: "select3"},
+				{Identifier: "select1"},
+			},
+			expect: 3,
+		},
+	}
+
+	for _, tc := range testTable {
+		res := Select(tc.matchers, tc.seekers)
+		assert.Len(t, res, tc.expect, tc.desc)
+	}
 }

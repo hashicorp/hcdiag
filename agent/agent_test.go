@@ -1,14 +1,12 @@
 package agent
 
 import (
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/host-diagnostics/products"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/seeker"
 )
 
 // TODO: abstract away filesystem-related actions,
@@ -131,42 +129,20 @@ func TestCopyIncludes(t *testing.T) {
 	}
 }
 
-func TestGetProductSeekers(t *testing.T) {
-	t.Run("Should only get host if no products enabled", func(t *testing.T) {
-		a := Agent{l: hclog.Default()}
-		pCfg := a.productConfig()
-		err := a.GetProductSeekers(pCfg)
-		assert.NoError(t, err)
-		assert.Equal(t, len(a.seekers), 1)
-	})
-	t.Run("Should have host and nomad enabled", func(t *testing.T) {
-		a := Agent{l: hclog.Default()}
-		a.Config.Nomad = true
-		pCfg := a.productConfig()
-		err := a.GetProductSeekers(pCfg)
-		assert.NoError(t, err)
-		assert.Greater(t, len(a.seekers), 1)
-	})
-}
-
 func TestRunProducts(t *testing.T) {
+	pCfg := products.Config{OS: "auto"}
+	p := make(map[string]*products.Product)
+	p["host"] = products.NewHost(pCfg)
 	a := Agent{
-		l:       hclog.Default(),
-		results: make(map[string]map[string]interface{}),
+		l:        hclog.Default(),
+		products: p,
+		results:  make(map[string]map[string]interface{}),
 	}
-	pCfg := a.productConfig()
 
-	if err := a.RunProducts(pCfg); err != nil {
-		t.Errorf("Error running Seekers: %s", err)
-	}
-	// FIXME(mkcp): This host-host key is super awkward, need to work on the host some more
-	r, ok := a.results["host"]["host"]
-	if !ok {
-		t.Error("Expected 'host' in results, not found")
-	}
-	if _, ok := r.(*seeker.Seeker); !ok {
-		t.Errorf("Expected 'host' result to be a Seeker; got: %#v", r)
-	}
+	err := a.RunProducts()
+	assert.NoError(t, err)
+	assert.Len(t, a.products, 1, "has one product")
+	assert.NotNil(t, a.products["host"], "product is under \"host\" key")
 }
 
 func TestWriteOutput(t *testing.T) {
@@ -198,5 +174,151 @@ func TestWriteOutput(t *testing.T) {
 		_, err := os.Stat(f)
 		assert.NoError(t, err, "Missing file %s", f)
 	}
+}
 
+func TestSetup(t *testing.T) {
+	t.Run("Should only get host if no products enabled", func(t *testing.T) {
+		cfg := Config{OS: "auto"}
+		a := Agent{
+			l:      hclog.Default(),
+			Config: cfg,
+		}
+		p, err := a.Setup()
+		assert.NoError(t, err)
+		assert.Len(t, p, 1)
+	})
+	t.Run("Should have host and nomad enabled", func(t *testing.T) {
+		cfg := Config{
+			Nomad: true,
+			OS:    "auto",
+		}
+		a := Agent{
+			l:      hclog.Default(),
+			Config: cfg,
+		}
+		p, err := a.Setup()
+		assert.NoError(t, err)
+		assert.Len(t, p, 2)
+	})
+}
+
+func TestParseHCL(t *testing.T) {
+	testTable := []struct {
+		desc   string
+		path   string
+		expect Config
+	}{
+		{
+			desc:   "Empty config is valid",
+			path:   "../tests/resources/config/empty.hcl",
+			expect: Config{},
+		},
+		{
+			desc: "Host with no attributes is valid",
+			path: "../tests/resources/config/host_no_seekers.hcl",
+			expect: Config{
+				Host: &HostConfig{},
+			},
+		},
+		{
+			desc: "Host with one of each seeker is valid",
+			path: "../tests/resources/config/host_each_seeker.hcl",
+			expect: Config{
+				Host: &HostConfig{
+					Commands: []CommandConfig{
+						{Run: "testing", Format: "string"},
+					},
+					GETs: []GETConfig{
+						{Path: "/v1/api/lol"},
+					},
+					Copies: []CopyConfig{
+						{Path: "./*", Since: "10h"},
+					},
+				},
+			},
+		},
+		{
+			desc: "Host with multiple of a seeker type is valid",
+			path: "../tests/resources/config/multi_seekers.hcl",
+			expect: Config{
+				Host: &HostConfig{
+					Commands: []CommandConfig{
+						{
+							Run:    "testing",
+							Format: "string",
+						},
+						{
+							Run:    "another one",
+							Format: "string",
+						},
+						{
+							Run:    "do a thing",
+							Format: "json",
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "Config with a host and one product with everything is valid",
+			path: "../tests/resources/config/config.hcl",
+			expect: Config{
+				Host: &HostConfig{
+					Commands: []CommandConfig{
+						{Run: "ps aux", Format: "string"},
+					},
+					Copies: []CopyConfig{
+						{Path: "/var/log/syslog", Since: ""},
+					},
+				},
+				Products: []*ProductConfig{
+					{
+						Name: "consul",
+						Commands: []CommandConfig{
+							{Run: "consul version", Format: "json"},
+							{Run: "consul operator raft list-peers", Format: "json"},
+						},
+						GETs: []GETConfig{
+							{Path: "/v1/api/metrics?format=prometheus"},
+						},
+						Copies: []CopyConfig{
+							{Path: "/some/test/log"},
+							{Path: "/another/test/log", Since: "10d"},
+						},
+						Excludes: []string{"consul some-awfully-long-command"},
+						Selects: []string{
+							"consul just this",
+							"consul and this",
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "Config with multiple products is valid",
+			path: "../tests/resources/config/multi_product.hcl",
+			expect: Config{
+				Products: []*ProductConfig{
+					{
+						Name:     "consul",
+						Commands: []CommandConfig{{Run: "consul version", Format: "string"}},
+					},
+					{
+						Name:     "nomad",
+						Commands: []CommandConfig{{Run: "nomad version", Format: "string"}},
+					},
+					{
+						Name:     "vault",
+						Commands: []CommandConfig{{Run: "vault version", Format: "string"}},
+					},
+				},
+			},
+		},
+	}
+
+	for _, c := range testTable {
+		res, err := ParseHCL(c.path)
+		assert.NoError(t, err)
+		assert.Equal(t, c.expect, res, c.desc)
+	}
 }

@@ -3,6 +3,8 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/hcl/v2/hclsimple"
+	"github.com/hashicorp/host-diagnostics/apiclients"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,7 +12,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/hostdiag"
 	"github.com/hashicorp/host-diagnostics/products"
 	"github.com/hashicorp/host-diagnostics/seeker"
 	"github.com/hashicorp/host-diagnostics/util"
@@ -21,7 +22,7 @@ import (
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
 	l           hclog.Logger
-	seekers     map[string][]*seeker.Seeker
+	products    map[string]*products.Product
 	results     map[string]map[string]interface{}
 	resultsLock sync.Mutex
 	tmpDir      string
@@ -31,21 +32,6 @@ type Agent struct {
 	NumErrors   int       `json:"num_errors"`
 	NumSeekers  int       `json:"num_seekers"`
 	Config      Config    `json:"configuration"`
-}
-
-type Config struct {
-	OS          string    `json:"operating_system"`
-	Serial      bool      `json:"serial"`
-	Dryrun      bool      `json:"dry_run"`
-	Consul      bool      `json:"consul_enabled"`
-	Nomad       bool      `json:"nomad_enabled"`
-	TFE         bool      `json:"terraform_ent_enabled"`
-	Vault       bool      `json:"vault_enabled"`
-	AllProducts bool      `json:"all_products_enabled"`
-	Includes    []string  `json:"includes"`
-	IncludeFrom time.Time `json:"include_from"`
-	IncludeTo   time.Time `json:"include_to"`
-	Outfile     string    `json:"out_file"`
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
@@ -65,6 +51,8 @@ func (a *Agent) Run() []error {
 
 	// Begin execution, copy files and run seekers
 	a.Start = time.Now()
+
+	// File processing
 	if errTemp := a.CreateTemp(); errTemp != nil {
 		errs = append(errs, errTemp)
 		a.l.Error("Failed to create temp directory", "error", errTemp)
@@ -73,14 +61,40 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errCopy)
 		a.l.Error("Failed copying includes", "error", errCopy)
 	}
-	pConfig := a.productConfig()
-	if errProductChecks := a.CheckProducts(pConfig); errProductChecks != nil {
+
+	// Product processing
+	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
+	// users to send us incomplete diagnostics.
+	a.l.Info("Checking product availability")
+	if errProductChecks := a.CheckAvailable(); errProductChecks != nil {
 		errs = append(errs, errProductChecks)
 		a.l.Error("Failed Product Checks", "error", errProductChecks)
 		// End the run if any product fails its checks.
 		return errs
 	}
-	if errProduct := a.RunProducts(pConfig); errProduct != nil {
+
+	// Create products
+	a.l.Debug("Gathering Products' Seekers")
+	p, errProductSetup := a.Setup()
+	if errProductSetup != nil {
+		errs = append(errs, errProductSetup)
+		a.l.Error("Failed running Products", "error", errProductSetup)
+		return errs
+	}
+
+	// Filter the seekers on each product
+	a.l.Debug("Applying Exclude and Select filters to products")
+	for _, prod := range p {
+		prod.Filter()
+	}
+
+	// Store products and metadata
+	a.products = p
+	a.NumSeekers = products.CountSeekers(a.products)
+
+	// Run products
+	a.l.Info("Gathering diagnostics")
+	if errProduct := a.RunProducts(); errProduct != nil {
 		errs = append(errs, errProduct)
 		a.l.Error("Failed running Products", "error", errProduct)
 	}
@@ -96,13 +110,6 @@ func (a *Agent) Run() []error {
 		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
 	}
 	return errs
-}
-
-func (a *Agent) CheckProducts(config products.Config) error {
-	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
-	// users to send us incomplete diagnostics.
-	a.l.Info("Checking product availability")
-	return products.CheckAvailable(config)
 }
 
 func (a *Agent) recordEnd() {
@@ -175,62 +182,40 @@ func (a *Agent) CopyIncludes() (err error) {
 	return nil
 }
 
-// GetSeekers maps the products we'll inspect into the seekers that we'll execute.
-func (a *Agent) GetProductSeekers(config products.Config) error {
-	a.l.Debug("Gathering Products' Seekers")
-	var err error
-	var seekers map[string][]*seeker.Seeker
-	seekers, err = products.GetSeekers(config)
-	if err != nil {
-		a.l.Error("agent.GetProductSeekers", "error", err)
-		return err
-	}
-	seekers["host"] = hostdiag.GetSeekers(a.Config.OS)
-	a.seekers = seekers
-	a.NumSeekers = seeker.CountInSets(seekers)
-	return nil
-}
-
-// RunSeekers executes all seekers for this run.
-func (a *Agent) RunProducts(config products.Config) error {
-	var err error
-	a.l.Info("Gathering diagnostics")
-
-	err = a.GetProductSeekers(config)
-	if err != nil {
-		return err
-	}
-
+// RunProducts executes all seekers for this run.
+// TODO(mkcp): Migrate much of this functionality into the products package
+func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
-	wg.Add(len(a.seekers))
+	wg.Add(len(a.products))
 
 	// NOTE(mkcp): Create a closure around runSet and wg.Done(). This is a little complex, but saves us duplication
 	//   in the product loop. Maybe we extract this to a private package function in the future?
-	f := func(wg *sync.WaitGroup, product string, set []*seeker.Seeker) {
-		result, err := a.runSet(product, set)
+	f := func(wg *sync.WaitGroup, name string, product *products.Product) {
+		set := product.Seekers
+		result, err := a.runSet(name, set)
 		a.resultsLock.Lock()
-		a.results[product] = result
+		a.results[name] = result
 		a.resultsLock.Unlock()
 		if err != nil {
 			a.l.Error("Error running seekers", "product", product, "error", err)
 		}
 		wg.Done()
 	}
-	for product, set := range a.seekers {
+	for name, product := range a.products {
 		// Run synchronously if -serial is enabled
 		if a.Config.Serial {
-			f(&wg, product, set)
+			f(&wg, name, product)
 			continue
 		}
 		// Run concurrently by default
-		go f(&wg, product, set)
+		go f(&wg, name, product)
 	}
 
 	// Wait until every product is finished
 	wg.Wait()
 
-	// TODO(kit): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
+	// TODO(mkcp): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
 	//  it as an error if we're over the 50% threshold. Maybe we only render it in the manifest or results?
 	if a.NumErrors > a.NumSeekers/2 {
 		return errors.New("more than 50% of Seekers failed")
@@ -278,6 +263,7 @@ func (a *Agent) WriteOutput(resultsDest string) (err error) {
 
 // runSeekers runs the seekers
 // TODO(mkcp): Should we return a collection of errors from here?
+// TODO(mkcp): Migrate this onto the product
 func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interface{}, error) {
 	a.l.Info("Running seekers for", "product", product)
 	results := make(map[string]interface{})
@@ -302,23 +288,193 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 	return results, nil
 }
 
-func (a *Agent) productConfig() products.Config {
-	if a.Config.AllProducts {
-		return products.NewConfigAllEnabled(a.tmpDir, a.Config.IncludeFrom, a.Config.IncludeTo)
-	}
-	return products.Config{
-		Consul: a.Config.Consul,
-		Nomad:  a.Config.Nomad,
-		TFE:    a.Config.TFE,
-		Vault:  a.Config.Vault,
-		TmpDir: a.tmpDir,
-		From:   a.Config.IncludeFrom,
-		To:     a.Config.IncludeTo,
-	}
-}
-
 // DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
 func (a *Agent) DestinationFileName() string {
 	timestamp := time.Now().Format(time.RFC3339)
 	return fmt.Sprintf("%s-%s.tar.gz", a.Config.Outfile, timestamp)
+}
+
+// CheckAvailable runs healthchecks for each enabled product
+func (a *Agent) CheckAvailable() error {
+	if a.Config.Consul {
+		err := products.CommanderHealthCheck(products.ConsulClientCheck, products.ConsulAgentCheck)
+		if err != nil {
+			return err
+		}
+	}
+	if a.Config.Nomad {
+		err := products.CommanderHealthCheck(products.NomadClientCheck, products.NomadAgentCheck)
+		if err != nil {
+			return err
+		}
+	}
+	// NOTE(mkcp): We don't have a TFE healthcheck because we don't support API checks yet.
+	// if cfg.TFE {
+	// }
+	if a.Config.Vault {
+		err := products.CommanderHealthCheck(products.VaultClientCheck, products.VaultAgentCheck)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *Agent) Setup() (map[string]*products.Product, error) {
+	// TODO(mkcp): Products.Config and agent ProductConfig is hella confusing and should be refactored
+	// NOTE(mkcp): products.Config is a config struct with common params between products. while ProductConfig are the
+	//  product-specific values we take in from HCL. Very confusing and needs work!
+	var consul, nomad, tfe, vault *ProductConfig
+
+	for _, p := range a.Config.Products {
+		switch p.Name {
+		case products.Consul:
+			consul = p
+		case products.Nomad:
+			nomad = p
+		case products.TFE:
+			tfe = p
+		case products.Vault:
+			vault = p
+		}
+	}
+
+	cfg := products.Config{
+		Logger: &a.l,
+		TmpDir: a.tmpDir,
+		From:   a.Config.IncludeFrom,
+		To:     a.Config.IncludeTo,
+		OS:     a.Config.OS,
+	}
+	p := make(map[string]*products.Product)
+	if a.Config.Consul {
+		product := products.NewConsul(cfg)
+		if consul != nil {
+			customSeekers, err := customSeekers(consul, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			product.Seekers = append(product.Seekers, customSeekers...)
+			product.Excludes = consul.Excludes
+			product.Selects = consul.Selects
+		}
+		p[products.Consul] = product
+
+	}
+	if a.Config.Nomad {
+		product := products.NewNomad(cfg)
+		if nomad != nil {
+			customSeekers, err := customSeekers(nomad, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			product.Seekers = append(product.Seekers, customSeekers...)
+			product.Excludes = nomad.Excludes
+			product.Selects = nomad.Selects
+		}
+		p[products.Nomad] = product
+	}
+	if a.Config.TFE {
+		product := products.NewTFE(cfg)
+		if tfe != nil {
+			customSeekers, err := customSeekers(tfe, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			product.Seekers = append(product.Seekers, customSeekers...)
+			product.Excludes = tfe.Excludes
+			product.Selects = tfe.Selects
+		}
+		p[products.TFE] = product
+	}
+	if a.Config.Vault {
+		product, err := products.NewVault(cfg)
+		if err != nil {
+			return nil, err
+		}
+		if vault != nil {
+			customSeekers, err := customSeekers(vault, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			product.Seekers = append(product.Seekers, customSeekers...)
+			product.Excludes = vault.Excludes
+			product.Selects = vault.Selects
+		}
+		p[products.Vault] = product
+	}
+
+	product := products.NewHost(cfg)
+	/* TODO(mkcp): implement hosts. This will require a refactor of hosts
+	if a.Config.Host != nil {
+		customSeekers, err := customSeekers(a.Config.Host, a.tmpDir)
+		if err != nil {
+			return nil, err
+		}
+		product.Seekers = append(product.Seekers, customSeekers...)
+		product.Excludes = host.Excludes
+		product.Selects = host.Selects
+	}
+
+	*/
+	p[products.Host] = product
+
+	// products.Config is a config struct with common params between products
+	return p, nil
+}
+
+func ParseHCL(path string) (Config, error) {
+	// Parse our HCL
+	var config Config
+	err := hclsimple.DecodeFile(path, nil, &config)
+	if err != nil {
+		return Config{}, err
+	}
+	return config, nil
+}
+
+func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) {
+	seekers := make([]*seeker.Seeker, 0)
+	// Build Commanders
+	for _, c := range cfg.Commands {
+		cmder := seeker.NewCommander(c.Run, c.Format)
+		seekers = append(seekers, cmder)
+	}
+
+	// Build HTTPers
+	var client *apiclients.APIClient
+	var err error
+	switch cfg.Name {
+	case products.Consul:
+		client = apiclients.NewConsulAPI()
+	// NOTE(mkcp): No Host clients. This may come up in the future if host becomes a generalized HTTP query location
+	case products.Nomad:
+		client = apiclients.NewNomadAPI()
+	case products.TFE:
+		client = apiclients.NewTFEAPI()
+	case products.Vault:
+		client, err = apiclients.NewVaultAPI()
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, g := range cfg.GETs {
+		httper := seeker.NewHTTPer(client, g.Path)
+		seekers = append(seekers, httper)
+	}
+
+	// Build copiers
+	dest := tmpDir + "/" + cfg.Name
+	for _, c := range cfg.Copies {
+		since, err := time.ParseDuration(c.Since)
+		if err != nil {
+			return nil, err
+		}
+		// Get the timestamp which marks the start of our duration
+		from := time.Now().Add(-since)
+		copier := seeker.NewCopier(c.Path, dest, from, time.Time{})
+		seekers = append(seekers, copier)
+	}
+
+	return seekers, nil
 }
