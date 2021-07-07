@@ -256,7 +256,7 @@ func (a *Agent) WriteOutput(resultsDest string) (err error) {
 		a.l.Error("util.TarGz", "error", err)
 		return err
 	}
-	a.l.Info("Compressed and archived output file", "dest", a.Config.Outfile)
+	a.l.Info("Compressed and archived output file", "dest", a.Config.Destination)
 
 	return nil
 }
@@ -291,7 +291,7 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 // DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
 func (a *Agent) DestinationFileName() string {
 	timestamp := time.Now().Format(time.RFC3339)
-	return fmt.Sprintf("%s-%s.tar.gz", a.Config.Outfile, timestamp)
+	return fmt.Sprintf("%s-%s.tar.gz", a.Config.Destination, timestamp)
 }
 
 // CheckAvailable runs healthchecks for each enabled product

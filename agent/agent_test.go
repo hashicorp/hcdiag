@@ -153,7 +153,7 @@ func TestWriteOutput(t *testing.T) {
 
 	testOut := "test"
 	resultsDest := a.DestinationFileName()
-	a.Config.Outfile = testOut
+	a.Config.Destination = testOut
 	err := a.CreateTemp()
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
