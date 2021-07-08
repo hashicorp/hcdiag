@@ -16,7 +16,7 @@ type Config struct {
 	Includes    []string  `json:"includes"`
 	IncludeFrom time.Time `json:"include_from"`
 	IncludeTo   time.Time `json:"include_to"`
-	Destination string    `json:"out_file"`
+	Destination string    `json:"destination"`
 }
 
 type HostConfig struct {
