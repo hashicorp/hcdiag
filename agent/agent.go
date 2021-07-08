@@ -101,7 +101,8 @@ func (a *Agent) Run() []error {
 
 	// Execution finished, write our results and cleanup
 	a.recordEnd()
-	if errWrite := a.WriteOutput(a.DestinationFileName()); errWrite != nil {
+
+	if errWrite := a.WriteOutput(); errWrite != nil {
 		errs = append(errs, errWrite)
 		a.l.Error("Failed running output", "error", errWrite)
 	}
@@ -225,10 +226,24 @@ func (a *Agent) RunProducts() error {
 }
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
-func (a *Agent) WriteOutput(resultsDest string) (err error) {
+func (a *Agent) WriteOutput() (err error) {
+	// If the mode is drY ruUn, you can skip it
 	if a.Config.Dryrun {
 		return nil
 	}
+
+	// Ensure dir exists
+	// TODO(mkcp): Once an error here can hard-fail the process, we should execute this before we run the seekers to ensure
+	//  we don't waste users' time.
+	if mkdirErr := os.Mkdir(a.Config.Destination, 0755); mkdirErr != nil {
+		// TODO(mkcp): We will likely need more granular error handling here.
+		//  There are some cases where an error is a "happy path" - a dir exists, great, we can write to it.
+		//  But if the dir create fails and we proceed that's not ideal.
+		a.l.Debug("mkdir error", "error", err)
+	}
+
+	// Get bundle destination from config
+	resultsDest := fmt.Sprintf("%s/%s", a.Config.Destination, DestinationFileName())
 
 	a.l.Debug("Writing results and manifest, and creating tar.gz archive")
 
@@ -286,12 +301,6 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 		}
 	}
 	return results, nil
-}
-
-// DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
-func (a *Agent) DestinationFileName() string {
-	timestamp := time.Now().Format(time.RFC3339)
-	return fmt.Sprintf("%s-%s.tar.gz", a.Config.Destination, timestamp)
 }
 
 // CheckAvailable runs healthchecks for each enabled product
@@ -477,4 +486,10 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	}
 
 	return seekers, nil
+}
+
+// DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
+func DestinationFileName() string {
+	timestamp := time.Now().Format(time.RFC3339)
+	return fmt.Sprintf("support-%s.tar.gz", timestamp)
 }
