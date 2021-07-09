@@ -440,11 +440,9 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error)
 		seekers = append(seekers, cmder)
 	}
 
-	// FIXME(mkcp): Need to implement a host client to make this happen...
-	//  maybe just emulate with curl Commanders?
 	for _, g := range cfg.GETs {
-		cmd := strings.Join([]string{"curl", g.Path}, " ")
-		// NOTE(mkcp): We will get JSON back from a lot of requests, so this isn't ideal
+		cmd := strings.Join([]string{"curl -s", g.Path}, " ")
+		// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
 		format := "string"
 		cmder := seeker.NewCommander(cmd, format)
 		seekers = append(seekers, cmder)
