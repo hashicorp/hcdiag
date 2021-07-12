@@ -31,7 +31,7 @@ func NewHostSeeker(os string) *s.Seeker {
 		os = runtime.GOOS
 	}
 	return &s.Seeker{
-		Identifier: "host",
+		Identifier: "stats",
 		Runner: &HostSeeker{
 			OS: os,
 		},
