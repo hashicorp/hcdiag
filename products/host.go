@@ -16,17 +16,13 @@ import (
 // NewHost takes a product config and creates a Product containing all of the host's seekers.
 func NewHost(cfg Config) *Product {
 	return &Product{
-		Seekers: HostSeekers(cfg.OS),
+		Seekers: []*s.Seeker{
+			HostSeekers(cfg.OS),
+		},
 	}
 }
 
-func HostSeekers(os string) []*s.Seeker {
-	return []*s.Seeker{
-		NewHostSeeker(os),
-	}
-}
-
-func NewHostSeeker(os string) *s.Seeker {
+func HostSeekers(os string) *s.Seeker {
 	if os == "auto" {
 		os = runtime.GOOS
 	}

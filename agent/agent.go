@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -405,18 +406,15 @@ func (a *Agent) Setup() (map[string]*products.Product, error) {
 	}
 
 	product := products.NewHost(cfg)
-	/* TODO(mkcp): implement hosts. This will require a refactor of hosts
 	if a.Config.Host != nil {
-		customSeekers, err := customSeekers(a.Config.Host, a.tmpDir)
+		customSeekers, err := customHostSeekers(a.Config.Host, a.tmpDir)
 		if err != nil {
 			return nil, err
 		}
 		product.Seekers = append(product.Seekers, customSeekers...)
-		product.Excludes = host.Excludes
-		product.Selects = host.Selects
+		product.Excludes = a.Config.Host.Excludes
+		product.Selects = a.Config.Host.Selects
 	}
-
-	*/
 	p[products.Host] = product
 
 	// products.Config is a config struct with common params between products
@@ -433,6 +431,39 @@ func ParseHCL(path string) (Config, error) {
 	return config, nil
 }
 
+// TODO(mkcp): This is duplicative of customSeekers. This can certainly be improved.
+func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error) {
+	seekers := make([]*seeker.Seeker, 0)
+	// Build Commanders
+	for _, c := range cfg.Commands {
+		cmder := seeker.NewCommander(c.Run, c.Format)
+		seekers = append(seekers, cmder)
+	}
+
+	for _, g := range cfg.GETs {
+		cmd := strings.Join([]string{"curl -s", g.Path}, " ")
+		// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
+		format := "string"
+		cmder := seeker.NewCommander(cmd, format)
+		seekers = append(seekers, cmder)
+	}
+
+	// Build copiers
+	dest := tmpDir + "/host"
+	for _, c := range cfg.Copies {
+		since, err := time.ParseDuration(c.Since)
+		if err != nil {
+			return nil, err
+		}
+		// Get the timestamp which marks the start of our duration
+		from := time.Now().Add(-since)
+		copier := seeker.NewCopier(c.Path, dest, from, time.Time{})
+		seekers = append(seekers, copier)
+	}
+
+	return seekers, nil
+}
+
 func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) {
 	seekers := make([]*seeker.Seeker, 0)
 	// Build Commanders
@@ -447,7 +478,6 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	switch cfg.Name {
 	case products.Consul:
 		client = apiclients.NewConsulAPI()
-	// NOTE(mkcp): No Host clients. This may come up in the future if host becomes a generalized HTTP query location
 	case products.Nomad:
 		client = apiclients.NewNomadAPI()
 	case products.TFE:
