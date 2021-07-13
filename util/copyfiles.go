@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -20,12 +19,14 @@ func CopyDir(to, src string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path for '%s': %s", src, err)
 	}
-	// we'll remove this from the target
+	if _, err := os.Stat(absPath); err != nil {
+		return fmt.Errorf("Expect %s to exist, got error: %s", absPath, err)
+	}
 	absBase := filepath.Dir(absPath)
 
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		target := filepath.Join(to, strings.Replace(path, absBase, "", 1))
-		if info != nil && info.IsDir() {
+		target := filepath.Join(to, absBase, info.Name())
+		if info.IsDir() {
 			hclog.L().Info("copying", "path", path, "to", target)
 			return os.MkdirAll(target, directoryPerms)
 		}

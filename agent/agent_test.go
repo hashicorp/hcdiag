@@ -1,12 +1,13 @@
 package agent
 
 import (
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/products"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/host-diagnostics/products"
+	"github.com/stretchr/testify/assert"
 )
 
 // TODO: abstract away filesystem-related actions,
@@ -83,7 +84,6 @@ func TestCreateTempAndCleanup(t *testing.T) {
 }
 
 func TestCopyIncludes(t *testing.T) {
-	t.Skip("There's a bug in include that we need to fix and re-enable this. See ENGSYS-1251")
 	// set up a table of test cases
 	// these dirs/files are checked in to this repo under tests/resources/
 	testTable := []map[string]string{
@@ -104,17 +104,16 @@ func TestCopyIncludes(t *testing.T) {
 	var includeStr []string
 	for _, data := range testTable {
 		path := filepath.Join("../", "tests", "resources", data["path"])
-		path, err := filepath.Abs(path)
+		absPath, err := filepath.Abs(path)
 		assert.NoError(t, err)
-		println(path)
-		includeStr = append(includeStr, path)
+		includeStr = append(includeStr, absPath)
 	}
 
 	cfg := Config{Includes: includeStr}
 	a := NewAgent(cfg, hclog.Default())
 	err := a.CreateTemp()
 	assert.NoError(t, err, "Error creating tmpDir")
-	// defer a.Cleanup()
+	defer a.Cleanup()
 
 	// execute what we're aiming to test
 	err = a.CopyIncludes()
@@ -122,7 +121,10 @@ func TestCopyIncludes(t *testing.T) {
 
 	// verify expected file locations
 	for _, data := range testTable {
-		expect := filepath.Join(a.tmpDir, "includes", "tests", "resources", data["expect"])
+		path := filepath.Join("../", "tests", "resources", data["expect"])
+		absPath, err := filepath.Abs(path)
+		assert.NoError(t, err)
+		expect := filepath.Join(a.tmpDir, "includes", absPath)
 		if _, err := os.Stat(expect); err != nil {
 			t.Errorf("Expect %s to exist, got error: %s", expect, err)
 		}

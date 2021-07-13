@@ -4,26 +4,32 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
 	testDir          = "./testfrom"
-	testFile         = testDir + "/testfile"
+	testFile         = "testfile"
 	testFileContents = "hello"
 	testDestination  = "./testdest"
 )
 
 func setupFiles(t *testing.T) func(t *testing.T) {
 	// create "./testfrom"
-	err := os.MkdirAll(testDir, 0755)
+	absTestDir, err := filepath.Abs(testDir)
+	assert.NoError(t, err)
+	err = os.MkdirAll(absTestDir, 0755)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// create "./testfrom/testfile"
-	f, err := os.Create(testFile)
+	absTestFile := filepath.Join(absTestDir, testFile)
+	f, err := os.Create(absTestFile)
 	if err != nil {
 		t.Error(err)
 	}
@@ -36,7 +42,7 @@ func setupFiles(t *testing.T) func(t *testing.T) {
 
 	// return a teardown function to delete what we just made
 	return func(t *testing.T) {
-		err := os.RemoveAll(testDir)
+		err := os.RemoveAll(absTestDir)
 		if err != nil {
 			t.Error(err)
 		}
@@ -44,18 +50,25 @@ func setupFiles(t *testing.T) func(t *testing.T) {
 }
 
 func TestCopyDir(t *testing.T) {
+	absTestDestination, err := filepath.Abs(testDestination)
+	assert.NoError(t, err)
+
+	absTestDir, err := filepath.Abs(testDir)
+	assert.NoError(t, err)
+
 	cleanup := setupFiles(t)
+
 	defer cleanup(t)
-	defer os.RemoveAll(testDestination)
+	defer os.RemoveAll(absTestDestination)
 
 	// this also implicitly tests CopyFile()
-	err := CopyDir(testDestination, testDir)
+	err = CopyDir(absTestDestination, absTestDir)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// confirm the file exists in the right place and has the right contents
-	expectedLocation := "./testdest/testfrom/testfile"
+	expectedLocation := filepath.Join(absTestDir, testFile)
 	content, err := ioutil.ReadFile(expectedLocation)
 	if err != nil {
 		t.Error(err)
