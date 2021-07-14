@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hashicorp/host-diagnostics/apiclients"
-	s "github.com/hashicorp/host-diagnostics/seeker"
+	"github.com/hashicorp/hcdiag/apiclients"
+	s "github.com/hashicorp/hcdiag/seeker"
 )
 
 const (

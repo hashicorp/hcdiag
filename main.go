@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/agent"
+	"github.com/hashicorp/hcdiag/agent"
 )
 
 func main() {
@@ -17,8 +17,7 @@ func main() {
 }
 
 func realMain() (returnCode int) {
-	// TODO(mkcp): rename to support-bundler
-	l := configureLogging("host-diagnostics")
+	l := configureLogging("hcdiag")
 
 	// Parse our CLI flags
 	flags := Flags{}

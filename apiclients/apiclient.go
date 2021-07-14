@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/hashicorp/host-diagnostics/util"
+	"github.com/hashicorp/hcdiag/util"
 )
 
 type HTTPClient interface {

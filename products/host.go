@@ -5,7 +5,7 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
-	s "github.com/hashicorp/host-diagnostics/seeker"
+	s "github.com/hashicorp/hcdiag/seeker"
 	"github.com/mitchellh/go-ps"
 
 	"github.com/shirou/gopsutil/v3/disk"
