@@ -17,8 +17,7 @@ func main() {
 }
 
 func realMain() (returnCode int) {
-	// TODO(mkcp): rename to support-bundler
-	l := configureLogging("host-diagnostics")
+	l := configureLogging("hcdiag")
 
 	// Parse our CLI flags
 	flags := Flags{}
