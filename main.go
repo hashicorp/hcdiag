@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -76,7 +77,7 @@ type Flags struct {
 	AllProducts  bool
 	Includes     []string
 	IncludeSince time.Duration
-	Outfile      string
+	Destination  string
 	Config       string
 }
 
@@ -106,10 +107,15 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
 	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
-	flags.StringVar(&f.Outfile, "outfile", "support", "Output file name")
+	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
+	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
 	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file")
 	flags.DurationVar(&f.IncludeSince, "include-since", time.Duration(0), "How long ago until now to include files. Examples: 72h, 25m, 45s, 120h1m90s")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
+
+	// Ensure f.Destination points to some kind of directory by its notation
+	// FIXME(mkcp): trailing slashes should be trimmed in path.Dir... why does a double slash end in a slash?
+	f.Destination = path.Dir(f.Destination)
 
 	return flags.Parse(args)
 }
@@ -130,6 +136,6 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	config.Includes = flags.Includes
 	config.IncludeFrom = from
 	config.IncludeTo = to
-	config.Outfile = flags.Outfile
+	config.Destination = flags.Destination
 	return config
 }

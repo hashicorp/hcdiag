@@ -153,17 +153,22 @@ func TestWriteOutput(t *testing.T) {
 		results: make(map[string]map[string]interface{}),
 	}
 
-	testOut := "test"
-	resultsDest := a.DestinationFileName()
-	a.Config.Outfile = testOut
+	testOut := "."
+	resultsDest := DestinationFileName()
+	a.Config.Destination = testOut
 	err := a.CreateTemp()
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}
-	defer a.Cleanup()
+	defer func() {
+		if err := a.Cleanup(); err != nil {
+			a.l.Error("Failed to cleanup", "error", err)
+		}
+	}()
+	// NOTE(mkcp): Should we handle the error back from this?
 	defer os.Remove(resultsDest)
 
-	if err := a.WriteOutput(resultsDest); err != nil {
+	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
 	}
 

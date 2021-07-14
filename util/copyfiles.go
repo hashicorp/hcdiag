@@ -50,14 +50,22 @@ func CopyFile(to, src string) error {
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer func() {
+		if err := r.Close(); err != nil {
+			hclog.L().Error("Unable to close source file", "error", err)
+		}
+	}()
 
 	// Create destination file
 	w, err := os.Create(to)
 	if err != nil {
 		return err
 	}
-	defer w.Close()
+	defer func() {
+		if err := w.Close(); err != nil {
+			hclog.L().Error("Unable to close dest file", "error", err)
+		}
+	}()
 
 	// Write source contents to destination
 	_, err = io.Copy(w, r)
