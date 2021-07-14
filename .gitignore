@@ -15,7 +15,7 @@
 # vendor/
 
 /tests/vagrant*/.vagrant*
-*host-diagnostics*
+*hcdiag*
 *temp*
 *.json*
 *.tar*
