@@ -151,7 +151,7 @@ func TestWriteOutput(t *testing.T) {
 		results: make(map[string]map[string]interface{}),
 	}
 
-	testOut := "test"
+	testOut := "."
 	resultsDest := DestinationFileName()
 	a.Config.Destination = testOut
 	err := a.CreateTemp()
@@ -166,7 +166,7 @@ func TestWriteOutput(t *testing.T) {
 	// NOTE(mkcp): Should we handle the error back from this?
 	defer os.Remove(resultsDest)
 
-	if err := a.WriteOutput(resultsDest); err != nil {
+	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
 	}
 
