@@ -3,7 +3,7 @@ package products
 import (
 	"fmt"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/seeker"
+	"github.com/hashicorp/hcdiag/seeker"
 	"time"
 )
 

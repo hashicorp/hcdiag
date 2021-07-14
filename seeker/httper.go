@@ -1,7 +1,7 @@
 package seeker
 
 import (
-	"github.com/hashicorp/host-diagnostics/apiclients"
+	"github.com/hashicorp/hcdiag/apiclients"
 )
 
 // HTTPer hits APIs.

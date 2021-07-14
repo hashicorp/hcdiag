@@ -1,7 +1,7 @@
 package products
 
 import (
-	"github.com/hashicorp/host-diagnostics/seeker"
+	"github.com/hashicorp/hcdiag/seeker"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

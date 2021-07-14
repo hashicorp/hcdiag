@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/products"
+	"github.com/hashicorp/hcdiag/products"
 	"github.com/stretchr/testify/assert"
 )
 

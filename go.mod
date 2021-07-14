@@ -1,4 +1,4 @@
-module github.com/hashicorp/host-diagnostics
+module github.com/hashicorp/hcdiag
 
 go 1.15
 

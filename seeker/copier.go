@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/host-diagnostics/util"
+	"github.com/hashicorp/hcdiag/util"
 )
 
 // Copier copies files to temp dir based on a filter.
@@ -23,10 +23,10 @@ func NewCopier(path, destDir string, from, to time.Time) *Seeker {
 		Identifier: "copy " + sourceDir + "/" + filter,
 		Runner: Copier{
 			SourceDir: sourceDir,
-			Filter: filter,
-			DestDir: destDir,
-			From: from,
-			To: to,
+			Filter:    filter,
+			DestDir:   destDir,
+			From:      from,
+			To:        to,
 		},
 	}
 }

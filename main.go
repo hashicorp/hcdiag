@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/agent"
+	"github.com/hashicorp/hcdiag/agent"
 )
 
 func main() {

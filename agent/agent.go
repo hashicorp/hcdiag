@@ -3,8 +3,8 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/hcdiag/apiclients"
 	"github.com/hashicorp/hcl/v2/hclsimple"
-	"github.com/hashicorp/host-diagnostics/apiclients"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/host-diagnostics/products"
-	"github.com/hashicorp/host-diagnostics/seeker"
-	"github.com/hashicorp/host-diagnostics/util"
+	"github.com/hashicorp/hcdiag/products"
+	"github.com/hashicorp/hcdiag/seeker"
+	"github.com/hashicorp/hcdiag/util"
 )
 
 // TODO: NewDryAgent() to simplify all the 'if d.Dryrun's ??
