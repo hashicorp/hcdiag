@@ -173,6 +173,13 @@ func (a *Agent) CopyIncludes() (err error) {
 			a.l.Info("Would include", "from", f)
 			continue
 		}
+
+		a.l.Debug("validating include exists", "path", f)
+		_, err := os.Stat(f)
+		if err != nil {
+			return err
+		}
+
 		a.l.Debug("getting Copier", "path", f)
 		s := seeker.NewCopier(f, dest, a.Config.IncludeFrom, a.Config.IncludeTo)
 		if _, err = s.Run(); err != nil {
