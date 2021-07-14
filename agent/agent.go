@@ -175,14 +175,14 @@ func (a *Agent) CopyIncludes() (err error) {
 			continue
 		}
 
-		/*
-			a.l.Debug("validating include exists", "path", f)
+		a.l.Debug("validating include exists", "path", f)
+		// Wildcards don't represent a single file or dir, so we can't validate that they exist.
+		if !strings.Contains(f, "*") {
 			_, err := os.Stat(f)
 			if err != nil {
 				return err
 			}
-
-		*/
+		}
 
 		a.l.Debug("getting Copier", "path", f)
 		s := seeker.NewCopier(f, dest, a.Config.IncludeFrom, a.Config.IncludeTo)
