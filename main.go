@@ -103,7 +103,7 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.Serial, "serial", false, "Run products in sequence rather than concurrently")
 	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
 	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
-	flags.BoolVar(&f.TFE, "terraform-ent", false, "Run Terraform Enterprise diagnostics")
+	flags.BoolVar(&f.TFE, "terraform-ent", false, "(Experimental) Run Terraform Enterprise diagnostics")
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
 	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
