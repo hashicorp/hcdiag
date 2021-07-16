@@ -41,12 +41,14 @@ type HostSeeker struct {
 func (hs *HostSeeker) Run() (interface{}, error) {
 	results := make(map[string]interface{})
 
-	// TODO: not throw away errors?  separate Seekers for each?  sheesh.
+	// TODO(mkcp): There's several improvements we can make here. Each of these really ought to be its own seeker
+	//  and we should have some kind of error handling for these commands in there... at least so we can ack when
+	//  when they fail.
 	results["uname"], _ = s.NewCommander("uname -v", "string").Run()
 	results["host"], _ = GetHost()
 	results["memory"], _ = GetMemory()
 	results["disk"], _ = GetDisk()
-	// TODO: change and/or uncomment these noisy things
+	// TODO(mkcp): Process and Network are very noisy right now, we're leaving them out of the first release's defaults.
 	// results["processes"], _ = GetProcesses()
 	// results["network"], _ = GetNetwork()
 
