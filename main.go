@@ -109,7 +109,7 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
 	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
 	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file")
-	flags.DurationVar(&f.IncludeSince, "include-since", time.Duration(0), "How long ago until now to include files. Examples: 72h, 25m, 45s, 120h1m90s")
+	flags.DurationVar(&f.IncludeSince, "include-since", time.Duration(0), "Time range to include files, counting back from now. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
 
 	// Ensure f.Destination points to some kind of directory by its notation

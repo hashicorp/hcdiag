@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	NomadClientCheck = "nomad version"
-	NomadAgentCheck  = "nomad server members"
+	NomadClientCheck  = "nomad version"
+	NomadAgentCheck   = "nomad server members"
+	NomadDebugSeconds = 30
 )
 
 // NewNomad takes a product config and creates a Product with all of Nomad's default seekers
@@ -29,7 +30,7 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 		s.NewCommander("nomad version", "string"),
 		s.NewCommander("nomad node status -json", "json"),
 		s.NewCommander("nomad agent-info -json", "json"),
-		s.NewCommander(fmt.Sprintf("nomad operator debug -output=%s -duration=%ds", tmpDir, DefaultDebugSeconds), "string"),
+		s.NewCommander(fmt.Sprintf("nomad operator debug -output=%s -duration=%ds", tmpDir, NomadDebugSeconds), "string"),
 		// s.NewCommander("nomad operator metrics", "json", false), // TODO: uncomment (it's very verbose, so not noisy during testing)
 
 		s.NewHTTPer(api, "/v1/agent/members"),
