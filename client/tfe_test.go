@@ -1,4 +1,4 @@
-package apiclients
+package client
 
 import (
 	"github.com/stretchr/testify/assert"

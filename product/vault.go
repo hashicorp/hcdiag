@@ -1,11 +1,11 @@
-package products
+package product
 
 import (
 	"fmt"
 	"path/filepath"
 	"time"
 
-	"github.com/hashicorp/hcdiag/apiclients"
+	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
 )
 
@@ -27,7 +27,7 @@ func NewVault(cfg Config) (*Product, error) {
 
 // VaultSeekers seek information about Vault.
 func VaultSeekers(tmpDir string, from, to time.Time) ([]*s.Seeker, error) {
-	api, err := apiclients.NewVaultAPI()
+	api, err := client.NewVaultAPI()
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func VaultSeekers(tmpDir string, from, to time.Time) ([]*s.Seeker, error) {
 	}
 
 	// try to detect log location to copy
-	if logPath, err := apiclients.GetVaultAuditLogPath(api); err == nil {
+	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs/vault")
 		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)

@@ -3,7 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/hcdiag/apiclients"
+	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 	"io/ioutil"
 	"os"
@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcdiag/products"
+	"github.com/hashicorp/hcdiag/product"
 	"github.com/hashicorp/hcdiag/seeker"
 	"github.com/hashicorp/hcdiag/util"
 )
@@ -23,7 +23,7 @@ import (
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
 	l           hclog.Logger
-	products    map[string]*products.Product
+	products    map[string]*product.Product
 	results     map[string]map[string]interface{}
 	resultsLock sync.Mutex
 	tmpDir      string
@@ -91,7 +91,7 @@ func (a *Agent) Run() []error {
 
 	// Store products and metadata
 	a.products = p
-	a.NumSeekers = products.CountSeekers(a.products)
+	a.NumSeekers = product.CountSeekers(a.products)
 
 	// Run products
 	a.l.Info("Gathering diagnostics")
@@ -195,7 +195,7 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // RunProducts executes all seekers for this run.
-// TODO(mkcp): Migrate much of this functionality into the products package
+// TODO(mkcp): Migrate much of this functionality into the product package
 func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
@@ -203,7 +203,7 @@ func (a *Agent) RunProducts() error {
 
 	// NOTE(mkcp): Create a closure around runSet and wg.Done(). This is a little complex, but saves us duplication
 	//   in the product loop. Maybe we extract this to a private package function in the future?
-	f := func(wg *sync.WaitGroup, name string, product *products.Product) {
+	f := func(wg *sync.WaitGroup, name string, product *product.Product) {
 		set := product.Seekers
 		result, err := a.runSet(name, set)
 		a.resultsLock.Lock()
@@ -317,13 +317,13 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 // CheckAvailable runs healthchecks for each enabled product
 func (a *Agent) CheckAvailable() error {
 	if a.Config.Consul {
-		err := products.CommanderHealthCheck(products.ConsulClientCheck, products.ConsulAgentCheck)
+		err := product.CommanderHealthCheck(product.ConsulClientCheck, product.ConsulAgentCheck)
 		if err != nil {
 			return err
 		}
 	}
 	if a.Config.Nomad {
-		err := products.CommanderHealthCheck(products.NomadClientCheck, products.NomadAgentCheck)
+		err := product.CommanderHealthCheck(product.NomadClientCheck, product.NomadAgentCheck)
 		if err != nil {
 			return err
 		}
@@ -332,7 +332,7 @@ func (a *Agent) CheckAvailable() error {
 	// if cfg.TFE {
 	// }
 	if a.Config.Vault {
-		err := products.CommanderHealthCheck(products.VaultClientCheck, products.VaultAgentCheck)
+		err := product.CommanderHealthCheck(product.VaultClientCheck, product.VaultAgentCheck)
 		if err != nil {
 			return err
 		}
@@ -340,75 +340,75 @@ func (a *Agent) CheckAvailable() error {
 	return nil
 }
 
-func (a *Agent) Setup() (map[string]*products.Product, error) {
+func (a *Agent) Setup() (map[string]*product.Product, error) {
 	// TODO(mkcp): Products.Config and agent ProductConfig is hella confusing and should be refactored
-	// NOTE(mkcp): products.Config is a config struct with common params between products. while ProductConfig are the
+	// NOTE(mkcp): product.Config is a config struct with common params between product. while ProductConfig are the
 	//  product-specific values we take in from HCL. Very confusing and needs work!
 	var consul, nomad, tfe, vault *ProductConfig
 
 	for _, p := range a.Config.Products {
 		switch p.Name {
-		case products.Consul:
+		case product.Consul:
 			consul = p
-		case products.Nomad:
+		case product.Nomad:
 			nomad = p
-		case products.TFE:
+		case product.TFE:
 			tfe = p
-		case products.Vault:
+		case product.Vault:
 			vault = p
 		}
 	}
 
-	cfg := products.Config{
+	cfg := product.Config{
 		Logger: &a.l,
 		TmpDir: a.tmpDir,
 		From:   a.Config.IncludeFrom,
 		To:     a.Config.IncludeTo,
 		OS:     a.Config.OS,
 	}
-	p := make(map[string]*products.Product)
+	p := make(map[string]*product.Product)
 	if a.Config.Consul {
-		product := products.NewConsul(cfg)
+		newConsul := product.NewConsul(cfg)
 		if consul != nil {
 			customSeekers, err := customSeekers(consul, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			product.Seekers = append(product.Seekers, customSeekers...)
-			product.Excludes = consul.Excludes
-			product.Selects = consul.Selects
+			newConsul.Seekers = append(newConsul.Seekers, customSeekers...)
+			newConsul.Excludes = consul.Excludes
+			newConsul.Selects = consul.Selects
 		}
-		p[products.Consul] = product
+		p[product.Consul] = newConsul
 
 	}
 	if a.Config.Nomad {
-		product := products.NewNomad(cfg)
+		newNomad := product.NewNomad(cfg)
 		if nomad != nil {
 			customSeekers, err := customSeekers(nomad, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			product.Seekers = append(product.Seekers, customSeekers...)
-			product.Excludes = nomad.Excludes
-			product.Selects = nomad.Selects
+			newNomad.Seekers = append(newNomad.Seekers, customSeekers...)
+			newNomad.Excludes = nomad.Excludes
+			newNomad.Selects = nomad.Selects
 		}
-		p[products.Nomad] = product
+		p[product.Nomad] = newNomad
 	}
 	if a.Config.TFE {
-		product := products.NewTFE(cfg)
+		newTFE := product.NewTFE(cfg)
 		if tfe != nil {
 			customSeekers, err := customSeekers(tfe, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			product.Seekers = append(product.Seekers, customSeekers...)
-			product.Excludes = tfe.Excludes
-			product.Selects = tfe.Selects
+			newTFE.Seekers = append(newTFE.Seekers, customSeekers...)
+			newTFE.Excludes = tfe.Excludes
+			newTFE.Selects = tfe.Selects
 		}
-		p[products.TFE] = product
+		p[product.TFE] = newTFE
 	}
 	if a.Config.Vault {
-		product, err := products.NewVault(cfg)
+		newVault, err := product.NewVault(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -417,26 +417,26 @@ func (a *Agent) Setup() (map[string]*products.Product, error) {
 			if err != nil {
 				return nil, err
 			}
-			product.Seekers = append(product.Seekers, customSeekers...)
-			product.Excludes = vault.Excludes
-			product.Selects = vault.Selects
+			newVault.Seekers = append(newVault.Seekers, customSeekers...)
+			newVault.Excludes = vault.Excludes
+			newVault.Selects = vault.Selects
 		}
-		p[products.Vault] = product
+		p[product.Vault] = newVault
 	}
 
-	product := products.NewHost(cfg)
+	newHost := product.NewHost(cfg)
 	if a.Config.Host != nil {
 		customSeekers, err := customHostSeekers(a.Config.Host, a.tmpDir)
 		if err != nil {
 			return nil, err
 		}
-		product.Seekers = append(product.Seekers, customSeekers...)
-		product.Excludes = a.Config.Host.Excludes
-		product.Selects = a.Config.Host.Selects
+		newHost.Seekers = append(newHost.Seekers, customSeekers...)
+		newHost.Excludes = a.Config.Host.Excludes
+		newHost.Selects = a.Config.Host.Selects
 	}
-	p[products.Host] = product
+	p[product.Host] = newHost
 
-	// products.Config is a config struct with common params between products
+	// product.Config is a config struct with common params between product
 	return p, nil
 }
 
@@ -492,23 +492,23 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	}
 
 	// Build HTTPers
-	var client *apiclients.APIClient
+	var c *client.APIClient
 	var err error
 	switch cfg.Name {
-	case products.Consul:
-		client = apiclients.NewConsulAPI()
-	case products.Nomad:
-		client = apiclients.NewNomadAPI()
-	case products.TFE:
-		client = apiclients.NewTFEAPI()
-	case products.Vault:
-		client, err = apiclients.NewVaultAPI()
+	case product.Consul:
+		c = client.NewConsulAPI()
+	case product.Nomad:
+		c = client.NewNomadAPI()
+	case product.TFE:
+		c = client.NewTFEAPI()
+	case product.Vault:
+		c, err = client.NewVaultAPI()
 	}
 	if err != nil {
 		return nil, err
 	}
 	for _, g := range cfg.GETs {
-		httper := seeker.NewHTTPer(client, g.Path)
+		httper := seeker.NewHTTPer(c, g.Path)
 		seekers = append(seekers, httper)
 	}
 

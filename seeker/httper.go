@@ -1,16 +1,16 @@
 package seeker
 
 import (
-	"github.com/hashicorp/hcdiag/apiclients"
+	"github.com/hashicorp/hcdiag/client"
 )
 
 // HTTPer hits APIs.
 type HTTPer struct {
-	Path   string                `json:"path"`
-	Client *apiclients.APIClient `json:"client"`
+	Path   string            `json:"path"`
+	Client *client.APIClient `json:"client"`
 }
 
-func NewHTTPer(client *apiclients.APIClient, path string) *Seeker {
+func NewHTTPer(client *client.APIClient, path string) *Seeker {
 	return &Seeker{
 		Identifier: "GET" + " " + path,
 		Runner: HTTPer{

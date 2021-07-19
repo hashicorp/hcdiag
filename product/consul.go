@@ -1,11 +1,11 @@
-package products
+package product
 
 import (
 	"fmt"
 	"path/filepath"
 	"time"
 
-	"github.com/hashicorp/hcdiag/apiclients"
+	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
 )
 
@@ -23,7 +23,7 @@ func NewConsul(cfg Config) *Product {
 
 // ConsulSeekers seek information about Consul.
 func ConsulSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
-	api := apiclients.NewConsulAPI()
+	api := client.NewConsulAPI()
 
 	seekers := []*s.Seeker{
 		s.NewCommander("consul version", "string"),
@@ -39,7 +39,7 @@ func ConsulSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	}
 
 	// try to detect log location to copy
-	if logPath, err := apiclients.GetConsulLogPath(api); err == nil {
+	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs/consul")
 		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
