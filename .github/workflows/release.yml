@@ -61,4 +61,4 @@ jobs:
       - name: Publish released artifacts
         run: hc-releases publish -product=hcdiag
         env:
-          FASTLY_API_TOKEN: ${{ secrets.RELEASE_FASTLY_API_TOKEN }
+          FASTLY_API_TOKEN: ${{ secrets.RELEASE_FASTLY_API_TOKEN }}
