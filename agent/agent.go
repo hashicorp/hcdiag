@@ -3,7 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/hcdiag/apiclients"
+	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 	"io/ioutil"
 	"os"
@@ -492,23 +492,23 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	}
 
 	// Build HTTPers
-	var client *apiclients.APIClient
+	var c *client.APIClient
 	var err error
 	switch cfg.Name {
 	case products.Consul:
-		client = apiclients.NewConsulAPI()
+		c = client.NewConsulAPI()
 	case products.Nomad:
-		client = apiclients.NewNomadAPI()
+		c = client.NewNomadAPI()
 	case products.TFE:
-		client = apiclients.NewTFEAPI()
+		c = client.NewTFEAPI()
 	case products.Vault:
-		client, err = apiclients.NewVaultAPI()
+		c, err = client.NewVaultAPI()
 	}
 	if err != nil {
 		return nil, err
 	}
 	for _, g := range cfg.GETs {
-		httper := seeker.NewHTTPer(client, g.Path)
+		httper := seeker.NewHTTPer(c, g.Path)
 		seekers = append(seekers, httper)
 	}
 

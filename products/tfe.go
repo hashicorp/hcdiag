@@ -1,7 +1,7 @@
 package products
 
 import (
-	"github.com/hashicorp/hcdiag/apiclients"
+	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
 	"time"
 )
@@ -15,7 +15,7 @@ func NewTFE(cfg Config) *Product {
 
 // TFESeekers seek information about Terraform Enterprise/Cloud.
 func TFESeekers(tmpDir string, from, to time.Time) []*s.Seeker {
-	api := apiclients.NewTFEAPI()
+	api := client.NewTFEAPI()
 
 	return []*s.Seeker{
 		s.NewCommander("replicatedctl support-bundle", "string"),

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hashicorp/hcdiag/apiclients"
+	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
 )
 
@@ -24,7 +24,7 @@ func NewNomad(cfg Config) *Product {
 
 // NomadSeekers seek information about Nomad.
 func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
-	api := apiclients.NewNomadAPI()
+	api := client.NewNomadAPI()
 
 	seekers := []*s.Seeker{
 		s.NewCommander("nomad version", "string"),
@@ -40,7 +40,7 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	}
 
 	// try to detect log location to copy
-	if logPath, err := apiclients.GetNomadLogPath(api); err == nil {
+	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs/nomad")
 		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)

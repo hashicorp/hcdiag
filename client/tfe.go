@@ -1,4 +1,4 @@
-package apiclients
+package client
 
 // https://www.terraform.io/docs/cloud/api/index.html
 

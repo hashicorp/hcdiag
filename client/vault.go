@@ -1,4 +1,4 @@
-package apiclients
+package client
 
 // https://www.vaultproject.io/api-docs
 
