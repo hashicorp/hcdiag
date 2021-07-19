@@ -11,17 +11,17 @@ builds:
   ldflags:
     - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
   goos:
-    - windows
     - linux
+    # - windows
   goarch:
     - amd64
     - arm
     - arm64
-  ignore:
-    - goarch: 'arm'
-      goos: windows
-    - goarch: 'arm64'
-      goos: windows
+  # ignore:
+  #   - goarch: 'arm'
+  #     goos: windows
+  #   - goarch: 'arm64'
+  #     goos: windows
   binary: '{{ .ProjectName }}_v{{ .Version }}'
 
 archives:
