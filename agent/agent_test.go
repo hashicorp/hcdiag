@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcdiag/products"
+	"github.com/hashicorp/hcdiag/product"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -132,9 +132,9 @@ func TestCopyIncludes(t *testing.T) {
 }
 
 func TestRunProducts(t *testing.T) {
-	pCfg := products.Config{OS: "auto"}
-	p := make(map[string]*products.Product)
-	p["host"] = products.NewHost(pCfg)
+	pCfg := product.Config{OS: "auto"}
+	p := make(map[string]*product.Product)
+	p["host"] = product.NewHost(pCfg)
 	a := Agent{
 		l:        hclog.Default(),
 		products: p,
