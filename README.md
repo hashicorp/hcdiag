@@ -1,6 +1,6 @@
 # hcdiag
 
-The purpose of this tool is to simplify the collection of relevant support data for HashiCorp products. The tool will execute a number of commands to collect system information (./hostdiag) and product information (./products) for any number of supported products. The output of these commands is stored in a temporary directory and bundled into a single archive as an output. You may perform a `-dryrun` to view these commands before executing them and you can also see them clearly defined in code in the aforementioned locations.
+The purpose of this tool is to simplify the collection of relevant support data for HashiCorp products. The tool will execute a number of commands to collect system information (./hcdiag) and product information for any number of supported products. The output of these commands is stored in a temporary directory and bundled into a single archive as an output. You may perform a `-dryrun` to view these commands before executing them and you can also see them clearly defined in code in the aforementioned locations.
 
 ## Prerequisites
 
@@ -62,19 +62,23 @@ The following subsections cover product specific prerequisite items such as envi
 | `tfe` | Run Terraform Enterprise/Cloud diagnostics | bool | false |
 | `vault` | Run Vault diagnostics | bool | false |
 | `all` | Run all available product diagnostics | bool | false |
-| `includes` | Files or directories to include | string | "" |
-| `outfile` | Output file name | string | "support.tar.gz" |
+| `includes` | files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | "" |
+| `include-since` | Time range to include files, counting back from now. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s` | string | "72h" |
+| `destination` | Path to the directory the bundle should be written in | string | "." |
+| `dest` | Shorthand for -destination | string | "." |
+| `config` | Path to HCL configuration file | string | "" |
+| `serial` | Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load. | bool | false |
 
 ###  Examples
 
 - Host diagnostics only  
-    - `<future_binary_name>`
+    - `hcdiag`
 
 - Host and Vault diagnostics  
-    - `<future_binary_name> -vault`
+    - `hcdiag -vault`
 
 - Host, Consul, and Nomad diagnostics  
-    - `<future_binary_name> -consul -nomad`
+    - `hcdiag -consul -nomad`
 
 - Host and all available product diagnostics  
-    - `<future_binary_name> -all`
+    - `hcdiag -all`
