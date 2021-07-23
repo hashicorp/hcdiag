@@ -22,7 +22,6 @@ builds:
   #     goos: windows
   #   - goarch: 'arm64'
   #     goos: windows
-  binary: '{{ .ProjectName }}_v{{ .Version }}'
 
 archives:
 - format: zip
@@ -34,3 +33,31 @@ checksum:
 
 release:
   draft: true
+
+changelog:
+  skip: true
+
+signs:
+  -
+    id: with_key_id
+    # TODO: Replace with variable once goreleaser supports variables here
+    signature: "${artifact}.72D7468F.sig"
+    args: ["--batch", "--no-tty", "-u", "{{ .Env.GPG_KEY_ID }}", "--output", "${artifact}.{{ .Env.GPG_KEY_ID }}.sig", "--detach-sign", "${artifact}"]
+    artifacts: checksum
+  -
+    id: default
+    signature: "${artifact}.sig"
+    args: ["--batch", "--no-tty", "-u", "{{ .Env.GPG_KEY_ID }}", "--output", "${artifact}.sig", "--detach-sign", "${artifact}"]
+    artifacts: checksum
+
+publishers:
+  - name: "hc-releases"
+    checksum: true
+    signature: true
+    env:
+      - AWS_DEFAULT_REGION={{ .Env.AWS_DEFAULT_REGION }}
+      - AWS_REGION={{ .Env.AWS_REGION }}
+      - AWS_ACCESS_KEY_ID={{ .Env.AWS_ACCESS_KEY_ID }}
+      - AWS_SECRET_ACCESS_KEY={{ .Env.AWS_SECRET_ACCESS_KEY }}
+      - AWS_SESSION_TOKEN={{ .Env.AWS_SESSION_TOKEN }}
+    cmd: hc-releases upload-file {{ abs .ArtifactPath }}
