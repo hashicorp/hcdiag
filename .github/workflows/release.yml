@@ -37,10 +37,10 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.ENGSRV_ENGSYS_PROD_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.ENGSRV_ENGSYS_PROD_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.ENGSRV_ENGSYS_STAG_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ENGSRV_ENGSYS_STAG_AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-          role-to-assume: ${{ secrets.ENGSRV_ENGSYS_PROD_AWS_ROLE_TO_ASSUME }}
+          role-to-assume: ${{ secrets.ENGSRV_ENGSYS_STAG_AWS_ROLE_TO_ASSUME }}
           role-skip-session-tagging: true
           role-duration-seconds: 3600
 
@@ -58,6 +58,6 @@ jobs:
           CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
 
       - name: Publish released artifacts
-        run: hc-releases publish -product=hcdiag
+        run: hc-releases publish -bucket=staging.releases.hashicorp.com -product=hcdiag
         env:
           FASTLY_API_TOKEN: ${{ secrets.RELEASE_FASTLY_API_TOKEN }}
