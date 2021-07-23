@@ -34,6 +34,9 @@ checksum:
 release:
   draft: true
 
+changelog:
+  skip: true
+
 signs:
   -
     id: with_key_id
