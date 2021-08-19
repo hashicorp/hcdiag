@@ -1,9 +1,10 @@
 package product
 
 import (
+	"time"
+
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
-	"time"
 )
 
 // NewTFE takes a product config and creates a Product containing all of TFE's seekers.
@@ -22,12 +23,9 @@ func TFESeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 
 		s.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", tmpDir, from, to),
 
-		s.NewHTTPer(api, "/api/v2/admin/cost-estimation-settings"),
 		s.NewHTTPer(api, "/api/v2/admin/customization-settings"),
 		s.NewHTTPer(api, "/api/v2/admin/general-settings"),
 		s.NewHTTPer(api, "/api/v2/admin/organizations"),
-		s.NewHTTPer(api, "/api/v2/admin/saml-settings"),
-		s.NewHTTPer(api, "/api/v2/admin/smtp-settings"),
 		s.NewHTTPer(api, "/api/v2/admin/terraform-versions"),
 		s.NewHTTPer(api, "/api/v2/admin/twilio-settings"),
 	}
