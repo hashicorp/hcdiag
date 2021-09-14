@@ -82,3 +82,78 @@ The following subsections cover product specific prerequisite items such as envi
 
 - Host and all available product diagnostics  
     - `hcdiag -all`
+
+
+### Custom Seekers with Configuration
+In addition to the defaults hcdiag offers, for the host and products, diagnostic runs can be tailored to specific
+use-cases. With the `-config <FILE>` flag, users can execute HCL configuration saved to disk. Here's a simple example:
+
+```
+product "consul" {
+  command {
+    run = "consul version"
+    format = "string"
+  }
+}
+```
+
+Running `hcdiag` with this HCL means we run one seeker: the CLI command `consul version` and the `format = "string"`
+tells hcdiag how to parse the result. The `product "consul" {}` block ensures we store the results in the proper location.
+
+Let's go over how to write the custom configuration:
+
+We offer 3 seeker types: `command`, `GET`, and `copy`. `command` describes a CLI command to execute. `GET` describes an
+HTTP request to the corresponding product at the path extension. Finally, `copy` copies files over into the support
+bundle. 
+
+Seekers must be described in a `product` or `host` block. These contain our seekers and tell hcdiag where the store the
+results. If a command or file copy is not product specific, `host { ... }` scopes the seeker to the machine the seeker
+is run on. The supported product blocks are: `"consul", "vault", "nomad",` and `"terraform-ent"`.
+
+Lastly, we'll cover filters. Filters optionally let you remove results from the support bundle. The two options are
+`excludes` and `selects`. Each is an array that takes a list of seeker IDs. `exclude` removes matching seekers from the
+results and `selects` removes everything that _doesn't_ match the seeker IDs. `selects` take precedence if a seeker matches
+for both.
+
+Here's a complete example that describes each of the seekers for one of the product blocks, and host.
+
+```hcl
+host {
+  command {
+    run = "ps aux"
+    format = "string"
+  }
+  
+  copy {
+    path = "/var/log/syslog"
+  }
+}
+
+product "consul" {
+  command {
+    run = "consul version"
+    format = "json"
+  }
+
+  command {
+    run = "consul operator raft list-peers"
+    format = "json"
+  }
+
+  GET {
+    path = "/v1/api/metrics?format=prometheus"
+  }
+
+  copy {
+    path = "/some/test/log"
+  }
+
+  copy {
+    path = "/another/test/log"
+    since = "10d"
+  }
+
+  excludes = ["consul some-verbose-command"]
+  selects = ["consul include this", "consul and this"]
+}
+```
