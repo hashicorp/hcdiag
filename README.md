@@ -59,7 +59,7 @@ The following subsections cover product specific prerequisite items such as envi
 | `os` | Override operating system detection | string | "auto" |
 | `consul` | Run Consul diagnostics | bool | false |
 | `nomad` | Run Nomad diagnostics | bool | false |
-| `tfe` | Run Terraform Enterprise/Cloud diagnostics | bool | false |
+| `terraform-ent` | Run Terraform Enterprise/Cloud diagnostics | bool | false |
 | `vault` | Run Vault diagnostics | bool | false |
 | `all` | Run all available product diagnostics | bool | false |
 | `includes` | files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | "" |
