@@ -150,7 +150,7 @@ product "consul" {
 
   copy {
     path = "/another/test/log"
-    since = "10d"
+    since = "240h"
   }
 
   excludes = ["consul some-verbose-command"]
