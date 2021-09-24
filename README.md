@@ -123,10 +123,6 @@ host {
     run = "ps aux"
     format = "string"
   }
-  
-  copy {
-    path = "/var/log/syslog"
-  }
 }
 
 product "consul" {
@@ -142,10 +138,6 @@ product "consul" {
 
   GET {
     path = "/v1/api/metrics?format=prometheus"
-  }
-
-  copy {
-    path = "/some/test/log"
   }
 
   copy {
