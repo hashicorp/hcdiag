@@ -123,10 +123,6 @@ host {
     run = "ps aux"
     format = "string"
   }
-  
-  copy {
-    path = "/var/log/syslog"
-  }
 }
 
 product "consul" {
@@ -145,12 +141,8 @@ product "consul" {
   }
 
   copy {
-    path = "/some/test/log"
-  }
-
-  copy {
     path = "/another/test/log"
-    since = "10d"
+    since = "240h"
   }
 
   excludes = ["consul some-verbose-command"]
