@@ -274,9 +274,6 @@ func TestParseHCL(t *testing.T) {
 					Commands: []CommandConfig{
 						{Run: "ps aux", Format: "string"},
 					},
-					Copies: []CopyConfig{
-						{Path: "/var/log/syslog", Since: ""},
-					},
 				},
 				Products: []*ProductConfig{
 					{
@@ -289,8 +286,7 @@ func TestParseHCL(t *testing.T) {
 							{Path: "/v1/api/metrics?format=prometheus"},
 						},
 						Copies: []CopyConfig{
-							{Path: "/some/test/log"},
-							{Path: "/another/test/log", Since: "10d"},
+							{Path: "/another/test/log", Since: "240h"},
 						},
 						Excludes: []string{"consul some-awfully-long-command"},
 						Selects: []string{
