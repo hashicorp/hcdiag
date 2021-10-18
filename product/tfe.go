@@ -28,5 +28,6 @@ func TFESeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 		s.NewHTTPer(api, "/api/v2/admin/organizations"),
 		s.NewHTTPer(api, "/api/v2/admin/terraform-versions"),
 		s.NewHTTPer(api, "/api/v2/admin/twilio-settings"),
+		s.NewHTTPer(api, "/api/v2/admin/workspaces"),
 	}
 }
