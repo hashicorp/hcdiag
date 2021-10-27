@@ -214,14 +214,14 @@ func (a *Agent) RunProducts() error {
 		}
 		wg.Done()
 	}
-	for name, product := range a.products {
+	for name, p := range a.products {
 		// Run synchronously if -serial is enabled
 		if a.Config.Serial {
-			f(&wg, name, product)
+			f(&wg, name, p)
 			continue
 		}
 		// Run concurrently by default
-		go f(&wg, name, product)
+		go f(&wg, name, p)
 	}
 
 	// Wait until every product is finished
