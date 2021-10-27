@@ -319,6 +319,7 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 	for _, s := range set {
 		go f(s)
 	}
+	wg.Wait()
 
 	// Convert the sync.Map to a regular map
 	// FIXME(mkcp): This is just to keep from changing the func signature yet
