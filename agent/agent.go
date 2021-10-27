@@ -195,7 +195,8 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // RunProducts executes all seekers for this run.
-// TODO(mkcp): Migrate much of this functionality into the product package
+// TODO(mkcp): This can be migrated into the product package if locked writing results to the agent is
+//  handled in a different step.
 func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
@@ -287,21 +288,24 @@ func (a *Agent) WriteOutput() (err error) {
 	return nil
 }
 
-// runSeekers runs the seekers
-// TODO(mkcp): Should we return a collection of errors from here?
-// TODO(mkcp): Migrate this onto the product
+// runSet runs the seekers for a product
+// TODO(mkcp): We can migrate this to the product package once we:
+//  Return a collection of errors so we can count them on the agent
 func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interface{}, error) {
 	a.l.Info("Running seekers for", "product", product)
-	results := make(map[string]interface{})
-	for _, s := range set {
+	results := sync.Map{}
+	wg := sync.WaitGroup{}
+	wg.Add(len(set))
+	f := func(s *seeker.Seeker) {
+		defer wg.Done()
 		if a.Config.Dryrun {
 			a.l.Info("would run", "seeker", s.Identifier)
-			continue
+			return
 		}
 
 		a.l.Info("running", "seeker", s.Identifier)
 		result, err := s.Run()
-		results[s.Identifier] = s
+		results.Store(s.Identifier, s)
 		if err != nil {
 			a.NumErrors++
 			a.l.Warn("result",
@@ -310,8 +314,20 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 				"error", err,
 			)
 		}
+		return
 	}
-	return results, nil
+	for _, s := range set {
+		go f(s)
+	}
+
+	// Convert the sync.Map to a regular map
+	// FIXME(mkcp): This is just to keep from changing the func signature yet
+	r := make(map[string]interface{})
+	results.Range(func(key, value interface{}) bool {
+		r[key.(string)] = value.(*seeker.Seeker)
+		return true
+	})
+	return r, nil
 }
 
 // CheckAvailable runs healthchecks for each enabled product
