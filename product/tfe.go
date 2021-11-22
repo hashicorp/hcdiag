@@ -28,6 +28,7 @@ func TFESeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 		s.NewHTTPer(api, "/api/v2/admin/organizations"),
 		s.NewHTTPer(api, "/api/v2/admin/terraform-versions"),
 		s.NewHTTPer(api, "/api/v2/admin/twilio-settings"),
-		s.NewHTTPer(api, "/api/v2/admin/workspaces"),
+		// page size 1 because we only actually care about total workspace count in the `meta` field
+		s.NewHTTPer(api, "/api/v2/admin/workspaces?page[size]=1"),
 	}
 }
