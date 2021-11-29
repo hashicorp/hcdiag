@@ -3,14 +3,14 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/hcdiag/client"
-	"github.com/hashicorp/hcl/v2/hclsimple"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/hcdiag/client"
+	"github.com/hashicorp/hcl/v2/hclsimple"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/product"
@@ -120,16 +120,24 @@ func (a *Agent) recordEnd() {
 	a.Duration = fmt.Sprintf("%v seconds", a.End.Sub(a.Start).Seconds())
 }
 
+// TempDir returns "hcdiag-" and an ISO 8601-formatted timestamp for temporary directory and tar file names.
+// e.g. "hcdiag-2021-11-22T223938Z"
+func (a *Agent) TempDir() string {
+	ts := a.Start.UTC().Format(time.RFC3339) // e.g. 2021-11-22T22:39:38Z
+	// colons ":" are not great for filenames, so remove them
+	ts = strings.Replace(ts, ":", "", -1) // e.g.`` 2021-11-22T223938Z
+	return "hcdiag-" + ts
+}
+
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
 //  artifact.
 func (a *Agent) CreateTemp() error {
-	var err error
 	if a.Config.Dryrun {
 		return nil
 	}
 
-	a.tmpDir, err = ioutil.TempDir("./", "temp")
-	if err != nil {
+	a.tmpDir = a.TempDir()
+	if err := os.Mkdir(a.tmpDir, 0700); err != nil {
 		a.l.Error("Error creating temp directory", "name", hclog.Fmt("%s", a.tmpDir), "message", err)
 		return err
 	}
@@ -254,7 +262,7 @@ func (a *Agent) WriteOutput() (err error) {
 	}
 
 	// Get bundle destination from config
-	resultsDest := fmt.Sprintf("%s/%s", a.Config.Destination, DestinationFileName())
+	resultsDest := fmt.Sprintf("%s/%s.tar.gz", a.Config.Destination, a.TempDir())
 
 	a.l.Debug("Writing results and manifest, and creating tar.gz archive")
 
@@ -282,7 +290,7 @@ func (a *Agent) WriteOutput() (err error) {
 		a.l.Error("util.TarGz", "error", err)
 		return err
 	}
-	a.l.Info("Compressed and archived output file", "dest", a.Config.Destination)
+	a.l.Info("Compressed and archived output file", "dest", resultsDest)
 
 	return nil
 }
@@ -526,10 +534,4 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	}
 
 	return seekers, nil
-}
-
-// DestinationFileName appends an ISO 8601-formatted timestamp to the outfile name.
-func DestinationFileName() string {
-	timestamp := time.Now().Format(time.RFC3339)
-	return fmt.Sprintf("support-%s.tar.gz", timestamp)
 }
