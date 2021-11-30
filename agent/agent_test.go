@@ -154,7 +154,7 @@ func TestWriteOutput(t *testing.T) {
 	}
 
 	testOut := "."
-	resultsDest := DestinationFileName()
+	resultsDest := a.TempDir() + ".tar.gz"
 	a.Config.Destination = testOut
 	err := a.CreateTemp()
 	if err != nil {
