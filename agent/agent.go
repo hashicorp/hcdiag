@@ -123,9 +123,8 @@ func (a *Agent) recordEnd() {
 // TempDir returns "hcdiag-" and an ISO 8601-formatted timestamp for temporary directory and tar file names.
 // e.g. "hcdiag-2021-11-22T223938Z"
 func (a *Agent) TempDir() string {
-	ts := a.Start.UTC().Format(time.RFC3339) // e.g. 2021-11-22T22:39:38Z
-	// colons ":" are not great for filenames, so remove them
-	ts = strings.Replace(ts, ":", "", -1) // e.g.`` 2021-11-22T223938Z
+	// specifically excluding colons ":" since they are anathema to some filesystems and programs.
+	ts := a.Start.UTC().Format("2006-01-02T150405Z")
 	return "hcdiag-" + ts
 }
 
