@@ -9,6 +9,7 @@ require (
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/hcl/v2 v2.10.1
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mitchellh/cli v1.1.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
