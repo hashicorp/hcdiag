@@ -1,6 +1,7 @@
 package product
 
 import (
+	"fmt"
 	"net"
 	"runtime"
 
@@ -15,9 +16,12 @@ import (
 
 // NewHost takes a product config and creates a Product containing all of the host's seekers.
 func NewHost(cfg Config) *Product {
+	world := "world"
+	iGuess := 1
 	return &Product{
 		Seekers: []*s.Seeker{
 			HostSeekers(cfg.OS),
+			s.NewCommander(fmt.Sprintf("echo dynamic seeker %s %d", world, iGuess), "string"),
 		},
 	}
 }

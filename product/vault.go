@@ -33,11 +33,14 @@ func VaultSeekers(tmpDir string, from, to time.Time) ([]*s.Seeker, error) {
 	}
 
 	seekers := []*s.Seeker{
-		s.NewCommander("vault version", "string"),
-		s.NewCommander("vault status -format=json", "json"),
-		s.NewCommander("vault read sys/health -format=json", "json"),
-		s.NewCommander("vault read sys/seal-status -format=json", "json"),
-		s.NewCommander("vault read sys/host-info -format=json", "json"),
+		/*
+			s.NewCommander("vault version", "string"),
+			s.NewCommander("vault status -format=json", "json"),
+			s.NewCommander("vault read sys/health -format=json", "json"),
+			s.NewCommander("vault read sys/seal-status -format=json", "json"),
+			s.NewCommander("vault read sys/host-info -format=json", "json"),
+
+		*/
 		s.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%ds", tmpDir, DefaultDebugSeconds), "string"),
 	}
 
