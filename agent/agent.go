@@ -353,6 +353,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	//  product-specific values we take in from HCL. Very confusing and needs work!
 	var consul, nomad, tfe, vault *ProductConfig
 
+	// Copy agent.Config over to our local vars
 	for _, p := range a.Config.Products {
 		switch p.Name {
 		case product.Consul:
