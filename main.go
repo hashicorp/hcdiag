@@ -25,6 +25,10 @@ func realMain() (returnCode int) {
 	if err != nil {
 		return 64
 	}
+	// DEPRECATED(mkcp): Warn users if they're utilizing a deprecated flag
+	if flags.AllProducts {
+		l.Warn("DEPRECATED: -all will be removed in the future. Instead, provide multiple product flags.")
+	}
 
 	var config agent.Config
 	if flags.Config != "" {
@@ -128,9 +132,13 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	config.OS = flags.OS
 	config.Serial = flags.Serial
 	config.Dryrun = flags.Dryrun
+	// DEPRECATED(mkcp): flags.AllProducts
 	config.Consul = flags.AllProducts || flags.Consul
+	// DEPRECATED(mkcp): flags.AllProducts
 	config.Nomad = flags.AllProducts || flags.Nomad
+	// DEPRECATED(mkcp): flags.AllProducts
 	config.TFE = flags.AllProducts || flags.TFE
+	// DEPRECATED(mkcp): flags.AllProducts
 	config.Vault = flags.AllProducts || flags.Vault
 	config.Includes = flags.Includes
 	config.IncludeFrom = from
