@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
+	multierror "github.com/hashicorp/go-multierror"
 	s "github.com/hashicorp/hcdiag/seeker"
 	"github.com/mitchellh/go-ps"
 
@@ -40,19 +41,42 @@ type HostSeeker struct {
 
 func (hs *HostSeeker) Run() (interface{}, error) {
 	results := make(map[string]interface{})
+	var errors *multierror.Error
 
-	// TODO(mkcp): There's several improvements we can make here. Each of these really ought to be its own seeker
-	//  and we should have some kind of error handling for these commands in there... at least so we can ack when
-	//  when they fail.
-	results["uname"], _ = s.NewCommander("uname -v", "string").Run()
-	results["host"], _ = GetHost()
-	results["memory"], _ = GetMemory()
-	results["disk"], _ = GetDisk()
-	// TODO(mkcp): Process and Network are very noisy right now, we're leaving them out of the first release's defaults.
-	// results["processes"], _ = GetProcesses()
-	// results["network"], _ = GetNetwork()
+	// TODO(mkcp): There's several improvements we can make here. Each of these
+	// really ought to be its own seeker
+	if tmpResult, err := s.NewCommander("uname -v", "string").Run(); err != nil {
+		errors = multierror.Append(errors, err)
+	} else {
+		results["uname"] = tmpResult
+	}
+	if tmpResult, err := GetHost(); err != nil {
+		errors = multierror.Append(errors, err)
+	} else {
+		results["host"] = tmpResult
+	}
+	if tmpResult, err := GetMemory(); err != nil {
+		errors = multierror.Append(errors, err)
+	} else {
+		results["memory"] = tmpResult
+	}
+	if tmpResult, err := GetDisk(); err != nil {
+		errors = multierror.Append(errors, err)
+	} else {
+		results["disk"] = tmpResult
+	}
+	if tmpResult, err := GetProcesses(); err != nil {
+		errors = multierror.Append(errors, err)
+	} else {
+		results["processes"] = tmpResult
+	}
+	if tmpResult, err := GetNetwork(); err != nil {
+		errors = multierror.Append(errors, err)
+	} else {
+		results["network"] = tmpResult
+	}
 
-	return results, nil
+	return results, errors.ErrorOrNil()
 }
 
 // GetNetwork stuff
