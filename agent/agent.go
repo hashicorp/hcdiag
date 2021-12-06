@@ -210,7 +210,7 @@ func (a *Agent) RunProducts() error {
 
 	// NOTE(mkcp): Create a closure around runSet and wg.Done(). This is a little complex, but saves us duplication
 	//   in the product loop. Maybe we extract this to a private package function in the future?
-	f := func(wg *sync.WaitGroup, name string, product *product.Product) {
+	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
 		set := product.Seekers
 		result, err := a.runSet(name, set)
 		a.resultsLock.Lock()
@@ -221,14 +221,16 @@ func (a *Agent) RunProducts() error {
 		}
 		wg.Done()
 	}
-	for name, product := range a.products {
+
+	// Run each product
+	for name, p := range a.products {
 		// Run synchronously if -serial is enabled
 		if a.Config.Serial {
-			f(&wg, name, product)
+			run(&wg, name, p)
 			continue
 		}
 		// Run concurrently by default
-		go f(&wg, name, product)
+		go run(&wg, name, p)
 	}
 
 	// Wait until every product is finished
