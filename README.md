@@ -61,7 +61,7 @@ The following subsections cover product specific prerequisite items such as envi
 | `nomad` | Run Nomad diagnostics | bool | false |
 | `terraform-ent` | Run Terraform Enterprise/Cloud diagnostics | bool | false |
 | `vault` | Run Vault diagnostics | bool | false |
-| `all` | Run all available product diagnostics | bool | false |
+| `all` | DEPRECATED: Run all available product diagnostics | bool | false |
 | `includes` | files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | "" |
 | `include-since` | Time range to include files, counting back from now. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s` | string | "72h" |
 | `destination` | Path to the directory the bundle should be written in | string | "." |
