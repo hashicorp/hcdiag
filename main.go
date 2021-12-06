@@ -25,6 +25,10 @@ func realMain() (returnCode int) {
 	if err != nil {
 		return 64
 	}
+	// DEPRECATED(mkcp): Warn users if they're utilizing a deprecated flag
+	if flags.AllProducts {
+		l.Warn("DEPRECATED: -all will be removed in the future. Instead, provide multiple product flags.")
+	}
 
 	var config agent.Config
 	if flags.Config != "" {
@@ -104,7 +108,7 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
 	flags.BoolVar(&f.TFE, "terraform-ent", false, "(Experimental) Run Terraform Enterprise diagnostics")
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
-	flags.BoolVar(&f.AllProducts, "all", false, "Run all available product diagnostics")
+	flags.BoolVar(&f.AllProducts, "all", false, "DEPRECATED: Run all available product diagnostics")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
 	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
 	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
@@ -128,9 +132,13 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	config.OS = flags.OS
 	config.Serial = flags.Serial
 	config.Dryrun = flags.Dryrun
+	// DEPRECATED(mkcp): flags.AllProducts
 	config.Consul = flags.AllProducts || flags.Consul
+	// DEPRECATED(mkcp): flags.AllProducts
 	config.Nomad = flags.AllProducts || flags.Nomad
+	// DEPRECATED(mkcp): flags.AllProducts
 	config.TFE = flags.AllProducts || flags.TFE
+	// DEPRECATED(mkcp): flags.AllProducts
 	config.Vault = flags.AllProducts || flags.Vault
 	config.Includes = flags.Includes
 	config.IncludeFrom = from
