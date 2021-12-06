@@ -132,6 +132,9 @@ func (a *Agent) TempDir() string {
 //  artifact.
 func (a *Agent) CreateTemp() error {
 	if a.Config.Dryrun {
+		// ".*" here is to support copy/paste of seeker identifiers
+		// from -dryrun output into select/exclude regex filters
+		a.tmpDir = ".*"
 		return nil
 	}
 

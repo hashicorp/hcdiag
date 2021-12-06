@@ -89,6 +89,14 @@ func TestExclude(t *testing.T) {
 			},
 			expect: 1,
 		},
+		{
+			desc:     "Can exclude with regular expression",
+			matchers: []string{"hello.*friend"},
+			seekers: []*Seeker{
+				{Identifier: "hello there friend"},
+			},
+			expect: 0,
+		},
 	}
 
 	for _, tc := range testTable {
@@ -148,6 +156,15 @@ func TestSelect(t *testing.T) {
 				{Identifier: "select1"},
 			},
 			expect: 3,
+		},
+		{
+			desc:     "Can select with regular expression",
+			matchers: []string{"hello.*friend"},
+			seekers: []*Seeker{
+				{Identifier: "hello there friend"},
+				{Identifier: "not me though"},
+			},
+			expect: 1,
 		},
 	}
 

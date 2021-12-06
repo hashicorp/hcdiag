@@ -61,6 +61,14 @@ func TestCreateTemp(t *testing.T) {
 	}
 }
 
+func TestCreateTempDryrun(t *testing.T) {
+	a := NewAgent(Config{Dryrun: true}, hclog.Default())
+	if err := a.CreateTemp(); err != nil {
+		t.Errorf("Error from Dryrun CreateTemp: %s", err)
+	}
+	assert.Equal(t, a.tmpDir, ".*")
+}
+
 func TestCreateTempAndCleanup(t *testing.T) {
 	var err error
 	d := Agent{l: hclog.Default()}

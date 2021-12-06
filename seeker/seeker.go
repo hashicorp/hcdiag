@@ -2,6 +2,7 @@ package seeker
 
 import (
 	"fmt"
+	"regexp"
 )
 
 // Seeker seeks information via its Runner then stores the results.
@@ -41,8 +42,10 @@ func Exclude(excludes []string, seekers []*Seeker) []*Seeker {
 		// Set our match flag if we get a hit for any of the matchers on this seeker
 		var match bool
 		for _, matcher := range excludes {
-			if s.Identifier == matcher {
+			// TODO(gulducat): capture and log possible err here?
+			if m, _ := regexp.MatchString(matcher, s.Identifier); m {
 				match = true
+				break
 			}
 		}
 
@@ -62,8 +65,10 @@ func Select(selects []string, seekers []*Seeker) []*Seeker {
 		// Set our match flag if we get a hit for any of the matchers on this seeker
 		var match bool
 		for _, matcher := range selects {
-			if s.Identifier == matcher {
+			// TODO(gulducat): capture and log possible err here?
+			if m, _ := regexp.MatchString(matcher, s.Identifier); m {
 				match = true
+				break
 			}
 		}
 
