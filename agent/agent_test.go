@@ -66,7 +66,7 @@ func TestCreateTempDryrun(t *testing.T) {
 	if err := a.CreateTemp(); err != nil {
 		t.Errorf("Error from Dryrun CreateTemp: %s", err)
 	}
-	assert.Equal(t, a.tmpDir, ".*")
+	assert.Equal(t, a.tmpDir, "*")
 }
 
 func TestCreateTempAndCleanup(t *testing.T) {

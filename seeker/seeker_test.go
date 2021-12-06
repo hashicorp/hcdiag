@@ -90,10 +90,10 @@ func TestExclude(t *testing.T) {
 			expect: 1,
 		},
 		{
-			desc:     "Can exclude with regular expression",
-			matchers: []string{"hello.*friend"},
+			desc:     "Can exclude with glob",
+			matchers: []string{"hello*friend? hi"},
 			seekers: []*Seeker{
-				{Identifier: "hello there friend"},
+				{Identifier: "hello there friend? hi"},
 			},
 			expect: 0,
 		},
@@ -158,10 +158,10 @@ func TestSelect(t *testing.T) {
 			expect: 3,
 		},
 		{
-			desc:     "Can select with regular expression",
-			matchers: []string{"hello.*friend"},
+			desc:     "Can select with glob",
+			matchers: []string{"hello*friend? hi"},
 			seekers: []*Seeker{
-				{Identifier: "hello there friend"},
+				{Identifier: "hello there friend? hi"},
 				{Identifier: "not me though"},
 			},
 			expect: 1,
