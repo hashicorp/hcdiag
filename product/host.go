@@ -30,53 +30,50 @@ func HostSeekers(os string) *s.Seeker {
 	return &s.Seeker{
 		Identifier: "stats",
 		Runner: &HostSeeker{
-			OS: os,
+			l:       hclog.L().Named("host"),
+			OS:      os,
+			results: make(map[string]interface{}),
+			errors:  new(multierror.Error),
 		},
 	}
 }
 
 type HostSeeker struct {
-	OS string `json:"os"`
+	l       hclog.Logger
+	OS      string `json:"os"`
+	results map[string]interface{}
+	errors  *multierror.Error
+}
+
+type captureFunc func() (interface{}, error)
+
+func (hs *HostSeeker) capture(name string, f captureFunc) {
+	l := hs.l.Named("capture").With("name", name)
+	l.Debug("Capturing host info")
+
+	result, err := f()
+	if err != nil {
+		l.Error("Error capturing host info", "err", err)
+		hs.errors = multierror.Append(hs.errors, err)
+	}
+	hs.results[name] = result
+
+	l.Trace("Host capture results", "result", result)
 }
 
 func (hs *HostSeeker) Run() (interface{}, error) {
-	results := make(map[string]interface{})
-	var errors *multierror.Error
+	l := hs.l.Named("Run")
+	l.Debug("Host seeker capture begin")
 
-	// TODO(mkcp): There's several improvements we can make here. Each of these
-	// really ought to be its own seeker
-	if tmpResult, err := s.NewCommander("uname -v", "string").Run(); err != nil {
-		errors = multierror.Append(errors, err)
-	} else {
-		results["uname"] = tmpResult
-	}
-	if tmpResult, err := GetHost(); err != nil {
-		errors = multierror.Append(errors, err)
-	} else {
-		results["host"] = tmpResult
-	}
-	if tmpResult, err := GetMemory(); err != nil {
-		errors = multierror.Append(errors, err)
-	} else {
-		results["memory"] = tmpResult
-	}
-	if tmpResult, err := GetDisk(); err != nil {
-		errors = multierror.Append(errors, err)
-	} else {
-		results["disk"] = tmpResult
-	}
-	if tmpResult, err := GetProcesses(); err != nil {
-		errors = multierror.Append(errors, err)
-	} else {
-		results["processes"] = tmpResult
-	}
-	if tmpResult, err := GetNetwork(); err != nil {
-		errors = multierror.Append(errors, err)
-	} else {
-		results["network"] = tmpResult
-	}
+	hs.capture("uname", s.NewCommander("uname -v", "string").Run)
+	hs.capture("host", GetHost)
+	hs.capture("memory", GetMemory)
+	hs.capture("disk", GetDisk)
+	hs.capture("processes", GetProcesses)
+	hs.capture("network", GetNetwork)
 
-	return results, errors.ErrorOrNil()
+	l.Debug("Host seeker capture complete")
+	return hs.results, hs.errors.ErrorOrNil()
 }
 
 // GetNetwork stuff
