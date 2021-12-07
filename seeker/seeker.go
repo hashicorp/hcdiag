@@ -31,51 +31,33 @@ func (s *Seeker) Run() (result interface{}, err error) {
 	return result, err
 }
 
-// Exclude takes a slice of matcher strings and a slice of seekers. If any of the seeker identifiers match the exclude
-// exactly then it will not be present in the returned seeker slice.
-// NOTE(mkcp): This is precisely identical to Select() except we flip the match check. Maybe we can perform both rounds
-//  of filtering in one pass one rather than iterating over all the seekers several times. Not likely to be a huge speed
-//  increase though... we're not even remotely bottlenecked on seeker filtering.
-func Exclude(excludes []string, seekers []*Seeker) []*Seeker {
+// Filter returns a subset of seekers that either do ("select") or do not ("exclude")
+// match any of a list of matchers.  method must be either "select" or "exclude"
+// and matchers will be run through filepath.Match() with each seeker's identifier.
+// If method="select" then *only* seekers that *do* match will be returned,
+// if method="exclude" then seekers that *do not* match will *not* be returned.
+func Filter(method string, matchers []string, seekers []*Seeker) ([]*Seeker, error) {
 	newSeekers := make([]*Seeker, 0)
+	if method != "select" && method != "exclude" {
+		return newSeekers, fmt.Errorf("filter error: method must be either 'select' or 'exclude', got: '%s'", method)
+	}
 	for _, s := range seekers {
 		// Set our match flag if we get a hit for any of the matchers on this seeker
 		var match bool
-		for _, matcher := range excludes {
-			// TODO(gulducat): capture and log possible err here?
-			if m, _ := filepath.Match(matcher, s.Identifier); m {
-				match = true
+		var err error
+		for _, matcher := range matchers {
+			match, err = filepath.Match(matcher, s.Identifier)
+			if err != nil {
+				return newSeekers, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
+			}
+			if match {
+				// Found a match, stop this inner loop
 				break
 			}
 		}
-
-		// Add the seeker back to our set if we have not matched an exclude
-		if !match {
+		if (match && method == "select") || (!match && method == "exclude") {
 			newSeekers = append(newSeekers, s)
 		}
 	}
-	return newSeekers
-}
-
-// Select takes a slice of matcher strings and a slice of seekers. The only seekers returned will be those exactly
-// matching the given select strings.
-func Select(selects []string, seekers []*Seeker) []*Seeker {
-	newSeekers := make([]*Seeker, 0)
-	for _, s := range seekers {
-		// Set our match flag if we get a hit for any of the matchers on this seeker
-		var match bool
-		for _, matcher := range selects {
-			// TODO(gulducat): capture and log possible err here?
-			if m, _ := filepath.Match(matcher, s.Identifier); m {
-				match = true
-				break
-			}
-		}
-
-		// Only include the seeker if we've matched it
-		if match {
-			newSeekers = append(newSeekers, s)
-		}
-	}
-	return newSeekers
+	return newSeekers, nil
 }

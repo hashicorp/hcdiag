@@ -38,20 +38,31 @@ type Product struct {
 }
 
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers
-func (p *Product) Filter() {
+func (p *Product) Filter() error {
 	if p.Seekers == nil {
 		p.Seekers = []*seeker.Seeker{}
 	}
+
+	var filter string
+	var set []string
 	// The presence of Selects takes precedence over Excludes
 	if p.Selects != nil && 0 < len(p.Selects) {
-		p.Seekers = seeker.Select(p.Selects, p.Seekers)
-		// Skip any Excludes
-		return
+		filter = "select"
+		set = p.Selects
+	} else if p.Excludes != nil {
+		filter = "exclude"
+		set = p.Excludes
+	} else {
+		return nil
 	}
-	// No Selects, we can apply Excludes
-	if p.Excludes != nil {
-		p.Seekers = seeker.Exclude(p.Excludes, p.Seekers)
+
+	filtered, err := seeker.Filter(filter, set, p.Seekers)
+	if err != nil {
+		return err
 	}
+	p.Seekers = filtered
+
+	return nil
 }
 
 // CommanderHealthCheck employs the the CLI to check if the client and then the agent are available.

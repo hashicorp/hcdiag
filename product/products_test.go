@@ -103,9 +103,22 @@ func TestFilters(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		tc.product.Filter()
+		err := tc.product.Filter()
+		assert.Nil(t, err)
 		assert.NotNil(t, tc.product.Seekers)
 		assert.Equal(t, tc.expect, tc.product.Seekers, tc.desc)
 	}
 
+}
+
+func TestFiltersError(t *testing.T) {
+	p := &Product{
+		Seekers: []*seeker.Seeker{
+			{Identifier: "nah"},
+		},
+		Excludes: []string{"mal[formed"},
+	}
+	err := p.Filter()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "filter error: 'syntax error in pattern'")
 }
