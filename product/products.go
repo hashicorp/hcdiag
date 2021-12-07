@@ -2,9 +2,10 @@ package product
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/seeker"
-	"time"
 )
 
 const (
