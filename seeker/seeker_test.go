@@ -102,7 +102,8 @@ func TestExclude(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		res := Exclude(tc.matchers, tc.seekers)
+		res, err := Exclude(tc.matchers, tc.seekers)
+		assert.Nil(t, err)
 		assert.Len(t, res, tc.expect, tc.desc)
 	}
 }
@@ -175,7 +176,8 @@ func TestSelect(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		res := Select(tc.matchers, tc.seekers)
+		res, err := Select(tc.matchers, tc.seekers)
+		assert.Nil(t, err)
 		assert.Len(t, res, tc.expect, tc.desc)
 	}
 }

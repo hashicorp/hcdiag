@@ -36,13 +36,17 @@ func (s *Seeker) Run() (result interface{}, err error) {
 // NOTE(mkcp): This is precisely identical to Select() except we flip the match check. Maybe we can perform both rounds
 //  of filtering in one pass one rather than iterating over all the seekers several times. Not likely to be a huge speed
 //  increase though... we're not even remotely bottlenecked on seeker filtering.
-func Exclude(excludes []string, seekers []*Seeker) []*Seeker {
+func Exclude(excludes []string, seekers []*Seeker) ([]*Seeker, error) {
 	newSeekers := make([]*Seeker, 0)
 	for _, s := range seekers {
 		// Set our match flag if we get a hit for any of the matchers on this seeker
 		var match bool
+		var err error
 		for _, matcher := range excludes {
-			match, _ = filepath.Match(matcher, s.Identifier)
+			match, err = filepath.Match(matcher, s.Identifier)
+			if err != nil {
+				return newSeekers, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
+			}
 			if match {
 				break
 			}
@@ -53,18 +57,22 @@ func Exclude(excludes []string, seekers []*Seeker) []*Seeker {
 			newSeekers = append(newSeekers, s)
 		}
 	}
-	return newSeekers
+	return newSeekers, nil
 }
 
 // Select takes a slice of matcher strings and a slice of seekers. The only seekers returned will be those
 // matching the given select strings according to filepath.Match()
-func Select(selects []string, seekers []*Seeker) []*Seeker {
+func Select(selects []string, seekers []*Seeker) ([]*Seeker, error) {
 	newSeekers := make([]*Seeker, 0)
 	for _, s := range seekers {
 		// Set our match flag if we get a hit for any of the matchers on this seeker
 		var match bool
+		var err error
 		for _, matcher := range selects {
-			match, _ = filepath.Match(matcher, s.Identifier)
+			match, err = filepath.Match(matcher, s.Identifier)
+			if err != nil {
+				return newSeekers, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
+			}
 			if match {
 				break
 			}
@@ -75,5 +83,5 @@ func Select(selects []string, seekers []*Seeker) []*Seeker {
 			newSeekers = append(newSeekers, s)
 		}
 	}
-	return newSeekers
+	return newSeekers, nil
 }

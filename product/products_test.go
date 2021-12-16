@@ -102,9 +102,43 @@ func TestFilters(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		tc.product.Filter()
+		err := tc.product.Filter()
+		assert.Nil(t, err)
 		assert.NotNil(t, tc.product.Seekers)
 		assert.Equal(t, tc.expect, tc.product.Seekers, tc.desc)
+	}
+
+}
+
+func TestFilterErrors(t *testing.T) {
+	testTable := []struct {
+		desc    string
+		product *Product
+		expect  string
+	}{
+		{
+			desc: "Select returns error when pattern is malformed",
+			product: &Product{
+				Seekers: []*seeker.Seeker{{Identifier: "ignoreme"}},
+				Selects: []string{"mal[formed"},
+			},
+			expect: "filter error: 'syntax error in pattern'",
+		},
+		{
+			desc: "Exclude returns error when pattern is malformed",
+			product: &Product{
+				Seekers:  []*seeker.Seeker{{Identifier: "ignoreme"}},
+				Excludes: []string{"mal[formed"},
+			},
+			expect: "filter error: 'syntax error in pattern'",
+		},
+	}
+
+	for _, tc := range testTable {
+		err := tc.product.Filter()
+		if assert.NotNil(t, err) {
+			assert.Contains(t, err.Error(), tc.expect)
+		}
 	}
 
 }
