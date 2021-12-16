@@ -136,6 +136,9 @@ func (a *Agent) TempDir() string {
 //  artifact.
 func (a *Agent) CreateTemp() error {
 	if a.Config.Dryrun {
+		// glob "*" here is to support copy/paste of seeker identifiers
+		// from -dryrun output into select/exclude filters
+		a.tmpDir = "*"
 		return nil
 	}
 
