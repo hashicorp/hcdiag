@@ -89,6 +89,16 @@ func TestExclude(t *testing.T) {
 			},
 			expect: 1,
 		},
+		{
+			desc:     "Can exclude glob *",
+			matchers: []string{"exclude*"},
+			seekers: []*Seeker{
+				{Identifier: "exclude1"},
+				{Identifier: "exclude2"},
+				{Identifier: "keep"},
+			},
+			expect: 1,
+		},
 	}
 
 	for _, tc := range testTable {
@@ -139,6 +149,19 @@ func TestSelect(t *testing.T) {
 		{
 			desc: "Can select many regardless of order",
 			matchers: []string{"select1", "select2", "select3"},
+			seekers: []*Seeker{
+				{Identifier: "skip1"},
+				{Identifier: "select2"},
+				{Identifier: "skip2"},
+				{Identifier: "skip3"},
+				{Identifier: "select3"},
+				{Identifier: "select1"},
+			},
+			expect: 3,
+		},
+		{
+			desc:     "Can select glob *",
+			matchers: []string{"select*"},
 			seekers: []*Seeker{
 				{Identifier: "skip1"},
 				{Identifier: "select2"},
