@@ -86,7 +86,11 @@ func (a *Agent) Run() []error {
 	// Filter the seekers on each product
 	a.l.Debug("Applying Exclude and Select filters to products")
 	for _, prod := range p {
-		prod.Filter()
+		if errProductFilter := prod.Filter(); errProductFilter != nil {
+			a.l.Error("Failed to filter Products", "error", errProductFilter)
+			errs = append(errs, errProductFilter)
+			return errs
+		}
 	}
 
 	// Store products and metadata
@@ -132,6 +136,9 @@ func (a *Agent) TempDir() string {
 //  artifact.
 func (a *Agent) CreateTemp() error {
 	if a.Config.Dryrun {
+		// glob "*" here is to support copy/paste of seeker identifiers
+		// from -dryrun output into select/exclude filters
+		a.tmpDir = "*"
 		return nil
 	}
 

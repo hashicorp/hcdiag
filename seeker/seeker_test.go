@@ -89,10 +89,21 @@ func TestExclude(t *testing.T) {
 			},
 			expect: 1,
 		},
+		{
+			desc:     "Can exclude glob *",
+			matchers: []string{"exclude*"},
+			seekers: []*Seeker{
+				{Identifier: "exclude1"},
+				{Identifier: "exclude2"},
+				{Identifier: "keep"},
+			},
+			expect: 1,
+		},
 	}
 
 	for _, tc := range testTable {
-		res := Exclude(tc.matchers, tc.seekers)
+		res, err := Exclude(tc.matchers, tc.seekers)
+		assert.Nil(t, err)
 		assert.Len(t, res, tc.expect, tc.desc)
 	}
 }
@@ -149,10 +160,24 @@ func TestSelect(t *testing.T) {
 			},
 			expect: 3,
 		},
+		{
+			desc:     "Can select glob *",
+			matchers: []string{"select*"},
+			seekers: []*Seeker{
+				{Identifier: "skip1"},
+				{Identifier: "select2"},
+				{Identifier: "skip2"},
+				{Identifier: "skip3"},
+				{Identifier: "select3"},
+				{Identifier: "select1"},
+			},
+			expect: 3,
+		},
 	}
 
 	for _, tc := range testTable {
-		res := Select(tc.matchers, tc.seekers)
+		res, err := Select(tc.matchers, tc.seekers)
+		assert.Nil(t, err)
 		assert.Len(t, res, tc.expect, tc.desc)
 	}
 }
