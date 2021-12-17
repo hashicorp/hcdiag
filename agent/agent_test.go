@@ -46,6 +46,7 @@ func TestStartAndEnd(t *testing.T) {
 
 func TestCreateTempDryrun(t *testing.T) {
 	a := NewAgent(Config{Dryrun: true}, hclog.Default())
+	// Does not require cleanup as `Dryrun: true` should not make a directory 
 	err := a.CreateTemp()
 	assert.Nil(t, err)
 	assert.Equal(t, a.tmpDir, "*")
