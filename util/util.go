@@ -5,12 +5,13 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // TarGz accepts a source directory and destination file name to archive and compress files.

@@ -1,9 +1,10 @@
 package product
 
 import (
+	"testing"
+
 	"github.com/hashicorp/hcdiag/seeker"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestFilters(t *testing.T) {
