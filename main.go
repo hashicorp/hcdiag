@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -28,6 +29,17 @@ func realMain() (returnCode int) {
 	// DEPRECATED(mkcp): Warn users if they're utilizing a deprecated flag
 	if flags.AllProducts {
 		l.Warn("DEPRECATED: -all will be removed in the future. Instead, provide multiple product flags.")
+	}
+
+	// only create hcdiag.hcl example config if -init
+	if flags.Init {
+		err = ioutil.WriteFile("hcdiag.hcl", []byte(agent.ExampleConfig), 0644)
+		if err != nil {
+			log.Fatalf("Error writing hcdiag.hcl: %s", err)
+			return 1
+		}
+		log.Println("Wrote example config to hcdiag.hcl")
+		return 0
 	}
 
 	var config agent.Config
@@ -82,6 +94,7 @@ type Flags struct {
 	IncludeSince time.Duration
 	Destination  string
 	Config       string
+	Init         bool
 }
 
 type CSVFlag struct {
@@ -112,7 +125,8 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
 	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
 	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
-	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file")
+	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file, e.g. hcdiag.hcl from 'hcdiag -init'")
+	flags.BoolVar(&f.Init, "init", false, "Create an example hcdiag.hcl configuration file")
 	flags.DurationVar(&f.IncludeSince, "include-since", time.Duration(0), "Time range to include files, counting back from now. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
 

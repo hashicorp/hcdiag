@@ -50,3 +50,22 @@ type CopyConfig struct {
 	// FIXME(mkcp): This should be a duration that we parse
 	Since string `hcl:"since,optional"`
 }
+
+const ExampleConfig = `host {
+  command {
+    run    = "sar -q"
+    format = "string"
+  }
+}
+
+product "vault" {
+  command {
+    run    = "journalctl -u vault > {{ tmpDir }}/vault.log"
+    format = "string"
+  }
+
+  GET {
+    path = "/v1/sys/mounts"
+  }
+}
+`
