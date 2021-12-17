@@ -2,11 +2,12 @@ package util
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TarGz(sourceDir string, destFileName string) error
@@ -92,10 +93,10 @@ func TestFindInInterface(t *testing.T) {
 }
 
 func TestIsInRange(t *testing.T) {
-	testTable := []struct{
-		desc string
+	testTable := []struct {
+		desc             string
 		target, from, to time.Time
-		expect bool
+		expect           bool
 	}{
 		{
 			desc:   "Target within range is valid",
@@ -119,7 +120,7 @@ func TestIsInRange(t *testing.T) {
 			expect: false,
 		},
 		{
-			desc: "Zeroed `from` is always in range",
+			desc:   "Zeroed `from` is always in range",
 			target: time.Now(),
 			expect: true,
 		},
@@ -137,7 +138,7 @@ func TestIsInRange(t *testing.T) {
 		},
 	}
 
-	for _, c := range testTable{
+	for _, c := range testTable {
 		res := IsInRange(c.target, c.from, c.to)
 		assert.Equal(t, res, c.expect, c.desc)
 	}

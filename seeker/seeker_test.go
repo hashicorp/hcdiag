@@ -3,8 +3,9 @@ package seeker
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -47,14 +48,14 @@ func TestSeekerRun(t *testing.T) {
 }
 
 func TestExclude(t *testing.T) {
-	testTable := []struct{
+	testTable := []struct {
 		desc     string
 		matchers []string
 		seekers  []*Seeker
 		expect   int
 	}{
 		{
-			desc: "Can exclude none",
+			desc:     "Can exclude none",
 			matchers: []string{"hello"},
 			seekers: []*Seeker{
 				{Identifier: "nope"},
@@ -64,13 +65,13 @@ func TestExclude(t *testing.T) {
 			expect: 3,
 		},
 		{
-			desc: "Can exclude one",
+			desc:     "Can exclude one",
 			matchers: []string{"hi"},
-			seekers: []*Seeker{{Identifier: "hi"}},
-			expect: 0,
+			seekers:  []*Seeker{{Identifier: "hi"}},
+			expect:   0,
 		},
 		{
-			desc: "Can exclude two",
+			desc:     "Can exclude two",
 			matchers: []string{"hi", "sup"},
 			seekers: []*Seeker{
 				{Identifier: "hi"},
@@ -79,7 +80,7 @@ func TestExclude(t *testing.T) {
 			expect: 0,
 		},
 		{
-			desc: "Can exclude many and and ignore one",
+			desc:     "Can exclude many and and ignore one",
 			matchers: []string{"exclude1", "exclude2", "exclude3"},
 			seekers: []*Seeker{
 				{Identifier: "exclude1"},
@@ -109,14 +110,14 @@ func TestExclude(t *testing.T) {
 }
 
 func TestSelect(t *testing.T) {
-	testTable := []struct{
+	testTable := []struct {
 		desc     string
 		matchers []string
 		seekers  []*Seeker
 		expect   int
 	}{
 		{
-			desc: "Can select none",
+			desc:     "Can select none",
 			matchers: []string{"hello"},
 			seekers: []*Seeker{
 				{Identifier: "nope"},
@@ -126,7 +127,7 @@ func TestSelect(t *testing.T) {
 			expect: 0,
 		},
 		{
-			desc: "Can select one",
+			desc:     "Can select one",
 			matchers: []string{"match"},
 			seekers: []*Seeker{
 				{Identifier: "nope"},
@@ -136,7 +137,7 @@ func TestSelect(t *testing.T) {
 			expect: 1,
 		},
 		{
-			desc: "Can select two",
+			desc:     "Can select two",
 			matchers: []string{"match1", "match2"},
 			seekers: []*Seeker{
 				{Identifier: "nope"},
@@ -148,7 +149,7 @@ func TestSelect(t *testing.T) {
 			expect: 2,
 		},
 		{
-			desc: "Can select many regardless of order",
+			desc:     "Can select many regardless of order",
 			matchers: []string{"select1", "select2", "select3"},
 			seekers: []*Seeker{
 				{Identifier: "skip1"},

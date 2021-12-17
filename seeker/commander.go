@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-
 // Commander runs shell commands.
 type Commander struct {
 	Command string `json:"command"`
@@ -18,8 +17,8 @@ type Commander struct {
 // NewCommander provides a Seeker for running shell commands.
 func NewCommander(command string, format string) *Seeker {
 	return &Seeker{
-		Identifier:  command,
-		Runner:      Commander{Command: command, format: format},
+		Identifier: command,
+		Runner:     Commander{Command: command, format: format},
 	}
 }
 
