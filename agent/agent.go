@@ -466,7 +466,7 @@ func ParseHCL(path string) (Config, error) {
 	return config, nil
 }
 
-// TODO(mkcp): This is duplicative of customSeekers. This can certainly be improved.
+// TODO(mkcp): This duplicates much of customSeekers and can certainly be improved.
 func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error) {
 	seekers := make([]*seeker.Seeker, 0)
 	// Build Commanders
@@ -486,12 +486,18 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error)
 	// Build copiers
 	dest := tmpDir + "/host"
 	for _, c := range cfg.Copies {
-		since, err := time.ParseDuration(c.Since)
-		if err != nil {
-			return nil, err
+		var from time.Time
+
+		// Set `from` with a timestamp
+		if c.Since != "" {
+			since, err := time.ParseDuration(c.Since)
+			if err != nil {
+				return nil, err
+			}
+			// Get the timestamp which marks the start of our duration
+			from = time.Now().Add(-since)
 		}
-		// Get the timestamp which marks the start of our duration
-		from := time.Now().Add(-since)
+
 		copier := seeker.NewCopier(c.Path, dest, from, time.Time{})
 		seekers = append(seekers, copier)
 	}
@@ -499,6 +505,7 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error)
 	return seekers, nil
 }
 
+// TODO(mkcp): Products, not the agent, should handle their own custom seekers when they're created.
 func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) {
 	seekers := make([]*seeker.Seeker, 0)
 	// Build Commanders
@@ -531,12 +538,17 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	// Build copiers
 	dest := tmpDir + "/" + cfg.Name
 	for _, c := range cfg.Copies {
-		since, err := time.ParseDuration(c.Since)
-		if err != nil {
-			return nil, err
+		var from time.Time
+
+		// Set `from` with a timestamp
+		if c.Since != "" {
+			since, err := time.ParseDuration(c.Since)
+			if err != nil {
+				return nil, err
+			}
+			// Get the timestamp which marks the start of our duration
+			from = time.Now().Add(-since)
 		}
-		// Get the timestamp which marks the start of our duration
-		from := time.Now().Add(-since)
 		copier := seeker.NewCopier(c.Path, dest, from, time.Time{})
 		seekers = append(seekers, copier)
 	}
