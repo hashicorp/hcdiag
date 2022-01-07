@@ -2,6 +2,7 @@ package seeker
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/hcdiag/util"
@@ -20,7 +21,7 @@ type Copier struct {
 func NewCopier(path, destDir string, from, to time.Time) *Seeker {
 	sourceDir, filter := util.SplitFilepath(path)
 	return &Seeker{
-		Identifier: "copy " + sourceDir + "/" + filter,
+		Identifier: "copy " + filepath.Join(sourceDir, filter),
 		Runner: Copier{
 			SourceDir: sourceDir,
 			Filter:    filter,

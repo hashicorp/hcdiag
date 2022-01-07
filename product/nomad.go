@@ -41,7 +41,7 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 
 	// try to detect log location to copy
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
-		dest := filepath.Join(tmpDir, "logs/nomad")
+		dest := filepath.Join(tmpDir, "logs", "nomad")
 		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
