@@ -21,6 +21,7 @@ type Config struct {
 
 type HostConfig struct {
 	Commands []CommandConfig `hcl:"command,block"`
+	Shells   []ShellConfig   `hcl:"shell,block"`
 	GETs     []GETConfig     `hcl:"GET,block"`
 	Copies   []CopyConfig    `hcl:"copy,block"`
 	Excludes []string        `hcl:"excludes,optional"`
@@ -30,6 +31,7 @@ type HostConfig struct {
 type ProductConfig struct {
 	Name     string          `hcl:"name,label"`
 	Commands []CommandConfig `hcl:"command,block"`
+	Shells   []ShellConfig   `hcl:"shell,block"`
 	GETs     []GETConfig     `hcl:"GET,block"`
 	Copies   []CopyConfig    `hcl:"copy,block"`
 	Excludes []string        `hcl:"excludes,optional"`
@@ -39,6 +41,10 @@ type ProductConfig struct {
 type CommandConfig struct {
 	Run    string `hcl:"run"`
 	Format string `hcl:"format"`
+}
+
+type ShellConfig struct {
+	Run string `hcl:"run"`
 }
 
 type GETConfig struct {

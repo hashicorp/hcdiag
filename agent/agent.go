@@ -474,6 +474,11 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error)
 		cmder := seeker.NewCommander(c.Run, c.Format)
 		seekers = append(seekers, cmder)
 	}
+	// Build Shellers
+	for _, c := range cfg.Shells {
+		sheller := seeker.NewSheller(c.Run)
+		seekers = append(seekers, sheller)
+	}
 
 	for _, g := range cfg.GETs {
 		cmd := strings.Join([]string{"curl -s", g.Path}, " ")
@@ -512,6 +517,11 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	for _, c := range cfg.Commands {
 		cmder := seeker.NewCommander(c.Run, c.Format)
 		seekers = append(seekers, cmder)
+	}
+	// Build Shellers
+	for _, c := range cfg.Shells {
+		sheller := seeker.NewSheller(c.Run)
+		seekers = append(seekers, sheller)
 	}
 
 	// Build HTTPers

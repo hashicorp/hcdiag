@@ -243,6 +243,9 @@ func TestParseHCL(t *testing.T) {
 					Commands: []CommandConfig{
 						{Run: "testing", Format: "string"},
 					},
+					Shells: []ShellConfig{
+						{Run: "testing"},
+					},
 					GETs: []GETConfig{
 						{Path: "/v1/api/lol"},
 					},
@@ -289,6 +292,9 @@ func TestParseHCL(t *testing.T) {
 						Commands: []CommandConfig{
 							{Run: "consul version", Format: "json"},
 							{Run: "consul operator raft list-peers", Format: "json"},
+						},
+						Shells: []ShellConfig{
+							{Run: "consul members | grep ."},
 						},
 						GETs: []GETConfig{
 							{Path: "/v1/api/metrics?format=prometheus"},

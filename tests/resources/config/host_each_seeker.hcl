@@ -4,6 +4,10 @@ host {
     format = "string"
   }
 
+  shell {
+    run = "testing"
+  }
+
   GET {
     path = "/v1/api/lol"
   }
