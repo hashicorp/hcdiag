@@ -24,6 +24,8 @@ func TestSheller(t *testing.T) {
 	c := NewSheller("echo hiii | grep hi > cooltestfile")
 	defer os.Remove("cooltestfile")
 	out, err := c.Run()
+	sheller := c.Runner.(*Sheller)
+	assert.Equal(t, sheller.Shell, "/bin/sh")
 	assert.Equal(t, "", out)
 	assert.NoError(t, err)
 
