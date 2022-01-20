@@ -16,6 +16,10 @@ product "consul" {
     format = "json"
   }
 
+  shell {
+    run = "consul members | grep ."
+  }
+
   GET {
     path = "/v1/api/metrics?format=prometheus"
   }
