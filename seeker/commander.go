@@ -30,7 +30,7 @@ func (c Commander) Run() (result interface{}, err error) {
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 
 	if err != nil {
-		return nil, fmt.Errorf("exec.Command error: %s", err)
+		err = fmt.Errorf("exec.Command error: %s", err)
 	}
 
 	switch {
@@ -38,12 +38,12 @@ func (c Commander) Run() (result interface{}, err error) {
 		result = strings.TrimSuffix(string(bts), "\n")
 
 	case c.format == "json":
-		if err := json.Unmarshal(bts, &result); err != nil {
-			return nil, fmt.Errorf("json.Unmarshal error: %s", err)
+		if e := json.Unmarshal(bts, &result); e != nil {
+			err = fmt.Errorf("json.Unmarshal error: %s", e)
 		}
 
 	default:
-		return nil, errors.New("command output format must be either 'string' or 'json'")
+		err = errors.New("command output format must be either 'string' or 'json'")
 	}
 
 	return result, err
