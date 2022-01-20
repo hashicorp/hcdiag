@@ -23,9 +23,7 @@ func TestGetShell(t *testing.T) {
 	}
 
 	curShell := os.Getenv("SHELL")
-	defer func() {
-		os.Setenv("SHELL", curShell)
-	}()
+	defer os.Setenv("SHELL", curShell)
 
 	// no $SHELL ? no shell for you.
 	os.Setenv("SHELL", "")

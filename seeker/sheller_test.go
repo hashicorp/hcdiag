@@ -15,9 +15,7 @@ func TestSheller(t *testing.T) {
 		return
 	}
 	curShell := os.Getenv("SHELL")
-	defer func() {
-		os.Setenv("SHELL", curShell)
-	}()
+	defer os.Setenv("SHELL", curShell)
 	os.Setenv("SHELL", "/bin/sh")
 
 	// features pipe "|" and file redirection ">"

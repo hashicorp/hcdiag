@@ -9,7 +9,7 @@ import (
 // ErrUnknownShell occurs when the $SHELL environment variable is empty or not set.
 var ErrUnknownShell = errors.New("unable to determine shell from environment. please set the $SHELL environment variable")
 
-// ErrNoShellOnWindows occurs when ShellExec() is run on a Windows machine.
+// ErrNoShellOnWindows occurs when GetShell() is run on a Windows machine.
 var ErrNoShellOnWindows = errors.New("shell{} is not supported on Windows. please use command{}")
 
 // GetShell returns the value of the $SHELL environment variable,
