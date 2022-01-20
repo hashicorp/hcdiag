@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewCommander(t *testing.T) {
@@ -51,15 +53,15 @@ func TestCommanderRunJSON(t *testing.T) {
 }
 
 func TestCommanderRunError(t *testing.T) {
-	c := NewCommander("bogus-command", "string")
+	c := NewCommander("cat no-file-to-see-here", "string")
 	out, err := c.Run()
 
-	if out != nil {
-		t.Errorf("expected out to be nil, got '%s'", out)
-	}
+	// we should get the command's error output
+	assert.Contains(t, out, "No such file")
 
-	if !strings.Contains(fmt.Sprintf("%s", err), "exec.Command error") {
-		t.Errorf("got unexpected error instead of exec.Command: %s", err)
+	// and the error from os/exec.Command()
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "exec.Command error:")
 	}
 }
 
