@@ -56,7 +56,8 @@ func realMain() (returnCode int) {
 func configureLogging(loggerName string) hclog.Logger {
 	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
-		Name: loggerName,
+		Name:  loggerName,
+		Color: hclog.AutoColor,
 	})
 	hclog.SetDefault(appLogger)
 	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {
