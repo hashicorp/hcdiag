@@ -5,13 +5,24 @@ import (
 	"path/filepath"
 )
 
+type Status string
+
+const (
+	Success Status = "success"
+	Fail    Status = "fail"
+	Unknown Status = "unknown"
+)
+
 // Seeker seeks information via its Runner then stores the results.
 type Seeker struct {
 	Runner     Runner      `json:"runner"`
 	Identifier string      `json:"-"`
 	Result     interface{} `json:"result"`
+	Status     Status      `json:"status"`
 	ErrString  string      `json:"error"` // this simplifies json marshaling
 	Error      error       `json:"-"`
+
+	callbacks []func() error
 }
 
 // Runner runs things to get information.
@@ -19,16 +30,37 @@ type Runner interface {
 	Run() (interface{}, error)
 }
 
-func (s *Seeker) Run() (result interface{}, err error) {
-	result, err = s.Runner.Run()
-	s.Result = result
-	s.Error = err
+func (s *Seeker) Run() (interface{}, error) {
+	s.Status = Unknown
 
-	if err != nil {
-		s.ErrString = fmt.Sprintf("%s", err)
+	s.Result, s.Error = s.Runner.Run()
+	if s.setStatus() == Fail {
 		return s.Result, s.Error
 	}
-	return result, err
+
+	// callbacks may include result validation or other post-Run() steps.
+	for _, callback := range s.callbacks {
+		s.Error = callback()
+		if s.setStatus() == Fail {
+			break // stop at first failure
+		}
+	}
+
+	return s.Result, s.Error
+}
+
+func (s *Seeker) setStatus() Status {
+	if s.Error == nil {
+		s.Status = Success
+	} else {
+		s.Status = Fail
+		s.ErrString = s.Error.Error()
+	}
+	return s.Status
+}
+
+func (s *Seeker) AddCallback(c func() error) {
+	s.callbacks = append(s.callbacks, c)
 }
 
 // Exclude takes a slice of matcher strings and a slice of seekers. If any of the seeker identifiers match the exclude
