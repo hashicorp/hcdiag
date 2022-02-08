@@ -47,6 +47,10 @@ func VaultSeekers(tmpDir string, from, to time.Time) ([]*s.Seeker, error) {
 		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
+	// get logs from journald if available
+	if journald := s.JournaldGetter("vault", tmpDir); journald != nil {
+		seekers = append(seekers, journald)
+	}
 
 	return seekers, nil
 }
