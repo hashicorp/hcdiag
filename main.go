@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -11,6 +12,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/agent"
 )
+
+const SemVer string = "0.1.3"
 
 func main() {
 	os.Exit(realMain())
@@ -28,6 +31,12 @@ func realMain() (returnCode int) {
 	// DEPRECATED(mkcp): Warn users if they're utilizing a deprecated flag
 	if flags.AllProducts {
 		l.Warn("DEPRECATED: -all will be removed in the future. Instead, provide multiple product flags.")
+	}
+
+	// If -version, skip agent setup and print version
+	if flags.Version {
+		printVersion()
+		return
 	}
 
 	var config agent.Config
@@ -83,6 +92,7 @@ type Flags struct {
 	IncludeSince time.Duration
 	Destination  string
 	Config       string
+	Version      bool
 }
 
 type CSVFlag struct {
@@ -116,6 +126,7 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file")
 	flags.DurationVar(&f.IncludeSince, "include-since", time.Duration(0), "Time range to include files, counting back from now. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
+	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
 
 	// Ensure f.Destination points to some kind of directory by its notation
 	// FIXME(mkcp): trailing slashes should be trimmed in path.Dir... why does a double slash end in a slash?
@@ -146,4 +157,10 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	config.IncludeTo = to
 	config.Destination = flags.Destination
 	return config
+}
+
+func printVersion() {
+	slug := "hcdiag v" + SemVer
+	fmt.Println(slug)
+	return
 }
