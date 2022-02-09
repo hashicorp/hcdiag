@@ -102,7 +102,7 @@ func (s CSVFlag) Set(v string) error {
 }
 
 func (f *Flags) parseFlags(args []string) error {
-	flags := flag.NewFlagSet("hc-bundler", flag.ExitOnError)
+	flags := flag.NewFlagSet("hcdiag", flag.ExitOnError)
 	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
 	flags.BoolVar(&f.Serial, "serial", false, "Run products in sequence rather than concurrently")
 	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
