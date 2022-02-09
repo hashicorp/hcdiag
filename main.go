@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/hcdiag/agent"
 )
 
-const SemVer string = "0.1.4"
+const SemVer string = "0.1.3"
 
 func main() {
 	os.Exit(realMain())
