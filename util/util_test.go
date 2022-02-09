@@ -77,7 +77,10 @@ func TestSplitFilepath(t *testing.T) {
 func TestFindInInterface(t *testing.T) {
 	bts := []byte(`{"one": {"two": {"three": "cool_value"}}}`)
 	var iface interface{}
-	json.Unmarshal(bts, &iface)
+	err := json.Unmarshal(bts, &iface)
+	if err != nil {
+		t.Error("failed to unmarshal", "error", err.Error())
+	}
 
 	i, err := FindInInterface(iface, "one", "two", "three")
 	if err != nil {
