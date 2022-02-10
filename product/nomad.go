@@ -45,6 +45,10 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
+	// get logs from journald if available
+	if journald := s.JournaldGetter("nomad", tmpDir); journald != nil {
+		seekers = append(seekers, journald)
+	}
 
 	return seekers
 }
