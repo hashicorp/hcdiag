@@ -54,7 +54,7 @@ func TestCreateTempDryrun(t *testing.T) {
 
 func TestCreateTemp(t *testing.T) {
 	a := NewAgent(Config{}, hclog.Default())
-	defer a.Cleanup()
+	defer cleanupHelper(t, a)
 
 	if err := a.CreateTemp(); err != nil {
 		t.Errorf("Failed creating temp dir: %s", err)
@@ -121,7 +121,7 @@ func TestCopyIncludes(t *testing.T) {
 	a := NewAgent(cfg, hclog.Default())
 	err := a.CreateTemp()
 	assert.NoError(t, err, "Error creating tmpDir")
-	defer a.Cleanup()
+	defer cleanupHelper(t, a)
 
 	// execute what we're aiming to test
 	err = a.CopyIncludes()
@@ -337,5 +337,12 @@ func TestParseHCL(t *testing.T) {
 		res, err := ParseHCL(c.path)
 		assert.NoError(t, err)
 		assert.Equal(t, c.expect, res, c.desc)
+	}
+}
+
+func cleanupHelper (t *testing.T, a *Agent) {
+	err := a.Cleanup()
+	if err != nil {
+		t.Errorf("Failed to clean up")
 	}
 }

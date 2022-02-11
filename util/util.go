@@ -22,19 +22,34 @@ func TarGz(sourceDir string, destFileName string) error {
 		hclog.L().Error("TarGz", "error creating tarball", err)
 		return err
 	}
-	defer destFile.Close()
+	defer func(destFile *os.File) {
+		err := destFile.Close()
+		if err != nil {
+			hclog.L().Warn(err.Error())
+		}
+	}(destFile)
 
 	gzWriter := gzip.NewWriter(destFile)
-	defer gzWriter.Close()
+	defer func(gzWriter *gzip.Writer) {
+		err := gzWriter.Close()
+		if err != nil {
+			hclog.L().Warn(err.Error())
+		}
+	}(gzWriter)
 
 	tarWriter := tar.NewWriter(gzWriter)
-	defer tarWriter.Close()
+	defer func(tarWriter *tar.Writer) {
+		err := tarWriter.Close()
+		if err != nil {
+			hclog.L().Warn(err.Error())
+		}
+	}(tarWriter)
 
-	filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() == false {
+		if !info.IsDir() {
 			sourceFile, err := os.Open(path)
 			if err != nil {
 				hclog.L().Error("TarGz", "error opening source file", err)
@@ -67,8 +82,11 @@ func TarGz(sourceDir string, destFileName string) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 // WriteJSON converts an interface{} to JSON then writes to filePath.

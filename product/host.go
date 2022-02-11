@@ -77,8 +77,7 @@ func GetProcesses() (interface{}, error) {
 	processInfo := make([]string, 0)
 
 	for eachProcess := range processes {
-		var process ps.Process
-		process = processes[eachProcess]
+		process := processes[eachProcess]
 		processInfo = append(processInfo, process.Executable())
 	}
 
