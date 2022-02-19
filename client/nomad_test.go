@@ -28,7 +28,7 @@ func TestGetNomadLogPathPDir(t *testing.T) {
 		t.Errorf("error running NomadLogPath: %s", err)
 	}
 
-	expect := "/some/dir/nomad-*"
+	expect := "/some/dir/nomad*.log"
 	if path != expect {
 		t.Errorf("expected LogFile='%s'; got: '%s'", expect, path)
 	}
@@ -46,7 +46,7 @@ func TestGetNomadLogPathPrefix(t *testing.T) {
 		t.Errorf("error running NomadLogPath: %s", err)
 	}
 
-	expect := "/some/prefix-*"
+	expect := "/some/prefix*.log"
 	if path != expect {
 		t.Errorf("expected Nomad LogFile='%s'; got: '%s'", expect, path)
 	}
