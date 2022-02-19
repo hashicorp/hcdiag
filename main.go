@@ -162,5 +162,4 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 func printVersion() {
 	slug := "hcdiag v" + SemVer
 	fmt.Println(slug)
-	return
 }
