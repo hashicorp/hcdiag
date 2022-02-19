@@ -34,14 +34,9 @@ func CopyDir(to, src string) error {
 
 		if info.IsDir() {
 			hclog.L().Info("copying", "path", path, "to", target)
-			if err := os.MkdirAll(target, directoryPerms); err != nil {
-				return fmt.Errorf("os.MkdirAll failed: %w", err)
-			}
+			return os.MkdirAll(target, directoryPerms)
 		}
-		if err := CopyFile(target, path); err != nil {
-			return fmt.Errorf("CopyFile failed: %w", err)
-		}
-		return nil
+		return CopyFile(target, path)
 	})
 }
 
