@@ -47,7 +47,8 @@ func GetNomadLogPath(api *APIClient) (string, error) {
 		path = path + "nomad*.log"
 	} else {
 		// this is a "prefix"
-		path = strings.Replace(path, ".log", "*.log", 1)
+		path = strings.Replace(path, ".log", "", 1)
+		path = path + "*.log"
 	}
 
 	return path, nil
