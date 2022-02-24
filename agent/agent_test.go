@@ -340,7 +340,7 @@ func TestParseHCL(t *testing.T) {
 	}
 }
 
-func cleanupHelper (t *testing.T, a *Agent) {
+func cleanupHelper(t *testing.T, a *Agent) {
 	err := a.Cleanup()
 	if err != nil {
 		t.Errorf("Failed to clean up")

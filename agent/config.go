@@ -2,7 +2,9 @@ package agent
 
 import "time"
 
+// Config stores all user-provided inputs from the CLI and HCL
 type Config struct {
+	// HostConfig and ProductConfig are specified by HCL
 	Host     *HostConfig      `hcl:"host,block" json:"host_config"`
 	Products []*ProductConfig `hcl:"product,block" json:"products_config"`
 
@@ -52,7 +54,6 @@ type GETConfig struct {
 }
 
 type CopyConfig struct {
-	Path string `hcl:"path"`
-	// FIXME(mkcp): This should be a duration that we parse
+	Path  string `hcl:"path"`
 	Since string `hcl:"since,optional"`
 }
