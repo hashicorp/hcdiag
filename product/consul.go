@@ -17,12 +17,12 @@ const (
 // NewConsul takes a product config and creates a Product with all of Consul's default seekers
 func NewConsul(cfg Config) *Product {
 	return &Product{
-		Seekers: ConsulSeekers(cfg.TmpDir, cfg.From, cfg.To),
+		Seekers: ConsulSeekers(cfg.TmpDir, cfg.Since, cfg.Until),
 	}
 }
 
 // ConsulSeekers seek information about Consul.
-func ConsulSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
+func ConsulSeekers(tmpDir string, since, until time.Time) []*s.Seeker {
 	api := client.NewConsulAPI()
 
 	seekers := []*s.Seeker{
@@ -41,11 +41,11 @@ func ConsulSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	// try to detect log location to copy
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs/consul")
-		logCopier := s.NewCopier(logPath, dest, from, to)
+		logCopier := s.NewCopier(logPath, dest, since, until)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
 	// get logs from journald if available
-	if journald := s.JournaldGetter("consul", tmpDir); journald != nil {
+	if journald := s.JournaldGetter("consul", tmpDir, since, until); journald != nil {
 		seekers = append(seekers, journald)
 	}
 

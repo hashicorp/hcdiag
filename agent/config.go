@@ -13,9 +13,9 @@ type Config struct {
 	Nomad       bool      `json:"nomad_enabled"`
 	TFE         bool      `json:"terraform_ent_enabled"`
 	Vault       bool      `json:"vault_enabled"`
+	Since       time.Time `json:"since"`
+	Until       time.Time `json:"until"`
 	Includes    []string  `json:"includes"`
-	IncludeFrom time.Time `json:"include_from"`
-	IncludeTo   time.Time `json:"include_to"`
 	Destination string    `json:"destination"`
 }
 

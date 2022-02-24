@@ -2,13 +2,16 @@ package seeker
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 )
 
+const JournaldTimeLayout = "2022-02-22 16:09:51"
+
 // JournaldGetter attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
-func JournaldGetter(name, destDir string) *Seeker {
+func JournaldGetter(name, destDir string, since, until time.Time) *Seeker {
 	// if systemd does not exist or have a unit with the provided name, return a nil pointer
 	cmd := fmt.Sprintf("systemctl is-enabled %s", name) // TODO(gulducat): another command?
 	out, err := NewCommander(cmd, "string").Run()
@@ -28,9 +31,11 @@ func JournaldGetter(name, destDir string) *Seeker {
 		return nil
 	}
 
-	// TODO(gulducat): custom --since
-	cmd = fmt.Sprintf("journalctl -x -u %s --since '3 days ago' --no-pager > %s/journald-%s.log", name, destDir, name)
+	sinceFmt := since.Format(JournaldTimeLayout)
+	untilFmt := until.Format(JournaldTimeLayout)
+	cmd = fmt.Sprintf("journalctl -x -u %s --since \"%s\" --until \"%s\" --no-pager > %s/journald-%s.log", name, sinceFmt, untilFmt, destDir, name)
 	seeker := NewSheller(cmd)
 	seeker.Identifier = "journald"
+
 	return seeker
 }

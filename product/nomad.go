@@ -18,12 +18,12 @@ const (
 // NewNomad takes a product config and creates a Product with all of Nomad's default seekers
 func NewNomad(cfg Config) *Product {
 	return &Product{
-		Seekers: NomadSeekers(cfg.TmpDir, cfg.From, cfg.To),
+		Seekers: NomadSeekers(cfg.TmpDir, cfg.Since, cfg.Until),
 	}
 }
 
 // NomadSeekers seek information about Nomad.
-func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
+func NomadSeekers(tmpDir string, since, until time.Time) []*s.Seeker {
 	api := client.NewNomadAPI()
 
 	seekers := []*s.Seeker{
@@ -42,11 +42,11 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	// try to detect log location to copy
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs", "nomad")
-		logCopier := s.NewCopier(logPath, dest, from, to)
+		logCopier := s.NewCopier(logPath, dest, since, until)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
 	// get logs from journald if available
-	if journald := s.JournaldGetter("nomad", tmpDir); journald != nil {
+	if journald := s.JournaldGetter("nomad", tmpDir, since, until); journald != nil {
 		seekers = append(seekers, journald)
 	}
 

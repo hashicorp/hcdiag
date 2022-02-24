@@ -16,7 +16,7 @@ const (
 
 // NewVault takes a product config and creates a Product containing all of Vault's seekers.
 func NewVault(cfg Config) (*Product, error) {
-	seekers, err := VaultSeekers(cfg.TmpDir, cfg.From, cfg.To)
+	seekers, err := VaultSeekers(cfg.TmpDir, cfg.Since, cfg.Until)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func NewVault(cfg Config) (*Product, error) {
 }
 
 // VaultSeekers seek information about Vault.
-func VaultSeekers(tmpDir string, from, to time.Time) ([]*s.Seeker, error) {
+func VaultSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 	api, err := client.NewVaultAPI()
 	if err != nil {
 		return nil, err
@@ -44,11 +44,11 @@ func VaultSeekers(tmpDir string, from, to time.Time) ([]*s.Seeker, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(tmpDir, "logs/vault")
-		logCopier := s.NewCopier(logPath, dest, from, to)
+		logCopier := s.NewCopier(logPath, dest, since, until)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
 	// get logs from journald if available
-	if journald := s.JournaldGetter("vault", tmpDir); journald != nil {
+	if journald := s.JournaldGetter("vault", tmpDir, since, until); journald != nil {
 		seekers = append(seekers, journald)
 	}
 

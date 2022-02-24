@@ -13,12 +13,12 @@ type Copier struct {
 	SourceDir string    `json:"source_directory"`
 	Filter    string    `json:"filter"`
 	DestDir   string    `json:"destination_directory"`
-	From      time.Time `json:"from"`
-	To        time.Time `json:"to"`
+	Since     time.Time `json:"since"`
+	Until     time.Time `json:"until"`
 }
 
 // NewCopier provides a Seeker for copying files to temp dir based on a filter.
-func NewCopier(path, destDir string, from, to time.Time) *Seeker {
+func NewCopier(path, destDir string, since, until time.Time) *Seeker {
 	sourceDir, filter := util.SplitFilepath(path)
 	return &Seeker{
 		Identifier: "copy " + filepath.Join(sourceDir, filter),
@@ -26,8 +26,8 @@ func NewCopier(path, destDir string, from, to time.Time) *Seeker {
 			SourceDir: sourceDir,
 			Filter:    filter,
 			DestDir:   destDir,
-			From:      from,
-			To:        to,
+			Since:     since,
+			Until:     until,
 		},
 	}
 }
@@ -41,7 +41,7 @@ func (c Copier) Run() (result interface{}, err error) {
 	}
 
 	// Find all the files
-	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.From, c.To)
+	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
 		return nil, err
 	}

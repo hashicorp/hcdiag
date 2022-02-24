@@ -199,7 +199,7 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		s := seeker.NewCopier(f, dest, a.Config.IncludeFrom, a.Config.IncludeTo)
+		s := seeker.NewCopier(f, dest, a.Config.Since, a.Config.Until)
 		if _, err = s.Run(); err != nil {
 			return err
 		}
@@ -383,8 +383,8 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	cfg := product.Config{
 		Logger: &a.l,
 		TmpDir: a.tmpDir,
-		From:   a.Config.IncludeFrom,
-		To:     a.Config.IncludeTo,
+		Since:  a.Config.Since,
+		Until:  a.Config.Until,
 		OS:     a.Config.OS,
 	}
 	p := make(map[string]*product.Product)

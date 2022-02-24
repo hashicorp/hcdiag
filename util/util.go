@@ -149,24 +149,24 @@ func SplitFilepath(path string) (dir string, file string) {
 	return dir, file
 }
 
-func IsInRange(target, from, to time.Time) bool {
+func IsInRange(target, since, until time.Time) bool {
 	// Default true if no range provided
-	if from.IsZero() {
+	if since.IsZero() {
 		return true
 	}
 
 	// Check if the end of our range is zero
-	if to.IsZero() {
+	if until.IsZero() {
 		// Anything after the start time is valid
-		return target.After(from)
+		return target.After(since)
 	}
 
 	// Check if the fileTime is within range
-	return target.After(from) && target.Before(to)
+	return target.After(since) && target.Before(until)
 }
 
-// FilterWalk accepts a source directory, filter string, and from and to Times to return a list of matching files.
-func FilterWalk(srcDir, filter string, from, to time.Time) ([]string, error) {
+// FilterWalk accepts a source directory, filter string, and since and to Times to return a list of matching files.
+func FilterWalk(srcDir, filter string, since, until time.Time) ([]string, error) {
 	var fileMatches []string
 
 	// Filter the files
@@ -184,7 +184,7 @@ func FilterWalk(srcDir, filter string, from, to time.Time) ([]string, error) {
 				return err
 			}
 			mod := info.ModTime()
-			if IsInRange(mod, from, to) {
+			if IsInRange(mod, since, until) {
 				fileMatches = append(fileMatches, path)
 			}
 		}

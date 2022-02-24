@@ -15,6 +15,9 @@ import (
 
 const SemVer string = "0.1.3"
 
+// SeventyTwoHours represents the duration "72h" parsed in nanoseconds
+const SeventyTwoHours time.Duration = 259199999999999
+
 func main() {
 	os.Exit(realMain())
 }
@@ -39,7 +42,9 @@ func realMain() (returnCode int) {
 		return
 	}
 
+	// Build agent configuration from flags, HCL, and system time
 	var config agent.Config
+	// Set host and product config
 	if flags.Config != "" {
 		config, err = agent.ParseHCL(flags.Config)
 		if err != nil {
@@ -47,8 +52,16 @@ func realMain() (returnCode int) {
 		}
 		l.Debug("Config is", "config", config)
 	}
-
+	// Assign flag vals to our agent.Config
 	cfg := mergeAgentConfig(config, flags)
+	// Capture a now value and set timestamps based on the same Now value
+	now := time.Now()
+	// Get the difference between now and the provided --since Duration
+	cfg.Since = now.Add(-flags.Since)
+	// NOTE(mkcp): In the future, cfg.Until may be set by a flag.
+	cfg.Until = now
+
+	// Create agent
 	a := agent.NewAgent(cfg, l)
 
 	// Run the agent
@@ -79,20 +92,33 @@ func configureLogging(loggerName string) hclog.Logger {
 }
 
 // Flags stores our CLI inputs.
+// TODO(mkcp): Add doccomments for flag fields (and organize them)
 type Flags struct {
-	OS           string
-	Serial       bool
-	Dryrun       bool
-	Consul       bool
-	Nomad        bool
-	TFE          bool
-	Vault        bool
-	AllProducts  bool
-	Includes     []string
-	IncludeSince time.Duration
-	Destination  string
-	Config       string
-	Version      bool
+	OS     string
+	Serial bool
+	Dryrun bool
+
+	// Products
+	Consul      bool
+	Nomad       bool
+	TFE         bool
+	Vault       bool
+	AllProducts bool
+
+	// Since provides a time range for seekers to work from
+	Since time.Duration
+
+	// Includes
+	Includes []string
+
+	// Bundle write location
+	Destination string
+
+	// HCL file location
+	Config string
+
+	// Get hcdiag version
+	Version bool
 }
 
 type CSVFlag struct {
@@ -124,7 +150,7 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
 	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
 	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file")
-	flags.DurationVar(&f.IncludeSince, "include-since", time.Duration(0), "Time range to include files, counting back from now. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
+	flags.DurationVar(&f.Since, "since", SeventyTwoHours, "Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
 	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
 
@@ -135,15 +161,12 @@ func (f *Flags) parseFlags(args []string) error {
 	return flags.Parse(args)
 }
 
-// FIXME(mkcp): Don't love how this fits together yet
 // mergeAgentConfig merges flags into the agent.Config, prioritizing flags over HCL config.
 func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
-	// Convert our flag input to agent configuration
-	from := time.Unix(0, flags.IncludeSince.Nanoseconds())
-	to := time.Now()
 	config.OS = flags.OS
 	config.Serial = flags.Serial
 	config.Dryrun = flags.Dryrun
+
 	// DEPRECATED(mkcp): flags.AllProducts
 	config.Consul = flags.AllProducts || flags.Consul
 	// DEPRECATED(mkcp): flags.AllProducts
@@ -152,10 +175,13 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	config.TFE = flags.AllProducts || flags.TFE
 	// DEPRECATED(mkcp): flags.AllProducts
 	config.Vault = flags.AllProducts || flags.Vault
+
+	// Params for --includes
 	config.Includes = flags.Includes
-	config.IncludeFrom = from
-	config.IncludeTo = to
+
+	// Bundle write location
 	config.Destination = flags.Destination
+
 	return config
 }
 
