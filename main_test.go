@@ -8,28 +8,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMergeAgentConfig(t *testing.T) {
+func TestSetTime(t *testing.T) {
+	// This test is kind of a tautology because we're replacing the impl. to build the expected struct. But it holds
+	// some value to protect against regressions.
 	testDur, err := time.ParseDuration("48h")
 	if !assert.NoError(t, err) {
 		return
 	}
-	flags := Flags{
-		OS:          "auto",
-		AllProducts: true,
-		Since:       testDur,
+	cfg := agent.Config{}
+	now := time.Now()
+	newCfg := setTime(cfg, now, testDur)
+
+	expect := agent.Config{
+		Since: now.Add(-testDur),
+		Until: now,
 	}
 
-	newCfg := mergeAgentConfig(agent.Config{}, flags)
-
-	testCfg := agent.Config{
-		OS:     "auto",
-		Consul: true,
-		Nomad:  true,
-		TFE:    true,
-		Vault:  true,
-		Since:  time.Time{},
-		Until:  time.Time{},
-	}
-
-	assert.Equal(t, newCfg, testCfg)
+	assert.Equal(t, newCfg, expect)
 }

@@ -54,12 +54,10 @@ func realMain() (returnCode int) {
 	}
 	// Assign flag vals to our agent.Config
 	cfg := mergeAgentConfig(config, flags)
-	// Capture a now value and set timestamps based on the same Now value
+
+	// Set config timestamps based on durations
 	now := time.Now()
-	// Get the difference between now and the provided --since Duration
-	cfg.Since = now.Add(-flags.Since)
-	// NOTE(mkcp): In the future, cfg.Until may be set by a flag.
-	cfg.Until = now
+	cfg = setTime(cfg, now, flags.Since)
 
 	// Create agent
 	a := agent.NewAgent(cfg, l)
@@ -188,4 +186,14 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 func printVersion() {
 	slug := "hcdiag v" + SemVer
 	fmt.Println(slug)
+}
+
+func setTime(cfg agent.Config, now time.Time, since time.Duration) agent.Config {
+	// Capture a now value and set timestamps based on the same Now value
+	// Get the difference between now and the provided --since Duration
+	cfg.Since = now.Add(-since)
+	// NOTE(mkcp): In the future, cfg.Until may be set by a flag.
+	cfg.Until = now
+
+	return cfg
 }
