@@ -21,7 +21,7 @@ func TestSetTime(t *testing.T) {
 
 	expect := agent.Config{
 		Since: now.Add(-testDur),
-		Until: now,
+		Until: time.Time{}, // This is the default zero value, but we're just being extra explicit.
 	}
 
 	assert.Equal(t, newCfg, expect)

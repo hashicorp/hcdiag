@@ -193,7 +193,7 @@ func setTime(cfg agent.Config, now time.Time, since time.Duration) agent.Config 
 	// Get the difference between now and the provided --since Duration
 	cfg.Since = now.Add(-since)
 	// NOTE(mkcp): In the future, cfg.Until may be set by a flag.
-	cfg.Until = now
+	cfg.Until = time.Time{}
 
 	return cfg
 }
