@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -25,7 +26,12 @@ func CopyDir(to, src string) error {
 	absBase := filepath.Dir(absPath)
 
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		target := filepath.Join(to, absBase, info.Name())
+		// Windows path may contain unsafe characters
+		targetMaybeUnsafe := filepath.Join(to, absBase, info.Name())
+
+		// TODO: more extensive path cleansing beyond handling C:\
+		target := strings.Replace(targetMaybeUnsafe, ":", "_", -1)
+
 		if info.IsDir() {
 			hclog.L().Info("copying", "path", path, "to", target)
 			return os.MkdirAll(target, directoryPerms)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const DefaultNomadAddr = "http://127.0.0.1:4646"
@@ -43,10 +44,11 @@ func GetNomadLogPath(api *APIClient) (string, error) {
 	// account for variable behavior depending on destination type
 	if _, file := filepath.Split(path); file == "" {
 		// this is a directory
-		path = path + "nomad-*"
+		path = path + "nomad*.log"
 	} else {
 		// this is a "prefix"
-		path = path + "-*"
+		path = strings.Replace(path, ".log", "", 1)
+		path = path + "*.log"
 	}
 
 	return path, nil

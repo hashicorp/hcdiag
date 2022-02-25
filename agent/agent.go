@@ -263,14 +263,15 @@ func (a *Agent) WriteOutput() (err error) {
 	// TODO(mkcp): Once an error here can hard-fail the process, we should execute this before we run the seekers to ensure
 	//  we don't waste users' time.
 	if mkdirErr := os.Mkdir(a.Config.Destination, 0755); mkdirErr != nil {
-		// TODO(mkcp): We will likely need more granular error handling here.
-		//  There are some cases where an error is a "happy path" - a dir exists, great, we can write to it.
-		//  But if the dir create fails and we proceed that's not ideal.
-		a.l.Debug("mkdir error", "error", err)
+		//  There are some cases where an error is a "happy path"
+		if errors.Is(mkdirErr, os.ErrExist) {
+			// a dir exists, great, we can write to it.
+			a.l.Trace("its just a harmless little bunny", "error", err)
+		} else {
+			a.l.Error("os.Mkdir", "error", err)
+			return mkdirErr
+		}
 	}
-
-	// Get bundle destination from config
-	resultsDest := fmt.Sprintf("%s/%s.tar.gz", a.Config.Destination, a.TempDir())
 
 	a.l.Debug("Writing results and manifest, and creating tar.gz archive")
 
@@ -291,6 +292,10 @@ func (a *Agent) WriteOutput() (err error) {
 		return err
 	}
 	a.l.Info("Created Manifest.json file", "dest", mFile)
+
+	// Build bundle destination path from config
+	resultsFile := fmt.Sprintf("%s.tar.gz", a.TempDir())
+	resultsDest := filepath.Join(a.Config.Destination, resultsFile)
 
 	// Archive and compress outputs
 	err = util.TarGz(a.tmpDir, resultsDest)
