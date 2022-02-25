@@ -13,16 +13,16 @@ builds:
   goos:
     - linux
     - darwin
-    # - windows
+    - windows
   goarch:
     - amd64
     - arm
     - arm64
   ignore:
-  #   - goarch: 'arm'
-  #     goos: windows
-  #   - goarch: 'arm64'
-  #     goos: windows
+    - goarch: 'arm'
+      goos: windows
+    - goarch: 'arm64'
+      goos: windows
 
 archives:
 - format: zip
