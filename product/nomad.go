@@ -36,19 +36,42 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 		s.NewHTTPer(api, "/v1/agent/members?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
+	}
 
-		s.NewCommander("iptables -L -n -v", "string"),
-		s.NewCommander("iptables -L -n -v -t nat", "string"),
-		s.NewCommander("iptables -L -n -v -t mangle", "string"),
+	if s.IsCommandAvailable("iptables") {
+		iptables := []*s.Seeker{
+			s.NewCommander("iptables -L -n -v", "string"),
+			s.NewCommander("iptables -L -n -v -t nat", "string"),
+			s.NewCommander("iptables -L -n -v -t mangle", "string"),
+		}
+		seekers = append(seekers, iptables...)
+	}
 
-		s.NewCommander("journalctl -xeu nomad.service --since yesterday", "string"),
-		s.NewCommander("journalctl --list-boots", "string"),
+	if s.IsCommandAvailable("journalctl") {
+		systemd := []*s.Seeker{
+			s.NewCommander("journalctl -xeu nomad.service --since yesterday", "string"),
+			s.NewCommander("journalctl --list-boots", "string"),
 
-		s.NewCommander("systemctl show nomad.service", "string"),
-		s.NewCommander("systemctl show docker.service", "string"),
+			s.NewCommander("systemctl show nomad.service", "string"),
+			s.NewCommander("systemctl show docker.service", "string"),
+		}
+		seekers = append(seekers, systemd...)
+	}
 
-		s.NewCommander("docker version --format='{{json .}}'", "string"),
-		s.NewCommander("docker info --format='{{json .}}'", "string"),
+	if s.IsCommandAvailable("docker") {
+		docker := []*s.Seeker{
+			s.NewCommander("docker version --format='{{json .}}'", "string"),
+			s.NewCommander("docker info --format='{{json .}}'", "string"),
+		}
+		seekers = append(seekers, docker...)
+	}
+
+	if s.IsCommandAvailable("podman") {
+		podman := []*s.Seeker{
+			s.NewCommander("podman version --format='{{json .}}'", "string"),
+			s.NewCommander("podman info --format='{{json .}}'", "string"),
+		}
+		seekers = append(seekers, podman...)
 	}
 
 	// try to detect log location to copy
@@ -56,6 +79,8 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 		dest := filepath.Join(tmpDir, "logs", "nomad")
 		logCopier := s.NewCopier(logPath, dest, from, to)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
+		//todo:dkm simplify
+		// seekers = append(seekers, logCopier)
 	}
 	// get logs from journald if available
 	if journald := s.JournaldGetter("nomad", tmpDir); journald != nil {

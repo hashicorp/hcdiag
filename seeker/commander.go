@@ -22,6 +22,18 @@ func NewCommander(command string, format string) *Seeker {
 	}
 }
 
+func IsCommandAvailable(name string) bool {
+	path, err := exec.LookPath(name)
+	if err != nil {
+		fmt.Printf("exec.LookPath error: %s", err)
+		return false
+	}
+
+	log.Println(path) // bin/ls
+
+	return true
+}
+
 func (c Commander) Run() (result interface{}, err error) {
 	bits := strings.Split(c.Command, " ")
 	cmd := bits[0]
