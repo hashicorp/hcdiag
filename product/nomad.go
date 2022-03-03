@@ -48,14 +48,18 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 	}
 
 	if s.IsCommandAvailable("journalctl") {
-		systemd := []*s.Seeker{
-			s.NewCommander("journalctl -xeu nomad.service --since yesterday", "string"),
+		journalctl := []*s.Seeker{
 			s.NewCommander("journalctl --list-boots", "string"),
+		}
+		seekers = append(seekers, journalctl...)
+	}
 
+	if s.IsCommandAvailable("systemctl") {
+		systemctl := []*s.Seeker{
 			s.NewCommander("systemctl show nomad.service", "string"),
 			s.NewCommander("systemctl show docker.service", "string"),
 		}
-		seekers = append(seekers, systemd...)
+		seekers = append(seekers, systemctl...)
 	}
 
 	if s.IsCommandAvailable("docker") {
