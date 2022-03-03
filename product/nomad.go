@@ -64,16 +64,16 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 
 	if s.IsCommandAvailable("docker") {
 		docker := []*s.Seeker{
-			s.NewCommander("docker version --format='{{json .}}'", "string"),
-			s.NewCommander("docker info --format='{{json .}}'", "string"),
+			s.NewCommander("docker version --format='{{json .}}'", "json"),
+			s.NewCommander("docker info --format='{{json .}}'", "json"),
 		}
 		seekers = append(seekers, docker...)
 	}
 
 	if s.IsCommandAvailable("podman") {
 		podman := []*s.Seeker{
-			s.NewCommander("podman version --format='{{json .}}'", "string"),
-			s.NewCommander("podman info --format='{{json .}}'", "string"),
+			s.NewCommander("podman version --format='{{json .}}'", "json"),
+			s.NewCommander("podman info --format='{{json .}}'", "json"),
 		}
 		seekers = append(seekers, podman...)
 	}
