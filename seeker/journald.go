@@ -9,6 +9,12 @@ import (
 // JournaldGetter attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func JournaldGetter(name, destDir string) *Seeker {
+	// exit now if journalctl is unavailable
+	if IsCommandAvailable("journalctl") == false {
+		l.Debug("journalctl not available, skipping")
+		return nil
+	}
+
 	// if systemd does not exist or have a unit with the provided name, return a nil pointer
 	cmd := fmt.Sprintf("systemctl is-enabled %s", name) // TODO(gulducat): another command?
 	out, err := NewCommander(cmd, "string").Run()
