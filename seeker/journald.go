@@ -9,6 +9,7 @@ import (
 // JournaldGetter attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func JournaldGetter(name, destDir string) *Seeker {
+	l := hclog.L().Named("JournaldGetter").With("name", name)
 	// exit now if journalctl is unavailable
 	if IsCommandAvailable("journalctl") == false {
 		l.Debug("journalctl not available, skipping")
@@ -19,7 +20,7 @@ func JournaldGetter(name, destDir string) *Seeker {
 	cmd := fmt.Sprintf("systemctl is-enabled %s", name) // TODO(gulducat): another command?
 	out, err := NewCommander(cmd, "string").Run()
 	if err != nil {
-		hclog.L().Debug("skipping journald", "name", name, "output", out, "error", err)
+		l.Debug("skipping journald", "output", out, "error", err)
 		return nil
 	}
 
@@ -27,7 +28,7 @@ func JournaldGetter(name, destDir string) *Seeker {
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", name)
 	out, err = NewSheller(cmd).Run()
 	if err == nil { // no error, our sad magic string was found
-		hclog.L().Error("journalctl -u "+name,
+		l.Error("journalctl -u "+name,
 			"message", "unable to read logs, is your user allowed?  try sudo?",
 			"output", out,
 		)
