@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"github.com/kballard/go-shellquote"
 )
 
 // Commander runs shell commands.
@@ -35,7 +36,11 @@ func IsCommandAvailable(name string) bool {
 }
 
 func (c Commander) Run() (result interface{}, err error) {
-	bits := strings.Split(c.Command, " ")
+	bits, err := shellquote.Split(c.Command)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to split command: %w", err)
+	}
+
 	cmd := bits[0]
 	args := bits[1:]
 
