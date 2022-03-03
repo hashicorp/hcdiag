@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/hashicorp/go-hclog"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -24,13 +26,17 @@ func NewCommander(command string, format string) *Seeker {
 }
 
 func IsCommandAvailable(name string) bool {
+	l := hclog.L().Named("IsCommandAvailable")
 	path, err := exec.LookPath(name)
+	l.Trace(path)
 	if err != nil {
-		fmt.Printf("exec.LookPath error: %s", err)
+		if errors.Is(err, exec.ErrNotFound) {
+			l.Debug("ErrNotFound", "err", err.Error())
+			return false
+		}
+		l.Error("Failed with unknown error", "name", name, "err", err)
 		return false
 	}
-
-	log.Println(path) // bin/ls
 
 	return true
 }
