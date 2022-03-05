@@ -68,7 +68,8 @@ func (hs *HostSeeker) Run() (interface{}, error) {
 	hs.capture("uname", s.NewCommander("uname -v", "string").Run)
 
 	hs.capture("host", func() (interface{}, error) { return host.Info() })
-	hs.capture("memory", func() (interface{}, error) { return mem.VirtualMemory() })
+	hs.capture("memory-virtual", func() (interface{}, error) { return mem.VirtualMemory() })
+	hs.capture("memory-swap", func() (interface{}, error) { return mem.SwapMemory() })
 	hs.capture("disk", func() (interface{}, error) { return disk.Partitions(true) })
 	hs.capture("processes", func() (interface{}, error) { return ps.Processes() })
 	hs.capture("network", func() (interface{}, error) { return net.Interfaces() })
