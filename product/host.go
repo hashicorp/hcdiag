@@ -66,77 +66,13 @@ func (hs *HostSeeker) Run() (interface{}, error) {
 	l.Debug("Host seeker capture begin")
 
 	hs.capture("uname", s.NewCommander("uname -v", "string").Run)
-	hs.capture("host", GetHost)
-	hs.capture("memory", GetMemory)
-	hs.capture("disk", GetDisk)
-	hs.capture("processes", GetProcesses)
-	hs.capture("network", GetNetwork)
+
+	hs.capture("host", func() (interface{}, error) { return host.Info() })
+	hs.capture("memory", func() (interface{}, error) { return mem.VirtualMemory() })
+	hs.capture("disk", func() (interface{}, error) { return disk.Partitions(true) })
+	hs.capture("processes", func() (interface{}, error) { return ps.Processes() })
+	hs.capture("network", func() (interface{}, error) { return net.Interfaces() })
 
 	l.Debug("Host seeker capture complete")
 	return hs.results, hs.errors.ErrorOrNil()
-}
-
-// GetNetwork stuff
-func GetNetwork() (interface{}, error) {
-	networkInfo, err := net.Interfaces()
-	if err != nil {
-		hclog.L().Error("GetNetwork", "Error getting network information", err)
-		return networkInfo, err
-	}
-
-	return networkInfo, err
-}
-
-// GetProcesses stuff
-func GetProcesses() (interface{}, error) {
-	processes, err := ps.Processes()
-	if err != nil {
-		hclog.L().Error("GetProcesses", "Error getting process information", err)
-		return processes, err
-	}
-
-	processInfo := make([]string, 0)
-
-	for eachProcess := range processes {
-		process := processes[eachProcess]
-		processInfo = append(processInfo, process.Executable())
-	}
-
-	return processInfo, err
-}
-
-// GetMemory stuff
-func GetMemory() (interface{}, error) {
-	// third party
-	memoryInfo, err := mem.VirtualMemory()
-	if err != nil {
-		hclog.L().Error("GetMemory", "Error getting memory information", err)
-		return memoryInfo, err
-	}
-
-	return memoryInfo, err
-}
-
-// GetDisk stuff
-func GetDisk() (interface{}, error) {
-	// third party
-	diskInfo, err := disk.Partitions(true)
-	if err != nil {
-		hclog.L().Error("GetDisk", "Error getting disk information", err)
-		return diskInfo, err
-	}
-
-	return diskInfo, err
-}
-
-// GetHost stuff
-func GetHost() (interface{}, error) {
-	// third party
-	hostInfo, err := host.Info()
-	if err != nil {
-		hclog.L().Error("GetHost", "Error getting host information", err)
-		return hostInfo, err
-	}
-
-	return hostInfo, err
 }
