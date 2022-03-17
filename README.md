@@ -63,6 +63,7 @@ The following subsections cover product specific prerequisite items such as envi
 | `vault` | Run Vault diagnostics | bool | false |
 | `all` | DEPRECATED: Run all available product diagnostics | bool | false |
 | `since` | Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s` | string | "72h" |
+| `include-since` | Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s` | string | "72h" |
 | `includes` | files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | "" |
 | `destination` | Path to the directory the bundle should be written in | string | "." |
 | `dest` | Shorthand for -destination | string | "." |

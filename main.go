@@ -57,7 +57,9 @@ func realMain() (returnCode int) {
 
 	// Set config timestamps based on durations
 	now := time.Now()
-	cfg = setTime(cfg, now, flags.Since)
+	since := pickSinceVsIncludeSince(l, flags.Since, flags.IncludeSince)
+	cfg = setTime(cfg, now, since)
+	l.Debug("merged cfg", "cfg", fmt.Sprintf("%+v", cfg))
 
 	// Create agent
 	a := agent.NewAgent(cfg, l)
@@ -106,6 +108,9 @@ type Flags struct {
 	// Since provides a time range for seekers to work from
 	Since time.Duration
 
+	// IncludeSince provides a time range for seekers to work from
+	IncludeSince time.Duration
+
 	// Includes
 	Includes []string
 
@@ -148,6 +153,7 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
 	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
 	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file")
+	flags.DurationVar(&f.IncludeSince, "include-since", SeventyTwoHours, "Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.DurationVar(&f.Since, "since", SeventyTwoHours, "Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
 	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
@@ -186,6 +192,15 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 func printVersion() {
 	slug := "hcdiag v" + SemVer
 	fmt.Println(slug)
+}
+
+// pickSinceVsIncludeSince if Since is default and IncludeSince is NOT default, use IncludeSince
+func pickSinceVsIncludeSince(l hclog.Logger, since, includeSince time.Duration) time.Duration {
+	if since == SeventyTwoHours && includeSince != SeventyTwoHours {
+		l.Debug("includeSince set and default since", "includeSince", includeSince)
+		return includeSince
+	}
+	return since
 }
 
 func setTime(cfg agent.Config, now time.Time, since time.Duration) agent.Config {
