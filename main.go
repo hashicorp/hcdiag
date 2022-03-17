@@ -16,7 +16,7 @@ import (
 const SemVer string = "0.1.3"
 
 // SeventyTwoHours represents the duration "72h" parsed in nanoseconds
-const SeventyTwoHours time.Duration = 259199999999999
+const SeventyTwoHours time.Duration = 259200000000000
 
 func main() {
 	os.Exit(realMain())
