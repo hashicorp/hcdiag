@@ -36,19 +36,6 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 		s.NewHTTPer(api, "/v1/agent/members?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
-
-		s.NewCommander("iptables -L -n -v", "string"),
-		s.NewCommander("iptables -L -n -v -t nat", "string"),
-		s.NewCommander("iptables -L -n -v -t mangle", "string"),
-
-		s.NewCommander("journalctl -xeu nomad.service --since yesterday", "string"),
-		s.NewCommander("journalctl --list-boots", "string"),
-
-		s.NewCommander("systemctl show nomad.service", "string"),
-		s.NewCommander("systemctl show docker.service", "string"),
-
-		s.NewCommander("docker version --format='{{json .}}'", "string"),
-		s.NewCommander("docker info --format='{{json .}}'", "string"),
 	}
 
 	// try to detect log location to copy
