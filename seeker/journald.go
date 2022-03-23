@@ -32,11 +32,32 @@ func JournaldGetter(name, destDir string, since, until time.Time) *Seeker {
 		return nil
 	}
 
-	sinceFmt := since.Format(JournaldTimeLayout)
-	untilFmt := until.Format(JournaldTimeLayout)
-	cmd = fmt.Sprintf("journalctl -x -u %s --since \"%s\" --until \"%s\" --no-pager > %s/journald-%s.log", name, sinceFmt, untilFmt, destDir, name)
+	cmd = JournalctlGetLogsCmd(name, destDir, since, until)
 	seeker := NewSheller(cmd)
 	seeker.Identifier = "journald"
 
 	return seeker
+}
+
+// JournalctlGetLogsCmd takes the service name, destination to write logs to, two timestamps for the time range, and
+//  arranges them into a runnable command string.
+func JournalctlGetLogsCmd(name, destDir string, since, until time.Time) string {
+	// Write since and until flags with formatted time if either has a non-zero value
+	// Flag strings handle their own trailing whitespace to avoid having extra spaces when the flag is disabled.
+	var sinceFlag, untilFlag string
+	if !since.IsZero() {
+		t := since.Format(JournaldTimeLayout)
+		sinceFlag = fmt.Sprintf("--since \"%s\" ", t)
+	}
+	if !until.IsZero() {
+		t := until.Format(JournaldTimeLayout)
+		untilFlag = fmt.Sprintf("--until \"%s\" ", t)
+	}
+
+	// Add our write destination
+	dest := fmt.Sprintf("%s/journald-%s.log", destDir, name)
+
+	// Compose the service name with flags and write to dest
+	cmd := fmt.Sprintf("journalctl -x -u %s %s%s--no-pager > %s", name, sinceFlag, untilFlag, dest)
+	return cmd
 }
