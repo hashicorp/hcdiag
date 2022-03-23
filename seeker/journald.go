@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+// JournaldTimeLayout custom go time layouts must match the reference time Jan 2 15:04:05 2006 MST
 const JournaldTimeLayout = "2006-01-02 15:04:05"
 
 // JournaldGetter attempts to pull logs from journald via shell command, e.g.:
