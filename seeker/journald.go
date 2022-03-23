@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-const JournaldTimeLayout = "2022-02-22 16:09:51"
+const JournaldTimeLayout = "2006-01-02 15:04:05"
 
 // JournaldGetter attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
