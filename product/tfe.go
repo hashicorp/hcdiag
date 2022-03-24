@@ -10,18 +10,18 @@ import (
 // NewTFE takes a product config and creates a Product containing all of TFE's seekers.
 func NewTFE(cfg Config) *Product {
 	return &Product{
-		Seekers: TFESeekers(cfg.TmpDir, cfg.From, cfg.To),
+		Seekers: TFESeekers(cfg.TmpDir, cfg.Since, cfg.Until),
 	}
 }
 
 // TFESeekers seek information about Terraform Enterprise/Cloud.
-func TFESeekers(tmpDir string, from, to time.Time) []*s.Seeker {
+func TFESeekers(tmpDir string, since, until time.Time) []*s.Seeker {
 	api := client.NewTFEAPI()
 
 	return []*s.Seeker{
 		s.NewCommander("replicatedctl support-bundle", "string"),
 
-		s.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", tmpDir, from, to),
+		s.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", tmpDir, since, until),
 
 		s.NewHTTPer(api, "/api/v2/admin/customization-settings"),
 		s.NewHTTPer(api, "/api/v2/admin/general-settings"),

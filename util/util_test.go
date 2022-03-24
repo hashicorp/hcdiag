@@ -97,74 +97,74 @@ func TestFindInInterface(t *testing.T) {
 
 func TestIsInRange(t *testing.T) {
 	testTable := []struct {
-		desc             string
-		target, from, to time.Time
-		expect           bool
+		desc                 string
+		target, since, until time.Time
+		expect               bool
 	}{
 		{
 			desc:   "Target within range is valid",
 			target: time.Date(2000, 0, 0, 0, 0, 0, 0, &time.Location{}),
-			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
-			to:     time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			since:  time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			until:  time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
 			expect: true,
 		},
 		{
 			desc:   "Target after range is invalid",
 			target: time.Date(2300, 0, 0, 0, 0, 0, 0, &time.Location{}),
-			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
-			to:     time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			since:  time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			until:  time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
 			expect: false,
 		},
 		{
 			desc:   "Target before range is invalid",
 			target: time.Date(1800, 0, 0, 0, 0, 0, 0, &time.Location{}),
-			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
-			to:     time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			since:  time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			until:  time.Date(2200, 0, 0, 0, 0, 0, 0, &time.Location{}),
 			expect: false,
 		},
 		{
-			desc:   "Zeroed `from` is always in range",
+			desc:   "Zeroed `since` is always in range",
 			target: time.Now(),
 			expect: true,
 		},
 		{
-			desc:   "Zeroed `to` includes recent and/or actively-written-to target",
+			desc:   "Zeroed `until` includes recent and/or actively-written-until target",
 			target: time.Now(),
-			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			since:  time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
 			expect: true,
 		},
 		{
-			desc:   "Zeroed `to` does not include target before `from`",
+			desc:   "Zeroed `until` does not include target before `since`",
 			target: time.Date(1800, 0, 0, 0, 0, 0, 0, &time.Location{}),
-			from:   time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
+			since:  time.Date(1977, 0, 0, 0, 0, 0, 0, &time.Location{}),
 			expect: false,
 		},
 	}
 
 	for _, c := range testTable {
-		res := IsInRange(c.target, c.from, c.to)
+		res := IsInRange(c.target, c.since, c.until)
 		assert.Equal(t, res, c.expect, c.desc)
 	}
 }
 
-// FIXME(mkcp): Ensure the from and to works with modtime properly
+// FIXME(mkcp): Ensure the since and until works with modtime properly
 // func TestFilterWalk(t *testing.T) {
 // 	testTable := []struct{
 // 		filter   string
-// 		from     time.Time
-// 		to       time.Time
+// 		since     time.Time
+// 		until       time.Time
 // 		testCase func(t *testing.T)
 // 		expect   what
 // 	}{
 // 		{
 // 			filter: "",
-// 			from:   time.Time{},
-// 			to:     time.Time{},
+// 			since:   time.Time{},
+// 			until:     time.Time{},
 // 		},
 // 	}
 // 	for _, test := range testTable {
 // 		path := GenerateAbsolutePathIntoTestsResources()
-// 		res, err := FilterWalk(path, test.filter, test.from, test.to)
+// 		res, err := FilterWalk(path, test.filter, test.since, test.until)
 // 		assert.NoError(t, err)
 // 		for _, r := range res {
 // 			expect == r

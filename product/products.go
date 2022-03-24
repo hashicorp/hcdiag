@@ -25,8 +25,8 @@ type Config struct {
 	Logger *hclog.Logger
 	Name   string
 	TmpDir string
-	From   time.Time
-	To     time.Time
+	Since  time.Time
+	Until  time.Time
 	OS     string
 }
 
