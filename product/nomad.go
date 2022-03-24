@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	NomadClientCheck  = "nomad version"
-	NomadAgentCheck   = "nomad server members"
-	NomadDebugSeconds = 30
+	NomadClientCheck   = "nomad version"
+	NomadAgentCheck    = "nomad server members"
+	NomadDebugDuration = "2m"
+	NomadDebugInterval = "30s"
 )
 
 // NewNomad takes a product config and creates a Product with all of Nomad's default seekers
@@ -28,15 +29,13 @@ func NomadSeekers(tmpDir string, from, to time.Time) []*s.Seeker {
 
 	seekers := []*s.Seeker{
 		s.NewCommander("nomad version", "string"),
-		s.NewCommander("nomad node status -json", "json"),
+		s.NewCommander("nomad node status -self -json", "json"),
 		s.NewCommander("nomad agent-info -json", "json"),
-		s.NewCommander(fmt.Sprintf("nomad operator debug -output=%s -duration=%ds", tmpDir, NomadDebugSeconds), "string"),
-		// s.NewCommander("nomad operator metrics", "json", false), // TODO: uncomment (it's very verbose, so not noisy during testing)
+		s.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", tmpDir, NomadDebugDuration, NomadDebugInterval), "string"),
 
-		s.NewHTTPer(api, "/v1/agent/members"),
-		s.NewHTTPer(api, "/v1/plugins?type=csi"),
-		s.NewHTTPer(api, "/v1/operator/autopilot/configuration"),
-		s.NewHTTPer(api, "/v1/operator/raft/configuration"),
+		s.NewHTTPer(api, "/v1/agent/members?stale=true"),
+		s.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
+		s.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
 	}
 
 	// try to detect log location to copy
