@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/hcdiag/agent"
 )
 
-const SemVer string = "0.1.3"
+const SemVer string = "0.2.0-rc2"
 
 // SeventyTwoHours represents the duration "72h" parsed in nanoseconds
 const SeventyTwoHours time.Duration = 259200000000000
