@@ -215,8 +215,9 @@ func (a *Agent) RunProducts() error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(a.products))
 
-	// NOTE(mkcp): Create a closure around runSet and wg.Done(). This is a little complex, but saves us duplication
-	//   in the product loop. Maybe we extract this to a private package function in the future?
+	// NOTE(mkcp): Create a closure around runSet, writing results to the agent's result map, and wg.Done().
+	//   This is a little complex, but saves us duplication in the product loop. Maybe we extract this to a private
+	//   package function in the future?
 	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
 		set := product.Seekers
 		result, err := a.runSet(name, set)
