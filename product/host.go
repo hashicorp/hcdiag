@@ -43,8 +43,6 @@ func (hs *HostSeeker) Run() (interface{}, error) {
 	results := make(map[string]interface{})
 	var errors *multierror.Error
 
-	// TODO(mkcp): There's several improvements we can make here. Each of these
-	// really ought to be its own seeker
 	if tmpResult, err := s.NewCommander("uname -v", "string").Run(); err != nil {
 		errors = multierror.Append(errors, err)
 	} else {
