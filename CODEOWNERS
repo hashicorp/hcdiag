@@ -2,4 +2,4 @@
 # More on CODEOWNERS files: https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
 # Component                     # Maintainer
-/*                              @hashicorp/team-core-instrumentation
+/*                              @hashicorp/core-instrumentation
