@@ -40,8 +40,8 @@ jobs:
           version: latest
           args: release
         env:
-          HC_RELEASES_HOST_STAGING: ${{ secrets.HC_RELEASES_HOST_STAGING }}
-          HC_RELEASES_KEY_STAGING: ${{ secrets.HC_RELEASES_KEY_STAGING }}
+          HC_RELEASES_HOST: ${{ secrets.HC_RELEASES_HOST_STAGING }}
+          HC_RELEASES_KEY: ${{ secrets.HC_RELEASES_KEY_STAGING }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_KEY_ID: ${{ secrets.GPG_PUBLIC_KEY_ID }}
           CODESIGN_IMAGE: ${{ steps.codesign.outputs.image }}
