@@ -27,7 +27,7 @@ jobs:
         env:
           VERSION: v0
       - name: Setup hc-releases
-        uses: hashicorp/actions-setup-hc-releases@v2
+        uses: hashicorp/setup-hc-releases@v2
         with:
           github-token: "${{ secrets.CODESIGN_GITHUB_TOKEN }}"
 
@@ -57,7 +57,7 @@ jobs:
           version: "${{ github.ref_name }}"
           hc-releases-host: "${{ secrets.HC_RELEASES_HOST_STAGING}}"
           hc-releases-key: "${{ secrets.HC_RELEASES_KEY_STAGING }}"
-      
+
       - name: Promote
         uses: hashicorp/actions-hc-releases-promote@v1
         with:
@@ -66,4 +66,3 @@ jobs:
           hc-releases-host: "${{ secrets.HC_RELEASES_HOST_PROD }}"
           hc-releases-key: "${{ secrets.HC_RELEASES_KEY_PROD }}"
           hc-releases-source_env_key: "${{ secrets.HC_RELEASES_KEY_STAGING }}"
-      
