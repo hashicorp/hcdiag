@@ -29,7 +29,7 @@ jobs:
       - name: Setup hc-releases
         uses: hashicorp/actions-setup-hc-releases@v2
         with:
-          github-token: ${{ secrets.CODESIGN_GITHUB_TOKEN }}
+          github-token: "${{ secrets.CODESIGN_GITHUB_TOKEN }}"
 
       - name: Import key for archive signing
         run: echo -e "${{ secrets.GPG_PRIVATE_KEY_DECRYPTED }}" | gpg --import --batch --no-tty
@@ -52,18 +52,18 @@ jobs:
       - name: Create Release metadata
         uses: hashicorp/actions-hc-releases-create-metadata@v1
         with:
-          private-tools-token: ${{ secrets.CODESIGN_GITHUB_TOKEN }}
+          private-tools-token: "${{ secrets.CODESIGN_GITHUB_TOKEN }}"
           product-name: "hcdiag"
-          version: ${{ github.ref_name }}
-          hc-releases-host: ${{ secrets.HC_RELEASES_HOST_STAGING}}
-          hc-releases-key: ${{ secrets.HC_RELEASES_KEY_STAGING }}
-      -
-        name: Promote
+          version: "${{ github.ref_name }}"
+          hc-releases-host: "${{ secrets.HC_RELEASES_HOST_STAGING}}"
+          hc-releases-key: "${{ secrets.HC_RELEASES_KEY_STAGING }}"
+      
+      - name: Promote
         uses: hashicorp/actions-hc-releases-promote@v1
         with:
           product-name: "hcdiag"
-          version: ${{ github.ref_name }}
-          hc-releases-host: ${{ secrets.HC_RELEASES_HOST_PROD }}
-          hc-releases-key: ${{ secrets.HC_RELEASES_KEY_PROD }}
-          hc-releases-source_env_key: ${{ secrets.HC_RELEASES_KEY_STAGING }}
+          version: "${{ github.ref_name }}"
+          hc-releases-host: "${{ secrets.HC_RELEASES_HOST_PROD }}"
+          hc-releases-key: "${{ secrets.HC_RELEASES_KEY_PROD }}"
+          hc-releases-source_env_key: "${{ secrets.HC_RELEASES_KEY_STAGING }}"
       
