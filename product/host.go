@@ -43,11 +43,16 @@ func (hs *HostSeeker) Run() (interface{}, error) {
 	results := make(map[string]interface{})
 	var errors *multierror.Error
 
-	if tmpResult, err := s.NewCommander("uname -v", "string").Run(); err != nil {
+	osInfoCmd := "uname -v"
+	if hs.OS == "windows" {
+		osInfoCmd = "systeminfo"
+	}
+	if tmpResult, err := s.NewCommander(osInfoCmd, "string").Run(); err != nil {
 		errors = multierror.Append(errors, err)
 	} else {
-		results["uname"] = tmpResult
+		results["osinfo"] = tmpResult
 	}
+
 	if tmpResult, err := GetHost(); err != nil {
 		errors = multierror.Append(errors, err)
 	} else {
