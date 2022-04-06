@@ -21,14 +21,23 @@ func NewSheller(command string) *Seeker {
 	}
 }
 
-func (s *Sheller) Run() (result interface{}, err error) {
-	if s.Shell, err = util.GetShell(); err != nil {
-		return nil, err
+// Run ensures a shell exists and optimistically executes the given Command string
+func (s *Sheller) Run() (interface{}, Status, error) {
+	// Read the shell from the environment
+	shell, err := util.GetShell()
+	if err != nil {
+		return nil, Fail, err
 	}
+	s.Shell = shell
+
+	// Run the command
 	args := []string{"-c", s.Command}
 	bts, err := exec.Command(s.Shell, args...).CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("exec.Command error: %s", err)
+		// Return the stdout result even on failure
+		// TODO(mkcp): This is a good place to check for more kinds of errors
+		return string(bts), Unknown, fmt.Errorf("exec.Command error: %s", err)
 	}
-	return string(bts), err
+
+	return string(bts), Success, nil
 }

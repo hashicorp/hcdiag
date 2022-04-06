@@ -39,7 +39,7 @@ type HostSeeker struct {
 	OS string `json:"os"`
 }
 
-func (hs *HostSeeker) Run() (interface{}, error) {
+func (hs *HostSeeker) Run() (interface{}, s.Status, error) {
 	results := make(map[string]interface{})
 	var errors *multierror.Error
 
@@ -79,7 +79,7 @@ func (hs *HostSeeker) Run() (interface{}, error) {
 		results["network"] = tmpResult
 	}
 
-	return results, errors.ErrorOrNil()
+	return results, s.Success, errors.ErrorOrNil()
 }
 
 // GetNetwork stuff

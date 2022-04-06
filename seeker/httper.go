@@ -20,6 +20,11 @@ func NewHTTPer(client *client.APIClient, path string) *Seeker {
 	}
 }
 
-func (h HTTPer) Run() (interface{}, error) {
-	return h.Client.Get(h.Path)
+// Run executes a GET request to the Path using the Client
+func (h HTTPer) Run() (interface{}, Status, error) {
+	result, err := h.Client.Get(h.Path)
+	if err != nil {
+		return result, Unknown, err
+	}
+	return result, Success, nil
 }
