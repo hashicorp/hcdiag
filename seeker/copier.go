@@ -33,26 +33,26 @@ func NewCopier(path, destDir string, since, until time.Time) *Seeker {
 }
 
 // Run satisfies the Runner interface and copies the filtered source files to the destination.
-func (c Copier) Run() (result interface{}, err error) {
+func (c Copier) Run() (interface{}, Status, error) {
 	// Ensure destination directory exists
-	err = os.MkdirAll(c.DestDir, 0755)
+	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
-		return nil, err
+		return nil, Fail, err
 	}
 
 	// Find all the files
 	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
-		return nil, err
+		return nil, Fail, err
 	}
 
 	// Copy the files
 	for _, s := range files {
-		err := util.CopyDir(c.DestDir, s)
+		err = util.CopyDir(c.DestDir, s)
 		if err != nil {
-			return nil, err
+			return nil, Fail, err
 		}
 	}
 
-	return files, nil
+	return files, Success, nil
 }

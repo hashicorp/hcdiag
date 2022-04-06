@@ -11,12 +11,13 @@ import (
 var (
 	mockResult = "get mock'd"
 	errFake    = errors.New("uh oh a fake error")
+	testStatus = Status("test")
 )
 
 type MockRunner struct{}
 
-func (r MockRunner) Run() (interface{}, error) {
-	return mockResult, errFake
+func (r MockRunner) Run() (interface{}, Status, error) {
+	return mockResult, testStatus, errFake
 }
 
 func TestSeekerRun(t *testing.T) {
