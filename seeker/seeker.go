@@ -5,6 +5,15 @@ import (
 	"path/filepath"
 )
 
+// status describes the result of a seeker run
+type Status string
+
+const (
+	Success Status = "success"
+	Fail    Status = "fail"
+	Unknown Status = "unknown"
+)
+
 // Seeker seeks information via its Runner then stores the results.
 type Seeker struct {
 	Runner     Runner      `json:"runner"`
@@ -12,17 +21,20 @@ type Seeker struct {
 	Result     interface{} `json:"result"`
 	ErrString  string      `json:"error"` // this simplifies json marshaling
 	Error      error       `json:"-"`
+	Status     Status      `json:"status"`
 }
 
 // Runner runs things to get information.
 type Runner interface {
-	Run() (interface{}, error)
+	Run() (interface{}, Status, error)
 }
 
-func (s *Seeker) Run() (result interface{}, err error) {
-	result, err = s.Runner.Run()
+// Run calls a Runner's Run() method and writes the results and any errors on the seeker struct
+func (s *Seeker) Run() (interface{}, error) {
+	result, stat, err := s.Runner.Run()
 	s.Result = result
 	s.Error = err
+	s.Status = stat
 
 	if err != nil {
 		s.ErrString = fmt.Sprintf("%s", err)
