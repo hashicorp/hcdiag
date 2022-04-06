@@ -37,6 +37,18 @@ type Product struct {
 	Selects  []string
 }
 
+// Statuses reads from each seeker on the product and returns a map containing sums of each Status
+func (p *Product) Statuses() (map[seeker.Status]int, error) {
+	statuses := make(map[seeker.Status]int)
+	for _, s := range p.Seekers {
+		if s.Status == "" {
+			return nil, fmt.Errorf("unable to build Statuses map, seeker not run: seeker=%s", s.Identifier)
+		}
+		statuses[s.Status]++
+	}
+	return statuses, nil
+}
+
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers
 func (p *Product) Filter() error {
 	if p.Seekers == nil {

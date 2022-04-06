@@ -231,9 +231,9 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses := make(map[seeker.Status]int)
-		for _, s := range product.Seekers {
-			statuses[s.Status]++
+		statuses, err := product.Statuses()
+		if err != nil {
+			a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
 		}
 
 		a.l.Info("Product done", "product", name, "statuses", statuses)
