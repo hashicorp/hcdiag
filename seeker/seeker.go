@@ -5,12 +5,17 @@ import (
 	"path/filepath"
 )
 
-// status describes the result of a seeker run
+// Status describes the result of a seeker run
 type Status string
 
 const (
+	// Success means all systems green
 	Success Status = "success"
-	Fail    Status = "fail"
+	// Fail means that we detected a known error and can conclusively say that the seeker did not complete.
+	Fail Status = "fail"
+	// Unknown means that we detected an error and the result is indeterminate (e.g. some side effect like disk or
+	//   network may or may not have completed) or we don't recognize the error. If we don't recognize the error that's
+	//   a signal to improve the error handling to account for it.
 	Unknown Status = "unknown"
 )
 
