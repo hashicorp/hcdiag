@@ -93,8 +93,10 @@ func (a *Agent) Run() []error {
 		}
 	}
 
-	// Store products and metadata
+	// Store products
 	a.products = p
+
+	// Sum up all seekers from products
 	a.NumSeekers = product.CountSeekers(a.products)
 
 	// Run products
@@ -221,12 +223,21 @@ func (a *Agent) RunProducts() error {
 	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
 		set := product.Seekers
 		result, err := a.runSet(name, set)
-		a.resultsLock.Lock()
-		a.results[name] = result
-		a.resultsLock.Unlock()
 		if err != nil {
 			a.l.Error("Error running seekers", "product", product, "error", err)
 		}
+
+		// Write results
+		a.resultsLock.Lock()
+		a.results[name] = result
+		a.resultsLock.Unlock()
+
+		statuses, err := seeker.StatusCounts(product.Seekers)
+		if err != nil {
+			a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
+		}
+
+		a.l.Info("Product done", "product", name, "statuses", statuses)
 		wg.Done()
 	}
 

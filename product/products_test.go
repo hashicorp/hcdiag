@@ -141,5 +141,4 @@ func TestFilterErrors(t *testing.T) {
 			assert.Contains(t, err.Error(), tc.expect)
 		}
 	}
-
 }
