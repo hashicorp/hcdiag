@@ -19,16 +19,6 @@ func (hs *Host) Run() (interface{}, Status, error) {
 	results := make(map[string]interface{})
 	var errors *multierror.Error
 
-	osInfoCmd := "uname -v"
-	if hs.OS == "windows" {
-		osInfoCmd = "systeminfo"
-	}
-	if tmpResult, err := NewCommander(osInfoCmd, "string").Run(); err != nil {
-		errors = multierror.Append(errors, err)
-	} else {
-		results["osinfo"] = tmpResult
-	}
-
 	if tmpResult, err := GetHost(); err != nil {
 		errors = multierror.Append(errors, err)
 	} else {
