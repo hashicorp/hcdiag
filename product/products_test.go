@@ -141,5 +141,54 @@ func TestFilterErrors(t *testing.T) {
 			assert.Contains(t, err.Error(), tc.expect)
 		}
 	}
+}
 
+func TestProduct_Statuses(t *testing.T) {
+	testTable := []struct {
+		desc    string
+		product *Product
+		expect  map[seeker.Status]int
+	}{
+		{
+			desc: "Statuses sums statuses",
+			product: &Product{
+				Seekers: []*seeker.Seeker{
+					{Status: seeker.Success},
+					{Status: seeker.Unknown},
+					{Status: seeker.Success},
+					{Status: seeker.Fail},
+					{Status: seeker.Success},
+				},
+			},
+			expect: map[seeker.Status]int{
+				seeker.Success: 3,
+				seeker.Unknown: 1,
+				seeker.Fail:    1,
+			},
+		},
+		{
+			desc: "returns an error if a seeker doesn't have a status",
+			product: &Product{
+				Seekers: []*seeker.Seeker{
+					{Status: seeker.Unknown},
+					{Status: seeker.Success},
+					{Status: ""},
+					{Status: seeker.Success},
+					{Status: seeker.Fail},
+					{Status: seeker.Success},
+				},
+			},
+			expect: nil,
+		},
+	}
+
+	for _, tc := range testTable {
+		statuses, err := tc.product.Statuses()
+		assert.Equal(t, tc.expect, statuses)
+		if tc.expect == nil {
+			assert.Error(t, err)
+			break
+		}
+		assert.NoError(t, err)
+	}
 }
