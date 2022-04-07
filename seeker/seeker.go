@@ -102,3 +102,15 @@ func Select(selects []string, seekers []*Seeker) ([]*Seeker, error) {
 	}
 	return newSeekers, nil
 }
+
+// StatusCounts takes a slice of seeker references and returns a map containing sums of each Status
+func StatusCounts(seekers []*Seeker) (map[Status]int, error) {
+	statuses := make(map[Status]int)
+	for _, s := range seekers {
+		if s.Status == "" {
+			return nil, fmt.Errorf("unable to build Statuses map, seeker not run: seeker=%s", s.Identifier)
+		}
+		statuses[s.Status]++
+	}
+	return statuses, nil
+}

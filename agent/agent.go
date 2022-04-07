@@ -231,7 +231,7 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := product.Statuses()
+		statuses, err := seeker.StatusCounts(product.Seekers)
 		if err != nil {
 			a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
 		}

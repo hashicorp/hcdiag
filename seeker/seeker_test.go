@@ -183,3 +183,48 @@ func TestSelect(t *testing.T) {
 		assert.Len(t, res, tc.expect, tc.desc)
 	}
 }
+func Test_StatusCounts(t *testing.T) {
+	testTable := []struct {
+		desc    string
+		seekers []*Seeker
+		expect  map[Status]int
+	}{
+		{
+			desc: "Statuses sums statuses",
+			seekers: []*Seeker{
+				{Status: Success},
+				{Status: Unknown},
+				{Status: Success},
+				{Status: Fail},
+				{Status: Success},
+			},
+			expect: map[Status]int{
+				Success: 3,
+				Unknown: 1,
+				Fail:    1,
+			},
+		},
+		{
+			desc: "returns an error if a seeker doesn't have a status",
+			seekers: []*Seeker{
+				{Status: Unknown},
+				{Status: Success},
+				{Status: ""},
+				{Status: Success},
+				{Status: Fail},
+				{Status: Success},
+			},
+			expect: nil,
+		},
+	}
+
+	for _, tc := range testTable {
+		statuses, err := StatusCounts(tc.seekers)
+		assert.Equal(t, tc.expect, statuses)
+		if tc.expect == nil {
+			assert.Error(t, err)
+			break
+		}
+		assert.NoError(t, err)
+	}
+}
