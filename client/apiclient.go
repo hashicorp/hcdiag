@@ -15,6 +15,37 @@ type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
+// TLSConfig contains the parameters needed to configure TLS on the HTTP client
+// used to communicate with an API.
+type TLSConfig struct {
+	// CACert is the path to a PEM-encoded CA cert file to use to verify the
+	// server SSL certificate. It takes precedence over CACertBytes
+	// and CAPath.
+	CACert string
+
+	// CACertBytes is a PEM-encoded certificate or bundle. It takes precedence
+	// over CAPath.
+	CACertBytes []byte
+
+	// CAPath is the path to a directory of PEM-encoded CA cert files to verify
+	// the server SSL certificate.
+	CAPath string
+
+	// ClientCert is the path to the certificate for communication
+	ClientCert string
+
+	// ClientKey is the path to the private key for communication
+	ClientKey string
+
+	// TLSServerName, if set, is used to set the SNI host when connecting via
+	// TLS.
+	TLSServerName string
+
+	// Insecure enables or disables SSL verification. Setting to `false` is highly
+	// discouraged.
+	Insecure bool
+}
+
 // NewAPIClient gets an API client for a product.
 func NewAPIClient(product, baseURL string, headers map[string]string) *APIClient {
 	return &APIClient{
