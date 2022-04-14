@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/go-ps"
-	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -28,11 +27,6 @@ func (hs *Host) Run() (interface{}, Status, error) {
 		errors = multierror.Append(errors, err)
 	} else {
 		results["memory"] = tmpResult
-	}
-	if tmpResult, err := GetDisk(); err != nil {
-		errors = multierror.Append(errors, err)
-	} else {
-		results["disk"] = tmpResult
 	}
 	if tmpResult, err := GetProcesses(); err != nil {
 		errors = multierror.Append(errors, err)
@@ -87,18 +81,6 @@ func GetMemory() (interface{}, error) {
 	}
 
 	return memoryInfo, err
-}
-
-// GetDisk stuff
-func GetDisk() (interface{}, error) {
-	// third party
-	diskInfo, err := disk.Partitions(true)
-	if err != nil {
-		hclog.L().Error("GetDisk", "Error getting disk information", err)
-		return diskInfo, err
-	}
-
-	return diskInfo, err
 }
 
 // GetHost stuff
