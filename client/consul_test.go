@@ -2,6 +2,8 @@ package client
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewConsulAPI(t *testing.T) {
@@ -50,4 +52,40 @@ func TestGetConsulLogPathPrefix(t *testing.T) {
 	if path != expect {
 		t.Errorf("expected Consul LogFilePath='%s'; got: '%s'", expect, path)
 	}
+}
+
+func TestNewConsulTLSConfig(t *testing.T) {
+	setEnv(t, EnvConsulCaCert, "/tmp/testcerts/ca.crt")
+	defer unsetEnv(t, EnvConsulCaCert)
+
+	setEnv(t, EnvConsulCaPath, "/tmp/testcerts/")
+	defer unsetEnv(t, EnvConsulCaPath)
+
+	setEnv(t, EnvConsulClientCert, "/tmp/clientcerts/client.crt")
+	defer unsetEnv(t, EnvConsulClientCert)
+
+	setEnv(t, EnvConsulClientKey, "/tmp/clientcerts/client.key")
+	defer unsetEnv(t, EnvConsulClientKey)
+
+	setEnv(t, EnvConsulTlsServerName, "servername.domain")
+	defer unsetEnv(t, EnvConsulTlsServerName)
+
+	setEnv(t, EnvConsulHttpSslVerify, "True")
+	defer unsetEnv(t, EnvConsulHttpSslVerify)
+
+	expected := &TLSConfig{
+		CACert:        "/tmp/testcerts/ca.crt",
+		CAPath:        "/tmp/testcerts/",
+		ClientCert:    "/tmp/clientcerts/client.crt",
+		ClientKey:     "/tmp/clientcerts/client.key",
+		TLSServerName: "servername.domain",
+		Insecure:      false,
+	}
+
+	actual, err := NewConsulTLSConfig()
+	if err != nil {
+		t.Errorf("encountered error in NewConsulTLSConfig: %+v", err)
+	}
+
+	assert.Equal(t, expected, actual)
 }
