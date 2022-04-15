@@ -103,35 +103,19 @@ func TestNewConsulTLSConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.caCert != "" {
-				t.Setenv(EnvConsulCaCert, tc.caCert)
-			}
-
-			if tc.caPath != "" {
-				t.Setenv(EnvConsulCaPath, tc.caPath)
-			}
-
-			if tc.clientCert != "" {
-				t.Setenv(EnvConsulClientCert, tc.clientCert)
-			}
-
-			if tc.clientKey != "" {
-				t.Setenv(EnvConsulClientKey, tc.clientKey)
-			}
-
-			if tc.tlsServerName != "" {
-				t.Setenv(EnvConsulTlsServerName, tc.tlsServerName)
-			}
-
-			if tc.sslVerify != "" {
-				t.Setenv(EnvConsulHttpSslVerify, tc.sslVerify)
-			}
+			t.Setenv(EnvConsulCaCert, tc.caCert)
+			t.Setenv(EnvConsulCaPath, tc.caPath)
+			t.Setenv(EnvConsulClientCert, tc.clientCert)
+			t.Setenv(EnvConsulClientKey, tc.clientKey)
+			t.Setenv(EnvConsulTlsServerName, tc.tlsServerName)
+			t.Setenv(EnvConsulHttpSslVerify, tc.sslVerify)
 
 			actual, err := NewConsulTLSConfig()
 			if tc.expectErr {
 				require.Error(t, err, "an error was expected, but was not raised")
 			} else {
 				require.NoError(t, err, "encountered unexpected error in NewConsulTLSConfig")
+				require.NotNil(t, actual, "expected output object to not be nil")
 				require.Equal(t, tc.expected, *actual, "actual TLSConfig does not match the expected struct")
 			}
 		})
