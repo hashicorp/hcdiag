@@ -41,7 +41,7 @@ type TLSConfig struct {
 	// TLS.
 	TLSServerName string
 
-	// Insecure enables or disables SSL verification. Setting to `false` is highly
+	// Insecure enables or disables SSL verification. Setting to `true` is highly
 	// discouraged.
 	Insecure bool
 }
