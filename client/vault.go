@@ -14,8 +14,8 @@ import (
 const (
 	DefaultVaultAddr = "http://127.0.0.1:8200"
 
-	EnvVaultCaCert        = "VAULT_CA_CERT"
-	EnvVaultCaPath        = "VAULT_CA_PATH"
+	EnvVaultCaCert        = "VAULT_CACERT"
+	EnvVaultCaPath        = "VAULT_CAPATH"
 	EnvVaultClientCert    = "VAULT_CLIENT_CERT"
 	EnvVaultClientKey     = "VAULT_CLIENT_KEY"
 	EnvVaultSkipVerify    = "VAULT_SKIP_VERIFY"
