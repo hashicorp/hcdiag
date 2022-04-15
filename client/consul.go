@@ -36,6 +36,8 @@ func NewConsulAPI() *APIClient {
 	return NewAPIClient("consul", addr, headers)
 }
 
+// NewConsulTLSConfig returns a *TLSConfig object, using
+// default environment variables to build up the object.
 func NewConsulTLSConfig() (*TLSConfig, error) {
 	tlsConfig := TLSConfig{}
 	if v := os.Getenv(EnvConsulCaCert); v != "" {
