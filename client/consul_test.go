@@ -3,7 +3,7 @@ package client
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewConsulAPI(t *testing.T) {
@@ -55,37 +55,85 @@ func TestGetConsulLogPathPrefix(t *testing.T) {
 }
 
 func TestNewConsulTLSConfig(t *testing.T) {
-	setEnv(t, EnvConsulCaCert, "/tmp/testcerts/ca.crt")
-	defer unsetEnv(t, EnvConsulCaCert)
-
-	setEnv(t, EnvConsulCaPath, "/tmp/testcerts/")
-	defer unsetEnv(t, EnvConsulCaPath)
-
-	setEnv(t, EnvConsulClientCert, "/tmp/clientcerts/client.crt")
-	defer unsetEnv(t, EnvConsulClientCert)
-
-	setEnv(t, EnvConsulClientKey, "/tmp/clientcerts/client.key")
-	defer unsetEnv(t, EnvConsulClientKey)
-
-	setEnv(t, EnvConsulTlsServerName, "servername.domain")
-	defer unsetEnv(t, EnvConsulTlsServerName)
-
-	setEnv(t, EnvConsulHttpSslVerify, "True")
-	defer unsetEnv(t, EnvConsulHttpSslVerify)
-
-	expected := &TLSConfig{
-		CACert:        "/tmp/testcerts/ca.crt",
-		CAPath:        "/tmp/testcerts/",
-		ClientCert:    "/tmp/clientcerts/client.crt",
-		ClientKey:     "/tmp/clientcerts/client.key",
-		TLSServerName: "servername.domain",
-		Insecure:      false,
+	testCases := []struct {
+		name          string
+		expectErr     bool
+		caCert        string
+		caPath        string
+		clientCert    string
+		clientKey     string
+		tlsServerName string
+		sslVerify     string
+		expected      TLSConfig
+	}{
+		{
+			name:          "TestAllValuesSet",
+			caCert:        "/this_is_not_a_real_location/testcerts/ca.crt",
+			caPath:        "/this_is_not_a_real_location/testcerts/",
+			clientCert:    "/this_is_not_a_real_location/clientcerts/client.crt",
+			clientKey:     "/this_is_not_a_real_location/clientcerts/client.key",
+			tlsServerName: "servername.domain",
+			sslVerify:     "true",
+			expected: TLSConfig{
+				CACert:        "/this_is_not_a_real_location/testcerts/ca.crt",
+				CAPath:        "/this_is_not_a_real_location/testcerts/",
+				ClientCert:    "/this_is_not_a_real_location/clientcerts/client.crt",
+				ClientKey:     "/this_is_not_a_real_location/clientcerts/client.key",
+				TLSServerName: "servername.domain",
+				Insecure:      false,
+			},
+		},
+		{
+			name:     "TestNoValuesSet",
+			expected: TLSConfig{},
+		},
+		{
+			name:      "TestSslVerifySetToFalseIsInsecure",
+			sslVerify: "false",
+			expected: TLSConfig{
+				Insecure: true,
+			},
+		},
+		{
+			name:      "TestSslVerifyNotBoolean",
+			sslVerify: "12345",
+			expectErr: true,
+		},
 	}
 
-	actual, err := NewConsulTLSConfig()
-	if err != nil {
-		t.Errorf("encountered error in NewConsulTLSConfig: %+v", err)
-	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.caCert != "" {
+				t.Setenv(EnvConsulCaCert, tc.caCert)
+			}
 
-	assert.Equal(t, expected, actual)
+			if tc.caPath != "" {
+				t.Setenv(EnvConsulCaPath, tc.caPath)
+			}
+
+			if tc.clientCert != "" {
+				t.Setenv(EnvConsulClientCert, tc.clientCert)
+			}
+
+			if tc.clientKey != "" {
+				t.Setenv(EnvConsulClientKey, tc.clientKey)
+			}
+
+			if tc.tlsServerName != "" {
+				t.Setenv(EnvConsulTlsServerName, tc.tlsServerName)
+			}
+
+			if tc.sslVerify != "" {
+				t.Setenv(EnvConsulHttpSslVerify, tc.sslVerify)
+			}
+
+			actual, err := NewConsulTLSConfig()
+			if tc.expectErr {
+				require.Error(t, err, "an error was expected, but was not raised")
+			} else {
+				require.NoError(t, err, "encountered unexpected error in NewConsulTLSConfig")
+				require.Equal(t, tc.expected, *actual, "actual TLSConfig does not match the expected struct")
+			}
+		})
+	}
 }
