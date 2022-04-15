@@ -1,6 +1,7 @@
 package seeker
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -37,22 +38,72 @@ func (c Copier) Run() (interface{}, Status, error) {
 	// Ensure destination directory exists
 	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
-		return nil, Fail, err
+		return nil, Fail, &MakeDirError{
+			path: c.DestDir,
+			err:  err,
+		}
 	}
 
 	// Find all the files
 	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
-		return nil, Fail, err
+		return nil, Fail, &FindFilesError{
+			path: c.SourceDir,
+			err:  err,
+		}
 	}
 
 	// Copy the files
 	for _, s := range files {
 		err = util.CopyDir(c.DestDir, s)
 		if err != nil {
-			return nil, Fail, err
+			return nil, Fail, &CopyFilesError{
+				dest:  c.DestDir,
+				files: files,
+				err:   err,
+			}
 		}
 	}
 
 	return files, Success, nil
+}
+
+type MakeDirError struct {
+	path string
+	err  error
+}
+
+func (e MakeDirError) Error() string {
+	return fmt.Sprintf("unable to mkdir, path=%s, err=%s", e.path, e.err.Error())
+}
+
+func (e MakeDirError) Unwrap() error {
+	return e.err
+}
+
+type FindFilesError struct {
+	path string
+	err  error
+}
+
+func (e FindFilesError) Error() string {
+	return fmt.Sprintf("unable to find files, path=%s, err=%s", e.path, e.err.Error())
+}
+
+func (e FindFilesError) Unwrap() error {
+	return e.err
+}
+
+type CopyFilesError struct {
+	dest  string
+	files []string
+	err   error
+}
+
+func (e CopyFilesError) Error() string {
+	return fmt.Sprintf("unable to copy files, dest=%s, files=%v, err=%s", e.dest, e.files, e.err.Error())
+}
+
+func (e CopyFilesError) Unwrap() error {
+	return e.err
 }
