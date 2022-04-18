@@ -54,25 +54,12 @@ func NewVaultAPI() (*APIClient, error) {
 // NewVaultTLSConfig returns a *TLSConfig object, using
 // default environment variables to build up the object.
 func NewVaultTLSConfig() (*TLSConfig, error) {
-	tlsConfig := TLSConfig{}
-	if v := os.Getenv(EnvVaultCaCert); v != "" {
-		tlsConfig.CACert = v
-	}
-
-	if v := os.Getenv(EnvVaultCaPath); v != "" {
-		tlsConfig.CAPath = v
-	}
-
-	if v := os.Getenv(EnvVaultClientCert); v != "" {
-		tlsConfig.ClientCert = v
-	}
-
-	if v := os.Getenv(EnvVaultClientKey); v != "" {
-		tlsConfig.ClientKey = v
-	}
-
-	if v := os.Getenv(EnvVaultTlsServerName); v != "" {
-		tlsConfig.TLSServerName = v
+	tlsConfig := TLSConfig{
+		CACert:        os.Getenv(EnvVaultCaCert),
+		CAPath:        os.Getenv(EnvVaultCaPath),
+		ClientCert:    os.Getenv(EnvVaultClientCert),
+		ClientKey:     os.Getenv(EnvVaultClientKey),
+		TLSServerName: os.Getenv(EnvVaultTlsServerName),
 	}
 
 	if v := os.Getenv(EnvVaultSkipVerify); v != "" {

@@ -39,25 +39,12 @@ func NewConsulAPI() *APIClient {
 // NewConsulTLSConfig returns a *TLSConfig object, using
 // default environment variables to build up the object.
 func NewConsulTLSConfig() (*TLSConfig, error) {
-	tlsConfig := TLSConfig{}
-	if v := os.Getenv(EnvConsulCaCert); v != "" {
-		tlsConfig.CACert = v
-	}
-
-	if v := os.Getenv(EnvConsulCaPath); v != "" {
-		tlsConfig.CAPath = v
-	}
-
-	if v := os.Getenv(EnvConsulClientCert); v != "" {
-		tlsConfig.ClientCert = v
-	}
-
-	if v := os.Getenv(EnvConsulClientKey); v != "" {
-		tlsConfig.ClientKey = v
-	}
-
-	if v := os.Getenv(EnvConsulTlsServerName); v != "" {
-		tlsConfig.TLSServerName = v
+	tlsConfig := TLSConfig{
+		CACert:        os.Getenv(EnvConsulCaCert),
+		CAPath:        os.Getenv(EnvConsulCaPath),
+		ClientCert:    os.Getenv(EnvConsulClientCert),
+		ClientKey:     os.Getenv(EnvConsulClientKey),
+		TLSServerName: os.Getenv(EnvConsulTlsServerName),
 	}
 
 	if v := os.Getenv(EnvConsulHttpSslVerify); v != "" {

@@ -40,25 +40,12 @@ func NewNomadAPI() *APIClient {
 // NewNomadTLSConfig returns a *TLSConfig object, using
 // default environment variables to build up the object.
 func NewNomadTLSConfig() (*TLSConfig, error) {
-	tlsConfig := TLSConfig{}
-	if v := os.Getenv(EnvNomadCaCert); v != "" {
-		tlsConfig.CACert = v
-	}
-
-	if v := os.Getenv(EnvNomadCaPath); v != "" {
-		tlsConfig.CAPath = v
-	}
-
-	if v := os.Getenv(EnvNomadClientCert); v != "" {
-		tlsConfig.ClientCert = v
-	}
-
-	if v := os.Getenv(EnvNomadClientKey); v != "" {
-		tlsConfig.ClientKey = v
-	}
-
-	if v := os.Getenv(EnvNomadTlsServerName); v != "" {
-		tlsConfig.TLSServerName = v
+	tlsConfig := TLSConfig{
+		CACert:        os.Getenv(EnvNomadCaCert),
+		CAPath:        os.Getenv(EnvNomadCaPath),
+		ClientCert:    os.Getenv(EnvNomadClientCert),
+		ClientKey:     os.Getenv(EnvNomadClientKey),
+		TLSServerName: os.Getenv(EnvNomadTlsServerName),
 	}
 
 	if v := os.Getenv(EnvNomadSkipVerify); v != "" {
