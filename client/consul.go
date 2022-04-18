@@ -61,13 +61,15 @@ func NewConsulTLSConfig() (*TLSConfig, error) {
 	}
 
 	if v := os.Getenv(EnvConsulHttpSslVerify); v != "" {
-		doVerify, err := strconv.ParseBool(v)
+		shouldVerify, err := strconv.ParseBool(v)
 		if err != nil {
 			return nil, err
 		}
-		if !doVerify {
-			tlsConfig.Insecure = true
-		}
+
+		// The semantics Consul uses to indicate whether verification should be done
+		// is the opposite of the `tlsConfig.Insecure` field; we negate the value indicated by
+		// EnvConsulHttpSslVerify environment variable here to align them.
+		tlsConfig.Insecure = !shouldVerify
 	}
 
 	return &tlsConfig, nil

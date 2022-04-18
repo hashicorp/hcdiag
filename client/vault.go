@@ -80,9 +80,7 @@ func NewVaultTLSConfig() (*TLSConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		if skipVerify {
-			tlsConfig.Insecure = true
-		}
+		tlsConfig.Insecure = skipVerify
 	}
 
 	return &tlsConfig, nil
