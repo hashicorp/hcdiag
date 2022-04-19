@@ -65,7 +65,7 @@ func TestNewVaultTLSConfig(t *testing.T) {
 		expected      TLSConfig
 	}{
 		{
-			name:          "TestAllValuesSet",
+			name:          "Test All Values Set",
 			caCert:        "/this_is_not_a_real_location/testcerts/ca.crt",
 			caPath:        "/this_is_not_a_real_location/testcerts/",
 			clientCert:    "/this_is_not_a_real_location/clientcerts/client.crt",
@@ -82,18 +82,18 @@ func TestNewVaultTLSConfig(t *testing.T) {
 			},
 		},
 		{
-			name:     "TestNoValuesSet",
+			name:     "Test No Values Set",
 			expected: TLSConfig{},
 		},
 		{
-			name:       "TestSkipVerifySetToFalseIsInsecure",
+			name:       "Test Skip Verify Set To False Is Insecure",
 			skipVerify: "true",
 			expected: TLSConfig{
 				Insecure: true,
 			},
 		},
 		{
-			name:       "TestSslVerifyNotBoolean",
+			name:       "Test Skip Verify Not Boolean Returns Error",
 			skipVerify: "12345",
 			expectErr:  true,
 		},

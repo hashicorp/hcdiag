@@ -67,7 +67,7 @@ func TestNewConsulTLSConfig(t *testing.T) {
 		expected      TLSConfig
 	}{
 		{
-			name:          "TestAllValuesSet",
+			name:          "Test All Values Set",
 			caCert:        "/this_is_not_a_real_location/testcerts/ca.crt",
 			caPath:        "/this_is_not_a_real_location/testcerts/",
 			clientCert:    "/this_is_not_a_real_location/clientcerts/client.crt",
@@ -84,18 +84,18 @@ func TestNewConsulTLSConfig(t *testing.T) {
 			},
 		},
 		{
-			name:     "TestNoValuesSet",
+			name:     "Test No Values Set",
 			expected: TLSConfig{},
 		},
 		{
-			name:      "TestSslVerifySetToFalseIsInsecure",
+			name:      "Test SSL Verify Set To False Is Insecure",
 			sslVerify: "false",
 			expected: TLSConfig{
 				Insecure: true,
 			},
 		},
 		{
-			name:      "TestSslVerifyNotBoolean",
+			name:      "Test SSL Verify Not Valid Returns Error",
 			sslVerify: "12345",
 			expectErr: true,
 		},
