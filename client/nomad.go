@@ -6,10 +6,20 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
-const DefaultNomadAddr = "http://127.0.0.1:4646"
+const (
+	DefaultNomadAddr = "http://127.0.0.1:4646"
+
+	EnvNomadCaCert        = "NOMAD_CACERT"
+	EnvNomadCaPath        = "NOMAD_CAPATH"
+	EnvNomadClientCert    = "NOMAD_CLIENT_CERT"
+	EnvNomadClientKey     = "NOMAD_CLIENT_KEY"
+	EnvNomadSkipVerify    = "NOMAD_SKIP_VERIFY"
+	EnvNomadTlsServerName = "NOMAD_TLS_SERVER_NAME"
+)
 
 // NewNomadAPI returns an APIClient for Nomad.
 func NewNomadAPI() *APIClient {
@@ -25,6 +35,28 @@ func NewNomadAPI() *APIClient {
 	}
 
 	return NewAPIClient("nomad", addr, headers)
+}
+
+// NewNomadTLSConfig returns a *TLSConfig object, using
+// default environment variables to build up the object.
+func NewNomadTLSConfig() (*TLSConfig, error) {
+	tlsConfig := TLSConfig{
+		CACert:        os.Getenv(EnvNomadCaCert),
+		CAPath:        os.Getenv(EnvNomadCaPath),
+		ClientCert:    os.Getenv(EnvNomadClientCert),
+		ClientKey:     os.Getenv(EnvNomadClientKey),
+		TLSServerName: os.Getenv(EnvNomadTlsServerName),
+	}
+
+	if v := os.Getenv(EnvNomadSkipVerify); v != "" {
+		skipVerify, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Insecure = skipVerify
+	}
+
+	return &tlsConfig, nil
 }
 
 func GetNomadLogPath(api *APIClient) (string, error) {

@@ -6,9 +6,19 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
-const DefaultConsulAddr = "http://127.0.0.1:8500"
+const (
+	DefaultConsulAddr = "http://127.0.0.1:8500"
+
+	EnvConsulCaCert        = "CONSUL_CACERT"
+	EnvConsulCaPath        = "CONSUL_CAPATH"
+	EnvConsulClientCert    = "CONSUL_CLIENT_CERT"
+	EnvConsulClientKey     = "CONSUL_CLIENT_KEY"
+	EnvConsulHttpSslVerify = "CONSUL_HTTP_SSL_VERIFY"
+	EnvConsulTlsServerName = "CONSUL_TLS_SERVER_NAME"
+)
 
 // NewConsulAPI returns an APIClient for Consul.
 func NewConsulAPI() *APIClient {
@@ -24,6 +34,32 @@ func NewConsulAPI() *APIClient {
 	}
 
 	return NewAPIClient("consul", addr, headers)
+}
+
+// NewConsulTLSConfig returns a *TLSConfig object, using
+// default environment variables to build up the object.
+func NewConsulTLSConfig() (*TLSConfig, error) {
+	tlsConfig := TLSConfig{
+		CACert:        os.Getenv(EnvConsulCaCert),
+		CAPath:        os.Getenv(EnvConsulCaPath),
+		ClientCert:    os.Getenv(EnvConsulClientCert),
+		ClientKey:     os.Getenv(EnvConsulClientKey),
+		TLSServerName: os.Getenv(EnvConsulTlsServerName),
+	}
+
+	if v := os.Getenv(EnvConsulHttpSslVerify); v != "" {
+		shouldVerify, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, err
+		}
+
+		// The semantics Consul uses to indicate whether verification should be done
+		// is the opposite of the `tlsConfig.Insecure` field; we negate the value indicated by
+		// EnvConsulHttpSslVerify environment variable here to align them.
+		tlsConfig.Insecure = !shouldVerify
+	}
+
+	return &tlsConfig, nil
 }
 
 func GetConsulLogPath(api *APIClient) (string, error) {

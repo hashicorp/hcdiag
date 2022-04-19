@@ -6,11 +6,21 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strconv"
 
 	home "github.com/mitchellh/go-homedir"
 )
 
-const DefaultVaultAddr = "http://127.0.0.1:8200"
+const (
+	DefaultVaultAddr = "http://127.0.0.1:8200"
+
+	EnvVaultCaCert        = "VAULT_CACERT"
+	EnvVaultCaPath        = "VAULT_CAPATH"
+	EnvVaultClientCert    = "VAULT_CLIENT_CERT"
+	EnvVaultClientKey     = "VAULT_CLIENT_KEY"
+	EnvVaultSkipVerify    = "VAULT_SKIP_VERIFY"
+	EnvVaultTlsServerName = "VAULT_TLS_SERVER_NAME"
+)
 
 // NewVaultAPI returns an APIClient for Vault.
 func NewVaultAPI() (*APIClient, error) {
@@ -39,6 +49,28 @@ func NewVaultAPI() (*APIClient, error) {
 	headers["X-Vault-Token"] = token
 
 	return NewAPIClient("vault", addr, headers), nil
+}
+
+// NewVaultTLSConfig returns a *TLSConfig object, using
+// default environment variables to build up the object.
+func NewVaultTLSConfig() (*TLSConfig, error) {
+	tlsConfig := TLSConfig{
+		CACert:        os.Getenv(EnvVaultCaCert),
+		CAPath:        os.Getenv(EnvVaultCaPath),
+		ClientCert:    os.Getenv(EnvVaultClientCert),
+		ClientKey:     os.Getenv(EnvVaultClientKey),
+		TLSServerName: os.Getenv(EnvVaultTlsServerName),
+	}
+
+	if v := os.Getenv(EnvVaultSkipVerify); v != "" {
+		skipVerify, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Insecure = skipVerify
+	}
+
+	return &tlsConfig, nil
 }
 
 func GetVaultAuditLogPath(api *APIClient) (string, error) {
