@@ -33,13 +33,17 @@ type Agent struct {
 	NumErrors   int       `json:"num_errors"`
 	NumSeekers  int       `json:"num_seekers"`
 	Config      Config    `json:"configuration"`
+	// ManifestSeekers holds a slice of seekers with a subset of normal seekers' fields so we can safely render them in
+	// `manifest.json`
+	ManifestSeekers map[string][]ManifestSeeker `json:"seekers"`
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
 	a := Agent{
-		l:       logger,
-		results: make(map[string]map[string]interface{}),
-		Config:  config,
+		l:               logger,
+		results:         make(map[string]map[string]interface{}),
+		Config:          config,
+		ManifestSeekers: make(map[string][]ManifestSeeker),
 	}
 	return &a
 }
@@ -105,6 +109,11 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errProduct)
 		a.l.Error("Failed running Products", "error", errProduct)
 	}
+
+	// Record metadata
+	// Build seeker metadata
+	a.l.Info("Recording manifest")
+	a.RecordManifest()
 
 	// Execution finished, write our results and cleanup
 	a.recordEnd()
@@ -262,6 +271,20 @@ func (a *Agent) RunProducts() error {
 	}
 
 	return nil
+}
+
+// RecordManifest writes additional data to the agent to serialize into manifest.json
+func (a *Agent) RecordManifest() {
+	for name, p := range a.products {
+		for _, s := range p.Seekers {
+			m := ManifestSeeker{
+				ID:     s.Identifier,
+				Error:  s.ErrString,
+				Status: s.Status,
+			}
+			a.ManifestSeekers[name] = append(a.ManifestSeekers[name], m)
+		}
+	}
 }
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.

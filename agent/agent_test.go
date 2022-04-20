@@ -155,6 +155,23 @@ func TestRunProducts(t *testing.T) {
 	assert.NotNil(t, a.products["host"], "product is under \"host\" key")
 }
 
+func TestAgent_RecordManifest(t *testing.T) {
+	t.Run("adds to MetadataSeekers when seekers exist", func(t *testing.T) {
+		// Setup
+		testProduct := "host"
+		a := NewAgent(Config{}, hclog.Default())
+		pCfg := product.Config{OS: "auto"}
+		p := make(map[string]*product.Product)
+		p[testProduct] = product.NewHost(pCfg)
+		a.products = p
+		assert.NotEmptyf(t, a.products[testProduct].Seekers, "test setup failure, no seekers available")
+
+		// Record and check
+		a.RecordManifest()
+		assert.NotEmptyf(t, a.ManifestSeekers, "no seekers metadata added to manifest")
+	})
+}
+
 func TestWriteOutput(t *testing.T) {
 	a := Agent{
 		l:       hclog.Default(),
