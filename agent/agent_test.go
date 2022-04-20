@@ -143,7 +143,6 @@ func TestRunProducts(t *testing.T) {
 	pCfg := product.Config{OS: "auto"}
 	p := make(map[string]*product.Product)
 	p["host"] = product.NewHost(pCfg)
-	// REVIEW(mkcp): Should we adapt this to call NewAgent? This seems like a symptom of poor boundaries between Agent and Products
 	a := Agent{
 		l:        hclog.Default(),
 		products: p,
