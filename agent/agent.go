@@ -273,7 +273,7 @@ func (a *Agent) RunProducts() error {
 	return nil
 }
 
-// RecordManifest writes additional data to the agent so for serialization to manifest.json
+// RecordManifest writes additional data to the agent to serialize into manifest.json
 func (a *Agent) RecordManifest() {
 	for name, p := range a.products {
 		for _, s := range p.Seekers {
