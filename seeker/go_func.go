@@ -7,8 +7,8 @@ import (
 
 var _ Runner = GoFuncSeeker{}
 
-// GoFunc is any function that returns an interface and error
-type GoFunc func() (interface{}, error)
+// GoFunc is any function that returns an interface, status, and error
+type GoFunc func() (interface{}, Status, error)
 
 // GoFuncSeeker runs go functions.
 type GoFuncSeeker struct {
@@ -31,9 +31,5 @@ func NewGoFuncSeeker(id string, function GoFunc) *Seeker {
 
 // Run executes the function
 func (gf GoFuncSeeker) Run() (interface{}, Status, error) {
-	result, err := gf.f()
-	if err != nil {
-		return result, Fail, err
-	}
-	return result, Success, nil
+	return gf.f()
 }
