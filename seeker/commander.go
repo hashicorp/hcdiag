@@ -2,7 +2,6 @@ package seeker
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -25,7 +24,6 @@ func NewCommander(command string, format string) *Seeker {
 // Run executes the Command
 func (c Commander) Run() (interface{}, Status, error) {
 	var result interface{}
-	var err error
 
 	bits := strings.Split(c.Command, " ")
 	cmd := bits[0]
@@ -36,7 +34,7 @@ func (c Commander) Run() (interface{}, Status, error) {
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
-		return string(bts), Unknown, fmt.Errorf("exec.Command error: %s", err)
+		return string(bts), Unknown, ExecError{c.Command, c.format, err}
 	}
 
 	// Parse result
@@ -46,14 +44,50 @@ func (c Commander) Run() (interface{}, Status, error) {
 		result = strings.TrimSuffix(string(bts), "\n")
 
 	case c.format == "json":
-		if e := json.Unmarshal(bts, &result); e != nil {
-			return nil, Fail, fmt.Errorf("json.Unmarshal error: %s", e)
+		if err := json.Unmarshal(bts, &result); err != nil {
+			// Return the command's response even if we can't parse it as json
+			return string(bts), Unknown, UnmarshalError{c.Command, err}
 		}
 
 	default:
-		err = errors.New("command output format must be either 'string' or 'json'")
-		return result, Fail, err
+		return result, Fail, FormatUnknownError{c.Command, c.format}
 	}
 
 	return result, Success, nil
+}
+
+type ExecError struct {
+	command string
+	format  string
+	err     error
+}
+
+func (e ExecError) Error() string {
+	return fmt.Sprintf("exec error, command=%s, format=%s, error=%s", e.command, e.format, e.err.Error())
+}
+
+func (e ExecError) Unwrap() error {
+	return e.err
+}
+
+type UnmarshalError struct {
+	command string
+	err     error
+}
+
+func (e UnmarshalError) Error() string {
+	return fmt.Sprintf("json.Unmarshal(...) error, command=%s, error=%s", e.command, e.err)
+}
+
+func (e UnmarshalError) Unwrap() error {
+	return e.err
+}
+
+type FormatUnknownError struct {
+	command string
+	format  string
+}
+
+func (e FormatUnknownError) Error() string {
+	return fmt.Sprintf("unknown format: must be either 'string' or 'json', format=%s, command=%s", e.format, e.command)
 }
