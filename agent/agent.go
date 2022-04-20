@@ -546,7 +546,7 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	var err error
 	switch cfg.Name {
 	case product.Consul:
-		c = client.NewConsulAPI()
+		c, err = client.NewConsulAPI()
 	case product.Nomad:
 		c = client.NewNomadAPI()
 	case product.TFE:

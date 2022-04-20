@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-ps v1.0.0

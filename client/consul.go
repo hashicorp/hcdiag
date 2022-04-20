@@ -4,6 +4,7 @@ package client
 
 import (
 	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,7 +22,7 @@ const (
 )
 
 // NewConsulAPI returns an APIClient for Consul.
-func NewConsulAPI() *APIClient {
+func NewConsulAPI() (*APIClient, error) {
 	addr := os.Getenv("CONSUL_HTTP_ADDR")
 	if addr == "" {
 		addr = DefaultConsulAddr
@@ -33,7 +34,19 @@ func NewConsulAPI() *APIClient {
 		headers["X-Consul-Token"] = token
 	}
 
-	return NewAPIClient("consul", addr, headers)
+	tlsConfig, err := NewConsulTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	apiClient := NewAPIClient("consul", addr, headers)
+
+	err = configureHttpClientTLS(apiClient.http.(*http.Client), tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiClient, nil
 }
 
 // NewConsulTLSConfig returns a *TLSConfig object, using

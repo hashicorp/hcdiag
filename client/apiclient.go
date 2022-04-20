@@ -2,12 +2,14 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/hashicorp/go-rootcerts"
 	"github.com/hashicorp/hcdiag/util"
 )
 
@@ -44,6 +46,16 @@ type TLSConfig struct {
 	// Insecure enables or disables SSL verification. Setting to `true` is highly
 	// discouraged.
 	Insecure bool
+}
+
+func (t TLSConfig) IsDefault() bool {
+	return t.CACert == "" &&
+		t.CAPath == "" &&
+		t.ClientKey == "" &&
+		len(t.CACertBytes) == 0 &&
+		t.ClientCert == "" &&
+		t.TLSServerName == "" &&
+		t.Insecure == false
 }
 
 // NewAPIClient gets an API client for a product.
@@ -133,4 +145,75 @@ func (c *APIClient) request(method string, path string, data []byte) (interface{
 	}
 
 	return iface, err
+}
+
+func configureHttpClientTLS(client *http.Client, t *TLSConfig) error {
+	// We don't need to configure TLS if the TLSConfig struct is default.
+	if t.IsDefault() {
+		return nil
+	}
+
+	if client.Transport == nil {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{},
+		}
+	}
+	clientTransport := client.Transport.(*http.Transport)
+
+	if clientTransport.TLSClientConfig == nil {
+		clientTransport.TLSClientConfig = &tls.Config{}
+	}
+
+	clientTLSConfig := clientTransport.TLSClientConfig
+
+	if t.CACert != "" || len(t.CACertBytes) != 0 || t.CAPath != "" {
+		rootConfig := &rootcerts.Config{
+			CAFile:        t.CACert,
+			CACertificate: t.CACertBytes,
+			CAPath:        t.CAPath,
+		}
+		if err := rootcerts.ConfigureTLS(clientTLSConfig, rootConfig); err != nil {
+			return err
+		}
+	}
+
+	if t.Insecure {
+		clientTLSConfig.InsecureSkipVerify = true
+	}
+
+	if t.TLSServerName != "" {
+		clientTLSConfig.ServerName = t.TLSServerName
+	}
+
+	var clientCert tls.Certificate
+	foundClientCert := false
+
+	switch {
+	case t.ClientCert != "" && t.ClientKey != "":
+		var err error
+		clientCert, err = tls.LoadX509KeyPair(t.ClientCert, t.ClientKey)
+		if err != nil {
+			return err
+		}
+		foundClientCert = true
+	case t.ClientCert != "" || t.ClientKey != "":
+		return fmt.Errorf("both client cert and client key must be provided")
+	}
+
+	if foundClientCert {
+		// We use `GetClientCertificate` here because it works with Vault, along with other products. In Vault
+		// client authentication can use a different CA than the one used for Vault's certificate. However, it
+		// will indicate that its CA should be used when sending the client certificate request. If the client
+		// certificate does not share this CA, Go will fail with a "remote error: tls: bad certificate" error.
+		// By providing an override for `GetClientCertificate`, we ensure that we send the client certificate
+		// anytime one is requested, even if the CA does not match.
+		//
+		// See GitHub issue https://github.com/hashicorp/vault/issues/2946 for more context on why Vault
+		// uses this mechanism when building their own clients.
+		clientTLSConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			return &clientCert, nil
+		}
+	}
+
+	return nil
 }

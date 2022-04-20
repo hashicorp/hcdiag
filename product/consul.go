@@ -23,7 +23,8 @@ func NewConsul(cfg Config) *Product {
 
 // ConsulSeekers seek information about Consul.
 func ConsulSeekers(tmpDir string, since, until time.Time) []*s.Seeker {
-	api := client.NewConsulAPI()
+	// todo: handle error
+	api, _ := client.NewConsulAPI()
 
 	seekers := []*s.Seeker{
 		s.NewCommander("consul version", "string"),
