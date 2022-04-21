@@ -34,7 +34,7 @@ func (c Commander) Run() (interface{}, Status, error) {
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
-		return string(bts), Unknown, ExecError{c.Command, c.format, err}
+		return string(bts), Unknown, CommandExecError{c.Command, c.format, err}
 	}
 
 	// Parse result
@@ -56,17 +56,17 @@ func (c Commander) Run() (interface{}, Status, error) {
 	return result, Success, nil
 }
 
-type ExecError struct {
+type CommandExecError struct {
 	command string
 	format  string
 	err     error
 }
 
-func (e ExecError) Error() string {
+func (e CommandExecError) Error() string {
 	return fmt.Sprintf("exec error, command=%s, format=%s, error=%s", e.command, e.format, e.err.Error())
 }
 
-func (e ExecError) Unwrap() error {
+func (e CommandExecError) Unwrap() error {
 	return e.err
 }
 

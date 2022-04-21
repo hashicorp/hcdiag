@@ -35,9 +35,25 @@ func (s *Sheller) Run() (interface{}, Status, error) {
 	bts, err := exec.Command(s.Shell, args...).CombinedOutput()
 	if err != nil {
 		// Return the stdout result even on failure
-		// TODO(mkcp): This is a good place to check for more kinds of errors
-		return string(bts), Unknown, fmt.Errorf("exec.Command error: %s", err)
+		// TODO(mkcp): This is a good place to switch on exec.Command errors and provide better guidance.
+		return string(bts), Unknown, ShellExecError{
+			command: s.Command,
+			err:     err,
+		}
 	}
 
 	return string(bts), Success, nil
+}
+
+type ShellExecError struct {
+	command string
+	err     error
+}
+
+func (e ShellExecError) Error() string {
+	return fmt.Sprintf("exec error, command=%s, error=%s", e.command, e.err.Error())
+}
+
+func (e ShellExecError) Unwrap() error {
+	return e.err
 }
