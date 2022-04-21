@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 
 	"github.com/hashicorp/go-rootcerts"
 	"github.com/hashicorp/hcdiag/util"
@@ -68,6 +69,15 @@ func NewAPIClient(product, baseURL string, headers map[string]string) *APIClient
 		BaseURL: baseURL,
 		headers: headers,
 		http:    http.DefaultClient,
+	}
+}
+
+func NewAPIClientFromHTTP(product, baseURL string, headers map[string]string, httpClient HTTPClient) *APIClient {
+	return &APIClient{
+		Product: product,
+		BaseURL: baseURL,
+		headers: headers,
+		http:    httpClient,
 	}
 }
 
@@ -152,7 +162,7 @@ func (c *APIClient) request(method string, path string, data []byte) (interface{
 
 func configureHttpClientTLS(client *http.Client, t *TLSConfig) error {
 	// We don't need to configure TLS if the TLSConfig struct is default.
-	if t.IsDefault() {
+	if !reflect.DeepEqual(*t, TLSConfig{}) {
 		return nil
 	}
 
@@ -179,9 +189,7 @@ func configureHttpClientTLS(client *http.Client, t *TLSConfig) error {
 		}
 	}
 
-	if t.Insecure {
-		clientTLSConfig.InsecureSkipVerify = true
-	}
+	clientTLSConfig.InsecureSkipVerify = t.Insecure
 
 	if t.TLSServerName != "" {
 		clientTLSConfig.ServerName = t.TLSServerName

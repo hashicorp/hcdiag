@@ -34,19 +34,39 @@ func NewConsulAPI() (*APIClient, error) {
 		headers["X-Consul-Token"] = token
 	}
 
+	httpClient, err := NewConsulHTTPClient()
+	if err != nil {
+		return nil, err
+	}
+
+	apiClient := NewAPIClientFromHTTP("consul", addr, headers, httpClient)
+
+	return apiClient, nil
+}
+
+func NewConsulHTTPClient() (*http.Client, error) {
 	tlsConfig, err := NewConsulTLSConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	apiClient := NewAPIClient("consul", addr, headers)
-
-	err = configureHttpClientTLS(apiClient.http.(*http.Client), tlsConfig)
+	httpClient, err := NewHTTPClientWithTLS(tlsConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	return apiClient, nil
+	return httpClient, nil
+}
+
+func NewHTTPClientWithTLS(t *TLSConfig) (*http.Client, error) {
+	c := http.DefaultClient
+
+	err := configureHttpClientTLS(c, t)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // NewConsulTLSConfig returns a *TLSConfig object, using
