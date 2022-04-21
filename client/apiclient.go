@@ -57,7 +57,8 @@ func (t TLSConfig) IsDefault() bool {
 		len(t.CACertBytes) == 0 &&
 		t.ClientCert == "" &&
 		t.TLSServerName == "" &&
-		t.Insecure == false
+		// Check whether Insecure is false
+		!t.Insecure
 }
 
 // NewAPIClient gets an API client for a product.
