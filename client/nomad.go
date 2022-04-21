@@ -4,6 +4,7 @@ package client
 
 import (
 	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -22,7 +23,7 @@ const (
 )
 
 // NewNomadAPI returns an APIClient for Nomad.
-func NewNomadAPI() *APIClient {
+func NewNomadAPI() (*APIClient, error) {
 	addr := os.Getenv("NOMAD_ADDR")
 	if addr == "" {
 		addr = DefaultNomadAddr
@@ -34,7 +35,19 @@ func NewNomadAPI() *APIClient {
 		headers["X-Nomad-Token"] = token
 	}
 
-	return NewAPIClient("nomad", addr, headers)
+	tlsConfig, err := NewNomadTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	apiClient := NewAPIClient("nomad", addr, headers)
+
+	err = configureHttpClientTLS(apiClient.http.(*http.Client), tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiClient, nil
 }
 
 // NewNomadTLSConfig returns a *TLSConfig object, using

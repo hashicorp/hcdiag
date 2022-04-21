@@ -5,6 +5,7 @@ package client
 import (
 	"errors"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -48,7 +49,19 @@ func NewVaultAPI() (*APIClient, error) {
 	}
 	headers["X-Vault-Token"] = token
 
-	return NewAPIClient("vault", addr, headers), nil
+	tlsConfig, err := NewVaultTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	apiClient := NewAPIClient("vault", addr, headers)
+
+	err = configureHttpClientTLS(apiClient.http.(*http.Client), tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiClient, nil
 }
 
 // NewVaultTLSConfig returns a *TLSConfig object, using

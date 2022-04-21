@@ -7,7 +7,10 @@ import (
 )
 
 func TestNewNomadAPI(t *testing.T) {
-	api := NewNomadAPI()
+	api, err := NewNomadAPI()
+	if err != nil {
+		t.Errorf("encountered error from NewNomadAPI(); error: %s", err)
+	}
 
 	if api.Product != "nomad" {
 		t.Errorf("expected Product to be 'nomad'; got '%s'", api.Product)
@@ -22,7 +25,10 @@ func TestGetNomadLogPathPDir(t *testing.T) {
 	mock := &mockHTTP{
 		resp: `{"config": {"LogFile": "/some/dir/"}}`,
 	}
-	api := NewNomadAPI()
+	api, err := NewNomadAPI()
+	if err != nil {
+		t.Errorf("encountered error from NewNomadAPI(); error: %s", err)
+	}
 	api.http = mock
 
 	path, err := GetNomadLogPath(api)
@@ -40,7 +46,10 @@ func TestGetNomadLogPathPrefix(t *testing.T) {
 	mock := &mockHTTP{
 		resp: `{"config": {"LogFile": "/some/prefix"}}`,
 	}
-	api := NewNomadAPI()
+	api, err := NewNomadAPI()
+	if err != nil {
+		t.Errorf("encountered error from NewNomadAPI(); error: %s", err)
+	}
 	api.http = mock
 
 	path, err := GetNomadLogPath(api)

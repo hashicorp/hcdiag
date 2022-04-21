@@ -48,6 +48,8 @@ type TLSConfig struct {
 	Insecure bool
 }
 
+// IsDefault checks whether a TLSConfig structure has had any fields changed from their defaults.
+// If any field is non-default, it returns false; otherwise, it returns true.
 func (t TLSConfig) IsDefault() bool {
 	return t.CACert == "" &&
 		t.CAPath == "" &&
@@ -163,7 +165,6 @@ func configureHttpClientTLS(client *http.Client, t *TLSConfig) error {
 	if clientTransport.TLSClientConfig == nil {
 		clientTransport.TLSClientConfig = &tls.Config{}
 	}
-
 	clientTLSConfig := clientTransport.TLSClientConfig
 
 	if t.CACert != "" || len(t.CACertBytes) != 0 || t.CAPath != "" {
