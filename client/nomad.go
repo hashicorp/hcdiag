@@ -4,7 +4,6 @@ package client
 
 import (
 	"errors"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -40,9 +39,7 @@ func NewNomadAPI() (*APIClient, error) {
 		return nil, err
 	}
 
-	apiClient := NewAPIClient("nomad", addr, headers)
-
-	err = configureHttpClientTLS(apiClient.http.(*http.Client), tlsConfig)
+	apiClient, err := NewAPIClient("nomad", addr, headers, *tlsConfig)
 	if err != nil {
 		return nil, err
 	}

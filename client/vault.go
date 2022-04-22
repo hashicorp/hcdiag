@@ -5,7 +5,6 @@ package client
 import (
 	"errors"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 
@@ -54,9 +53,7 @@ func NewVaultAPI() (*APIClient, error) {
 		return nil, err
 	}
 
-	apiClient := NewAPIClient("vault", addr, headers)
-
-	err = configureHttpClientTLS(apiClient.http.(*http.Client), tlsConfig)
+	apiClient, err := NewAPIClient("vault", addr, headers, *tlsConfig)
 	if err != nil {
 		return nil, err
 	}
