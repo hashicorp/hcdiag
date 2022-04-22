@@ -51,15 +51,19 @@ type TLSConfig struct {
 
 // NewAPIClient gets an API client for a product.
 func NewAPIClient(product, baseURL string, headers map[string]string, t TLSConfig) (*APIClient, error) {
-	tlsClientConfig, err := createTLSClientConfig(t)
-	if err != nil {
-		return nil, err
+	transport := http.DefaultTransport.(*http.Transport)
+
+	// If TLSConfig is set, then we need to configure the TLSClientConfig on the transport.
+	if !reflect.DeepEqual(t, TLSConfig{}) {
+		tlsClientConfig, err := createTLSClientConfig(t)
+		if err != nil {
+			return nil, err
+		}
+		transport.TLSClientConfig = tlsClientConfig
 	}
 
 	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsClientConfig,
-		},
+		Transport: transport,
 	}
 
 	return &APIClient{
