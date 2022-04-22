@@ -39,7 +39,7 @@ func NewNomadAPI() (*APIClient, error) {
 		return nil, err
 	}
 
-	apiClient, err := NewAPIClient("nomad", addr, headers, *tlsConfig)
+	apiClient, err := NewAPIClient("nomad", addr, headers, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -47,19 +47,19 @@ func NewNomadAPI() (*APIClient, error) {
 	return apiClient, nil
 }
 
-// NewNomadTLSConfig returns a *TLSConfig object, using
+// NewNomadTLSConfig returns a TLSConfig object, using
 // default environment variables to build up the object.
-func NewNomadTLSConfig() (*TLSConfig, error) {
+func NewNomadTLSConfig() (TLSConfig, error) {
 	skipVerify := false
 	if v := os.Getenv(EnvNomadSkipVerify); v != "" {
 		var err error
 		skipVerify, err = strconv.ParseBool(v)
 		if err != nil {
-			return nil, err
+			return TLSConfig{}, err
 		}
 	}
 
-	return &TLSConfig{
+	return TLSConfig{
 		CACert:        os.Getenv(EnvNomadCaCert),
 		CAPath:        os.Getenv(EnvNomadCaPath),
 		ClientCert:    os.Getenv(EnvNomadClientCert),

@@ -33,12 +33,12 @@ func NewConsulAPI() (*APIClient, error) {
 		headers["X-Consul-Token"] = token
 	}
 
-	t, err := NewConsulTLSConfig()
+	tlsConfig, err := NewConsulTLSConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	apiClient, err := NewAPIClient("consul", addr, headers, *t)
+	apiClient, err := NewAPIClient("consul", addr, headers, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +46,9 @@ func NewConsulAPI() (*APIClient, error) {
 	return apiClient, nil
 }
 
-// NewConsulTLSConfig returns a *TLSConfig object, using
+// NewConsulTLSConfig returns a TLSConfig object, using
 // default environment variables to build up the object.
-func NewConsulTLSConfig() (*TLSConfig, error) {
+func NewConsulTLSConfig() (TLSConfig, error) {
 	// The semantics Consul uses to indicate whether verification should be done
 	// is the opposite of the `tlsConfig.Insecure` field. So, we default shouldVerify
 	// to true, determine whether we should actually change it based on the env var,
@@ -59,11 +59,11 @@ func NewConsulTLSConfig() (*TLSConfig, error) {
 		var err error
 		shouldVerify, err = strconv.ParseBool(v)
 		if err != nil {
-			return nil, err
+			return TLSConfig{}, err
 		}
 	}
 
-	return &TLSConfig{
+	return TLSConfig{
 		CACert:        os.Getenv(EnvConsulCaCert),
 		CAPath:        os.Getenv(EnvConsulCaPath),
 		ClientCert:    os.Getenv(EnvConsulClientCert),

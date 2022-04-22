@@ -124,8 +124,7 @@ func TestNewConsulTLSConfig(t *testing.T) {
 				require.Error(t, err, "an error was expected, but was not raised")
 			} else {
 				require.NoError(t, err, "encountered unexpected error in NewConsulTLSConfig")
-				require.NotNil(t, actual, "expected output object to not be nil")
-				require.Equal(t, tc.expected, *actual, "actual TLSConfig does not match the expected struct")
+				require.Equal(t, tc.expected, actual, "actual TLSConfig does not match the expected struct")
 			}
 		})
 	}

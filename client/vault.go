@@ -53,7 +53,7 @@ func NewVaultAPI() (*APIClient, error) {
 		return nil, err
 	}
 
-	apiClient, err := NewAPIClient("vault", addr, headers, *tlsConfig)
+	apiClient, err := NewAPIClient("vault", addr, headers, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -61,19 +61,19 @@ func NewVaultAPI() (*APIClient, error) {
 	return apiClient, nil
 }
 
-// NewVaultTLSConfig returns a *TLSConfig object, using
+// NewVaultTLSConfig returns a TLSConfig object, using
 // default environment variables to build up the object.
-func NewVaultTLSConfig() (*TLSConfig, error) {
+func NewVaultTLSConfig() (TLSConfig, error) {
 	skipVerify := false
 	if v := os.Getenv(EnvVaultSkipVerify); v != "" {
 		var err error
 		skipVerify, err = strconv.ParseBool(v)
 		if err != nil {
-			return nil, err
+			return TLSConfig{}, err
 		}
 	}
 
-	return &TLSConfig{
+	return TLSConfig{
 		CACert:        os.Getenv(EnvVaultCaCert),
 		CAPath:        os.Getenv(EnvVaultCaPath),
 		ClientCert:    os.Getenv(EnvVaultClientCert),
