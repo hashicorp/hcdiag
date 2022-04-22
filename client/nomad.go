@@ -50,23 +50,23 @@ func NewNomadAPI() (*APIClient, error) {
 // NewNomadTLSConfig returns a *TLSConfig object, using
 // default environment variables to build up the object.
 func NewNomadTLSConfig() (*TLSConfig, error) {
-	tlsConfig := TLSConfig{
+	skipVerify := false
+	if v := os.Getenv(EnvNomadSkipVerify); v != "" {
+		var err error
+		skipVerify, err = strconv.ParseBool(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &TLSConfig{
 		CACert:        os.Getenv(EnvNomadCaCert),
 		CAPath:        os.Getenv(EnvNomadCaPath),
 		ClientCert:    os.Getenv(EnvNomadClientCert),
 		ClientKey:     os.Getenv(EnvNomadClientKey),
 		TLSServerName: os.Getenv(EnvNomadTlsServerName),
-	}
-
-	if v := os.Getenv(EnvNomadSkipVerify); v != "" {
-		skipVerify, err := strconv.ParseBool(v)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Insecure = skipVerify
-	}
-
-	return &tlsConfig, nil
+		Insecure:      skipVerify,
+	}, nil
 }
 
 func GetNomadLogPath(api *APIClient) (string, error) {
