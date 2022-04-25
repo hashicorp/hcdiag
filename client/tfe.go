@@ -21,5 +21,9 @@ func NewTFEAPI() *APIClient {
 		headers["Authorization"] = "Bearer " + token
 	}
 
-	return NewAPIClient("terraform-ent", addr, headers)
+	apiClient, err := NewAPIClient("terraform-ent", addr, headers, TLSConfig{})
+	if err != nil {
+		return nil
+	}
+	return apiClient
 }

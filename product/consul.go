@@ -15,15 +15,22 @@ const (
 )
 
 // NewConsul takes a product config and creates a Product with all of Consul's default seekers
-func NewConsul(cfg Config) *Product {
-	return &Product{
-		Seekers: ConsulSeekers(cfg.TmpDir, cfg.Since, cfg.Until),
+func NewConsul(cfg Config) (*Product, error) {
+	seekers, err := ConsulSeekers(cfg.TmpDir, cfg.Since, cfg.Until)
+	if err != nil {
+		return nil, err
 	}
+	return &Product{
+		Seekers: seekers,
+	}, nil
 }
 
 // ConsulSeekers seek information about Consul.
-func ConsulSeekers(tmpDir string, since, until time.Time) []*s.Seeker {
-	api := client.NewConsulAPI()
+func ConsulSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
+	api, err := client.NewConsulAPI()
+	if err != nil {
+		return nil, err
+	}
 
 	seekers := []*s.Seeker{
 		s.NewCommander("consul version", "string"),
@@ -49,5 +56,5 @@ func ConsulSeekers(tmpDir string, since, until time.Time) []*s.Seeker {
 		seekers = append(seekers, journald)
 	}
 
-	return seekers
+	return seekers, nil
 }

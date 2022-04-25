@@ -424,7 +424,10 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	}
 	p := make(map[string]*product.Product)
 	if a.Config.Consul {
-		newConsul := product.NewConsul(cfg)
+		newConsul, err := product.NewConsul(cfg)
+		if err != nil {
+			return nil, err
+		}
 		if consul != nil {
 			customSeekers, err := customSeekers(consul, a.tmpDir)
 			if err != nil {
@@ -438,7 +441,10 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	}
 	if a.Config.Nomad {
-		newNomad := product.NewNomad(cfg)
+		newNomad, err := product.NewNomad(cfg)
+		if err != nil {
+			return nil, err
+		}
 		if nomad != nil {
 			customSeekers, err := customSeekers(nomad, a.tmpDir)
 			if err != nil {
@@ -569,9 +575,9 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	var err error
 	switch cfg.Name {
 	case product.Consul:
-		c = client.NewConsulAPI()
+		c, err = client.NewConsulAPI()
 	case product.Nomad:
-		c = client.NewNomadAPI()
+		c, err = client.NewNomadAPI()
 	case product.TFE:
 		c = client.NewTFEAPI()
 	case product.Vault:

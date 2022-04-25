@@ -48,29 +48,39 @@ func NewVaultAPI() (*APIClient, error) {
 	}
 	headers["X-Vault-Token"] = token
 
-	return NewAPIClient("vault", addr, headers), nil
+	tlsConfig, err := NewVaultTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	apiClient, err := NewAPIClient("vault", addr, headers, tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiClient, nil
 }
 
-// NewVaultTLSConfig returns a *TLSConfig object, using
+// NewVaultTLSConfig returns a TLSConfig object, using
 // default environment variables to build up the object.
-func NewVaultTLSConfig() (*TLSConfig, error) {
-	tlsConfig := TLSConfig{
+func NewVaultTLSConfig() (TLSConfig, error) {
+	skipVerify := false
+	if v := os.Getenv(EnvVaultSkipVerify); v != "" {
+		var err error
+		skipVerify, err = strconv.ParseBool(v)
+		if err != nil {
+			return TLSConfig{}, err
+		}
+	}
+
+	return TLSConfig{
 		CACert:        os.Getenv(EnvVaultCaCert),
 		CAPath:        os.Getenv(EnvVaultCaPath),
 		ClientCert:    os.Getenv(EnvVaultClientCert),
 		ClientKey:     os.Getenv(EnvVaultClientKey),
 		TLSServerName: os.Getenv(EnvVaultTlsServerName),
-	}
-
-	if v := os.Getenv(EnvVaultSkipVerify); v != "" {
-		skipVerify, err := strconv.ParseBool(v)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Insecure = skipVerify
-	}
-
-	return &tlsConfig, nil
+		Insecure:      skipVerify,
+	}, nil
 }
 
 func GetVaultAuditLogPath(api *APIClient) (string, error) {

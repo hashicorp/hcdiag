@@ -17,15 +17,22 @@ const (
 )
 
 // NewNomad takes a product config and creates a Product with all of Nomad's default seekers
-func NewNomad(cfg Config) *Product {
-	return &Product{
-		Seekers: NomadSeekers(cfg.TmpDir, cfg.Since, cfg.Until),
+func NewNomad(cfg Config) (*Product, error) {
+	seekers, err := NomadSeekers(cfg.TmpDir, cfg.Since, cfg.Until)
+	if err != nil {
+		return nil, err
 	}
+	return &Product{
+		Seekers: seekers,
+	}, nil
 }
 
 // NomadSeekers seek information about Nomad.
-func NomadSeekers(tmpDir string, since, until time.Time) []*s.Seeker {
-	api := client.NewNomadAPI()
+func NomadSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
+	api, err := client.NewNomadAPI()
+	if err != nil {
+		return nil, err
+	}
 
 	seekers := []*s.Seeker{
 		s.NewCommander("nomad version", "string"),
@@ -49,5 +56,5 @@ func NomadSeekers(tmpDir string, since, until time.Time) []*s.Seeker {
 		seekers = append(seekers, journald)
 	}
 
-	return seekers
+	return seekers, nil
 }

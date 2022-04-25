@@ -11,6 +11,8 @@ import (
 type mockHTTP struct {
 	called []*http.Request
 	resp   string
+
+	Transport *http.Transport
 }
 
 func (m *mockHTTP) Do(r *http.Request) (*http.Response, error) {
@@ -30,7 +32,10 @@ func TestAPIClientGet(t *testing.T) {
 		"special": "headeroni",
 	}
 	mock := &mockHTTP{resp: testResp}
-	c := NewAPIClient("test", testBaseURL, headers)
+	c, err := NewAPIClient("test", testBaseURL, headers, TLSConfig{})
+	if err != nil {
+		t.Errorf("NewAPIClient returned error: %s", err)
+	}
 	c.http = mock
 
 	// make the request
@@ -73,7 +78,10 @@ func TestAPIClientGetStringValue(t *testing.T) {
 	// this also implicily tests APIClient.GetValue()
 
 	mock := &mockHTTP{resp: `{"one": {"two": "three"}}`}
-	c := NewAPIClient("test", "test://local", map[string]string{})
+	c, err := NewAPIClient("test", "test://local", map[string]string{}, TLSConfig{})
+	if err != nil {
+		t.Errorf("NewAPIClient returned error: %s", err)
+	}
 	c.http = mock
 
 	resp, err := c.GetStringValue("/fake/path", "one", "two")

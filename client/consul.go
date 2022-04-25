@@ -21,7 +21,7 @@ const (
 )
 
 // NewConsulAPI returns an APIClient for Consul.
-func NewConsulAPI() *APIClient {
+func NewConsulAPI() (*APIClient, error) {
 	addr := os.Getenv("CONSUL_HTTP_ADDR")
 	if addr == "" {
 		addr = DefaultConsulAddr
@@ -33,33 +33,44 @@ func NewConsulAPI() *APIClient {
 		headers["X-Consul-Token"] = token
 	}
 
-	return NewAPIClient("consul", addr, headers)
+	tlsConfig, err := NewConsulTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	apiClient, err := NewAPIClient("consul", addr, headers, tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiClient, nil
 }
 
-// NewConsulTLSConfig returns a *TLSConfig object, using
+// NewConsulTLSConfig returns a TLSConfig object, using
 // default environment variables to build up the object.
-func NewConsulTLSConfig() (*TLSConfig, error) {
-	tlsConfig := TLSConfig{
+func NewConsulTLSConfig() (TLSConfig, error) {
+	// The semantics Consul uses to indicate whether verification should be done
+	// is the opposite of the `tlsConfig.Insecure` field. So, we default shouldVerify
+	// to true, determine whether we should actually change it based on the env var,
+	// and assign the negation to the `Insecure` field in the return.
+	shouldVerify := true
+
+	if v := os.Getenv(EnvConsulHttpSslVerify); v != "" {
+		var err error
+		shouldVerify, err = strconv.ParseBool(v)
+		if err != nil {
+			return TLSConfig{}, err
+		}
+	}
+
+	return TLSConfig{
 		CACert:        os.Getenv(EnvConsulCaCert),
 		CAPath:        os.Getenv(EnvConsulCaPath),
 		ClientCert:    os.Getenv(EnvConsulClientCert),
 		ClientKey:     os.Getenv(EnvConsulClientKey),
 		TLSServerName: os.Getenv(EnvConsulTlsServerName),
-	}
-
-	if v := os.Getenv(EnvConsulHttpSslVerify); v != "" {
-		shouldVerify, err := strconv.ParseBool(v)
-		if err != nil {
-			return nil, err
-		}
-
-		// The semantics Consul uses to indicate whether verification should be done
-		// is the opposite of the `tlsConfig.Insecure` field; we negate the value indicated by
-		// EnvConsulHttpSslVerify environment variable here to align them.
-		tlsConfig.Insecure = !shouldVerify
-	}
-
-	return &tlsConfig, nil
+		Insecure:      !shouldVerify,
+	}, nil
 }
 
 func GetConsulLogPath(api *APIClient) (string, error) {

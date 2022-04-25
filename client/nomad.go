@@ -22,7 +22,7 @@ const (
 )
 
 // NewNomadAPI returns an APIClient for Nomad.
-func NewNomadAPI() *APIClient {
+func NewNomadAPI() (*APIClient, error) {
 	addr := os.Getenv("NOMAD_ADDR")
 	if addr == "" {
 		addr = DefaultNomadAddr
@@ -34,29 +34,39 @@ func NewNomadAPI() *APIClient {
 		headers["X-Nomad-Token"] = token
 	}
 
-	return NewAPIClient("nomad", addr, headers)
+	tlsConfig, err := NewNomadTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	apiClient, err := NewAPIClient("nomad", addr, headers, tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiClient, nil
 }
 
-// NewNomadTLSConfig returns a *TLSConfig object, using
+// NewNomadTLSConfig returns a TLSConfig object, using
 // default environment variables to build up the object.
-func NewNomadTLSConfig() (*TLSConfig, error) {
-	tlsConfig := TLSConfig{
+func NewNomadTLSConfig() (TLSConfig, error) {
+	skipVerify := false
+	if v := os.Getenv(EnvNomadSkipVerify); v != "" {
+		var err error
+		skipVerify, err = strconv.ParseBool(v)
+		if err != nil {
+			return TLSConfig{}, err
+		}
+	}
+
+	return TLSConfig{
 		CACert:        os.Getenv(EnvNomadCaCert),
 		CAPath:        os.Getenv(EnvNomadCaPath),
 		ClientCert:    os.Getenv(EnvNomadClientCert),
 		ClientKey:     os.Getenv(EnvNomadClientKey),
 		TLSServerName: os.Getenv(EnvNomadTlsServerName),
-	}
-
-	if v := os.Getenv(EnvNomadSkipVerify); v != "" {
-		skipVerify, err := strconv.ParseBool(v)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Insecure = skipVerify
-	}
-
-	return &tlsConfig, nil
+		Insecure:      skipVerify,
+	}, nil
 }
 
 func GetNomadLogPath(api *APIClient) (string, error) {

@@ -7,7 +7,10 @@ import (
 )
 
 func TestNewConsulAPI(t *testing.T) {
-	api := NewConsulAPI()
+	api, err := NewConsulAPI()
+	if err != nil {
+		t.Errorf("encountered error from NewConsulAPI(); error: %s", err)
+	}
 
 	if api.Product != "consul" {
 		t.Errorf("expected Product to be 'consul'; got '%s'", api.Product)
@@ -22,7 +25,10 @@ func TestGetConsulLogPathPDir(t *testing.T) {
 	mock := &mockHTTP{
 		resp: `{"DebugConfig": {"Logging": {"LogFilePath": "/some/dir/"}}}`,
 	}
-	api := NewConsulAPI()
+	api, err := NewConsulAPI()
+	if err != nil {
+		t.Errorf("encountered error from NewConsulAPI(); error: %s", err)
+	}
 	api.http = mock
 
 	path, err := GetConsulLogPath(api)
@@ -40,7 +46,10 @@ func TestGetConsulLogPathPrefix(t *testing.T) {
 	mock := &mockHTTP{
 		resp: `{"DebugConfig": {"Logging": {"LogFilePath": "/some/prefix"}}}`,
 	}
-	api := NewConsulAPI()
+	api, err := NewConsulAPI()
+	if err != nil {
+		t.Errorf("encountered error from NewConsulAPI(); error: %s", err)
+	}
 	api.http = mock
 
 	path, err := GetConsulLogPath(api)
@@ -115,8 +124,7 @@ func TestNewConsulTLSConfig(t *testing.T) {
 				require.Error(t, err, "an error was expected, but was not raised")
 			} else {
 				require.NoError(t, err, "encountered unexpected error in NewConsulTLSConfig")
-				require.NotNil(t, actual, "expected output object to not be nil")
-				require.Equal(t, tc.expected, *actual, "actual TLSConfig does not match the expected struct")
+				require.Equal(t, tc.expected, actual, "actual TLSConfig does not match the expected struct")
 			}
 		})
 	}
