@@ -17,7 +17,10 @@ type Commander struct {
 func NewCommander(command string, format string) *Seeker {
 	return &Seeker{
 		Identifier: command,
-		Runner:     Commander{Command: command, format: format},
+		Runner: Commander{
+			Command: command,
+			format:  format,
+		},
 	}
 }
 
@@ -34,7 +37,7 @@ func (c Commander) Run() (interface{}, Status, error) {
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
-		return string(bts), Unknown, CommandExecError{c.Command, c.format, err}
+		return string(bts), Unknown, CommandExecError{command: c.Command, format: c.format, err: err}
 	}
 
 	// Parse result
@@ -46,11 +49,11 @@ func (c Commander) Run() (interface{}, Status, error) {
 	case c.format == "json":
 		if err := json.Unmarshal(bts, &result); err != nil {
 			// Return the command's response even if we can't parse it as json
-			return string(bts), Unknown, UnmarshalError{c.Command, err}
+			return string(bts), Unknown, UnmarshalError{command: c.Command, err: err}
 		}
 
 	default:
-		return result, Fail, FormatUnknownError{c.Command, c.format}
+		return result, Fail, FormatUnknownError{command: c.Command, format: c.format}
 	}
 
 	return result, Success, nil
