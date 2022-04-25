@@ -1,9 +1,7 @@
 package seeker
 
 import (
-	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,16 +57,12 @@ func TestCommanderRunError(t *testing.T) {
 	// we should get the command's error output
 	assert.Contains(t, out, "No such file")
 
-	// and the error from os/exec.Command()
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "exec.Command error:")
-	}
+	// and an error
+	assert.Error(t, err)
 }
 
 func TestCommanderBadJSON(t *testing.T) {
 	c := NewCommander(`echo {"bad",}`, "json")
 	_, err := c.Run()
-	if !strings.Contains(fmt.Sprintf("%s", err), "json.Unmarshal error") {
-		t.Errorf("got unexpected error instead of json.Unmarshal: \"%s\"", err)
-	}
+	assert.Errorf(t, err, "commander.Run() should error on bad json")
 }
