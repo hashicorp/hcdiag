@@ -20,13 +20,11 @@ func HostSeekers(os string) []*seeker.Seeker {
 		os = runtime.GOOS
 	}
 	return []*seeker.Seeker{
-		{
-			Identifier: "stats",
-			Runner: &seeker.Host{
-				OS: os,
-			},
-		},
-		host.NewOSInfo(os),
-		host.NewDisks(),
+		host.NewOS(os),
+		host.NewDisk(),
+		host.NewInfo(),
+		host.NewMemory(),
+		host.NewProcess(),
+		host.NewNetwork(),
 	}
 }

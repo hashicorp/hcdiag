@@ -7,18 +7,18 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
-var _ seeker.Runner = Disks{}
+var _ seeker.Runner = Disk{}
 
-type Disks struct{}
+type Disk struct{}
 
-func NewDisks() *seeker.Seeker {
+func NewDisk() *seeker.Seeker {
 	return &seeker.Seeker{
 		Identifier: "disks",
-		Runner:     Disks{},
+		Runner:     Disk{},
 	}
 }
 
-func (dp Disks) Run() (interface{}, seeker.Status, error) {
+func (dp Disk) Run() (interface{}, seeker.Status, error) {
 	// third party
 	diskInfo, err := disk.Partitions(true)
 	if err != nil {
