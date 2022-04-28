@@ -17,7 +17,7 @@ type Process struct{}
 func (p Process) Run() (interface{}, seeker.Status, error) {
 	processes, err := ps.Processes()
 	if err != nil {
-		hclog.L().Error("GetProcesses", "Error getting process information", err)
+		hclog.L().Trace("seeker/host.Process.Run()", "error", err)
 		return processes, seeker.Fail, err
 	}
 

@@ -21,7 +21,7 @@ func NewMemory() *seeker.Seeker {
 func (m Memory) Run() (interface{}, seeker.Status, error) {
 	memoryInfo, err := mem.VirtualMemory()
 	if err != nil {
-		hclog.L().Error("GetMemory", "Error getting memory information", err)
+		hclog.L().Trace("seeker/host.Memory.Run()", "error", err)
 		return memoryInfo, seeker.Fail, err
 	}
 

@@ -21,7 +21,7 @@ func (i Info) Run() (interface{}, seeker.Status, error) {
 	// third party
 	hostInfo, err := host.Info()
 	if err != nil {
-		hclog.L().Error("GetHost", "Error getting host information", err)
+		hclog.L().Trace("seeker/host.Info.Run()", "error", err)
 		return hostInfo, seeker.Fail, err
 	}
 

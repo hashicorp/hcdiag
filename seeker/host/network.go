@@ -18,7 +18,7 @@ type Network struct{}
 func (n Network) Run() (interface{}, seeker.Status, error) {
 	networkInfo, err := net.Interfaces()
 	if err != nil {
-		hclog.L().Error("GetNetwork", "Error getting network information", err)
+		hclog.L().Trace("seeker/host.Network.Run()", "error", err)
 		return networkInfo, seeker.Fail, err
 	}
 
