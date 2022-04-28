@@ -27,5 +27,6 @@ func HostSeekers(os string) []*seeker.Seeker {
 			},
 		},
 		host.NewOSInfo(os),
+		host.NewDisks(),
 	}
 }
