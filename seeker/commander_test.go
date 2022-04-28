@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,47 +24,75 @@ func TestNewCommander(t *testing.T) {
 	}
 }
 
-func TestCommanderRunString(t *testing.T) {
-	c := NewCommander("echo hello", "string")
-	out, err := c.Run()
-
-	if err != nil {
-		t.Errorf("err should be nil, got: %s", err)
+func TestCommander_Run(t *testing.T) {
+	tt := []struct {
+		desc    string
+		command string
+		format  string
+		expect  interface{}
+	}{
+		{
+			desc:    "can run with string format",
+			command: "echo hello",
+			format:  "string",
+			expect:  "hello",
+		},
+		{
+			desc:    "can run with json format",
+			command: "echo {\"hi\":\"there\"}",
+			format:  "json",
+			expect: func() interface{} {
+				expect := make(map[string]interface{})
+				expect["hi"] = "there"
+				return expect
+			}(),
+		},
 	}
 
-	if out != "hello" {
-		t.Errorf("out should be 'hello', got: '%s'", out)
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			c := NewCommander(tc.command, tc.format)
+			result, status, err := c.Runner.Run()
+			assert.NoError(t, err)
+			assert.Equal(t, Success, status)
+			assert.Equal(t, tc.expect, result)
+		})
 	}
 }
 
-func TestCommanderRunJSON(t *testing.T) {
-	expect := make(map[string]interface{})
-	expect["hi"] = "there"
-
-	c := NewCommander("echo {\"hi\":\"there\"}", "json")
-	actual, err := c.Run()
-
-	if err != nil {
-		t.Errorf("err should be nil, got: %s", err)
+func TestCommander_RunError(t *testing.T) {
+	tt := []struct {
+		desc    string
+		command string
+		format  string
+		expect  interface{}
+		status  Status
+	}{
+		{
+			desc:    "errors and unknown when bash returns error",
+			command: "cat no-file-to-see-here",
+			format:  "string",
+			expect:  "cat: no-file-to-see-here: No such file or directory\n",
+			status:  Unknown,
+		},
+		{
+			desc:    "errors and fails on bad json",
+			command: `echo {"bad",}`,
+			format:  "json",
+			status:  Unknown,
+		},
 	}
-	if !reflect.DeepEqual(expect, actual) {
-		t.Errorf("expected (%#v) does not match actual (%#v)", expect, actual)
+
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			c := NewCommander(tc.command, tc.format)
+			result, status, err := c.Runner.Run()
+			assert.Error(t, err)
+			hclog.L().Trace("commander.Run() errored", "error", err, "error type", reflect.TypeOf(err))
+			assert.Equal(t, tc.status, status)
+			if tc.expect != nil {
+				assert.Equal(t, tc.expect, result)
+			}
+		})
 	}
-}
-
-func TestCommanderRunError(t *testing.T) {
-	c := NewCommander("cat no-file-to-see-here", "string")
-	out, err := c.Run()
-
-	// we should get the command's error output
-	assert.Contains(t, out, "No such file")
-
-	// and an error
-	assert.Error(t, err)
-}
-
-func TestCommanderBadJSON(t *testing.T) {
-	c := NewCommander(`echo {"bad",}`, "json")
-	_, err := c.Run()
-	assert.Errorf(t, err, "commander.Run() should error on bad json")
 }
