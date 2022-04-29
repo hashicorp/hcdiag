@@ -82,6 +82,9 @@ func createTLSClientConfig(t TLSConfig) (*tls.Config, error) {
 		return tlsClientConfig, nil
 	}
 
+	tlsClientConfig.InsecureSkipVerify = t.Insecure
+	tlsClientConfig.ServerName = t.TLSServerName
+
 	if t.CACert != "" || len(t.CACertBytes) != 0 || t.CAPath != "" {
 		rootConfig := &rootcerts.Config{
 			CAFile:        t.CACert,
@@ -91,12 +94,6 @@ func createTLSClientConfig(t TLSConfig) (*tls.Config, error) {
 		if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
 			return nil, err
 		}
-	}
-
-	tlsClientConfig.InsecureSkipVerify = t.Insecure
-
-	if t.TLSServerName != "" {
-		tlsClientConfig.ServerName = t.TLSServerName
 	}
 
 	var clientCert tls.Certificate
