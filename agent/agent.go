@@ -30,7 +30,6 @@ type Agent struct {
 	Start       time.Time `json:"started_at"`
 	End         time.Time `json:"ended_at"`
 	Duration    string    `json:"duration"`
-	NumErrors   int       `json:"num_errors"`
 	NumSeekers  int       `json:"num_seekers"`
 	Config      Config    `json:"configuration"`
 	// ManifestSeekers holds a slice of seekers with a subset of normal seekers' fields so we can safely render them in
@@ -264,12 +263,6 @@ func (a *Agent) RunProducts() error {
 	// Wait until every product is finished
 	wg.Wait()
 
-	// TODO(mkcp): Users would benefit from us calculate the success rate here and always rendering it. Then we frame
-	//  it as an error if we're over the 50% threshold. Maybe we only render it in the manifest or results?
-	if a.NumErrors > a.NumSeekers/2 {
-		return errors.New("more than 50% of Seekers failed")
-	}
-
 	return nil
 }
 
@@ -359,7 +352,6 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 		result, err := s.Run()
 		results[s.Identifier] = s
 		if err != nil {
-			a.NumErrors++
 			a.l.Warn("result",
 				"seeker", s.Identifier,
 				"result", fmt.Sprintf("%s", result),
