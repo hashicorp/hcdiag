@@ -50,16 +50,14 @@ type TLSConfig struct {
 }
 
 // NewAPIClient gets an API client for a product.
-func NewAPIClient(product, baseURL string, headers map[string]string, t TLSConfig) (*APIClient, error) {
-	transport := http.DefaultTransport.(*http.Transport)
+func NewAPIClient(product, baseURL string, headers map[string]string, tlsConfig TLSConfig) (*APIClient, error) {
+	transportConfig := httpTransportConfig{
+		tlsConfig: tlsConfig,
+	}
 
-	// If TLSConfig is set, then we need to configure the TLSClientConfig on the transport.
-	if !reflect.DeepEqual(t, TLSConfig{}) {
-		tlsClientConfig, err := createTLSClientConfig(t)
-		if err != nil {
-			return nil, err
-		}
-		transport.TLSClientConfig = tlsClientConfig
+	transport, err := newHTTPTransport(transportConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	client := &http.Client{
@@ -72,6 +70,30 @@ func NewAPIClient(product, baseURL string, headers map[string]string, t TLSConfi
 		headers: headers,
 		http:    client,
 	}, nil
+}
+
+type httpTransportConfig struct {
+	tlsConfig         TLSConfig
+	tlsConfigFunction func(config TLSConfig) (*tls.Config, error)
+}
+
+// newHTTPTransport builds a *http.Transport beginning with a clone of http.DefaultTransport
+// and then applying changes described by an input parameter httpTransportConfig.
+func newHTTPTransport(tc httpTransportConfig) (*http.Transport, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+
+	// If TLSConfig is set, then we need to configure the TLSClientConfig on the transport.
+	if !reflect.DeepEqual(tc.tlsConfig, TLSConfig{}) {
+		if tc.tlsConfigFunction == nil {
+			tc.tlsConfigFunction = createTLSClientConfig
+		}
+		tlsClientConfig, err := tc.tlsConfigFunction(tc.tlsConfig)
+		if err != nil {
+			return nil, err
+		}
+		transport.TLSClientConfig = tlsClientConfig
+	}
+	return transport, nil
 }
 
 func createTLSClientConfig(t TLSConfig) (*tls.Config, error) {

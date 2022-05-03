@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -24,6 +25,66 @@ func (m *mockHTTP) Do(r *http.Request) (*http.Response, error) {
 		Body:       ioutil.NopCloser(strings.NewReader(m.resp)),
 		StatusCode: 200,
 	}, nil
+}
+
+func TestNewHTTPTransport(t *testing.T) {
+	testCases := []struct {
+		name            string
+		expectErr       bool
+		transportConfig httpTransportConfig
+		expected        *http.Transport
+	}{
+		{
+			name: "Default TLSConfig Results in Default HTTP Transport",
+			transportConfig: httpTransportConfig{
+				tlsConfig: TLSConfig{},
+			},
+			expected: http.DefaultTransport.(*http.Transport).Clone(),
+		},
+		{
+			name: "Error in TLS Configuration Function is Returned",
+			transportConfig: httpTransportConfig{
+				tlsConfig: TLSConfig{
+					Insecure: true,
+				},
+				tlsConfigFunction: func(_ TLSConfig) (*tls.Config, error) {
+					return nil, errors.New("error returned by TLS Config")
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "TLS Config is Added to Transport",
+			transportConfig: httpTransportConfig{
+				tlsConfig: TLSConfig{
+					Insecure: true,
+				},
+				tlsConfigFunction: func(_ TLSConfig) (*tls.Config, error) {
+					return &tls.Config{InsecureSkipVerify: true}, nil
+				},
+			},
+			expected: func() *http.Transport {
+				transport := http.DefaultTransport.(*http.Transport).Clone()
+				transport.TLSClientConfig = &tls.Config{
+					InsecureSkipVerify: true,
+				}
+				return transport
+			}(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			transport, err := newHTTPTransport(tc.transportConfig)
+			if tc.expectErr {
+				require.Error(t, err)
+				require.Nil(t, transport)
+			} else {
+				require.Equal(t, transport.TLSClientConfig, tc.expected.TLSClientConfig)
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 // This is not a super thorough test, but it's something
