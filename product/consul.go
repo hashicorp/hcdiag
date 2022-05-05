@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
+	logs "github.com/hashicorp/hcdiag/seeker/log"
 )
 
 const (
@@ -43,6 +44,8 @@ func ConsulSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 		s.NewHTTPer(api, "/v1/namespace"),
 		s.NewHTTPer(api, "/v1/status/leader"),
 		s.NewHTTPer(api, "/v1/status/peers"),
+
+		logs.NewDocker("consul", tmpDir, since, until),
 	}
 
 	// try to detect log location to copy
