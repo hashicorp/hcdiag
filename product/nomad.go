@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
+	logs "github.com/hashicorp/hcdiag/seeker/log"
 )
 
 const (
@@ -43,6 +44,8 @@ func NomadSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 		s.NewHTTPer(api, "/v1/agent/members?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
+
+		logs.NewDocker("nomad", tmpDir, since),
 	}
 
 	// try to detect log location to copy
