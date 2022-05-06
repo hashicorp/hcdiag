@@ -42,7 +42,7 @@ func VaultSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 		s.NewCommander("vault read sys/host-info -format=json", "json"),
 		s.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%ds", tmpDir, DefaultDebugSeconds), "string"),
 
-		logs.NewDocker("vault", tmpDir, since, until),
+		logs.NewDocker("vault", tmpDir, since),
 	}
 
 	// try to detect log location to copy

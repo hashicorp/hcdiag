@@ -10,14 +10,13 @@ import (
 var _ seeker.Runner = Docker{}
 
 // NewDocker returns a seeker with an identifier and fully configured docker runner
-func NewDocker(container, destDir string, since, until time.Time) *seeker.Seeker {
+func NewDocker(container, destDir string, since time.Time) *seeker.Seeker {
 	return &seeker.Seeker{
 		Identifier: "log/docker " + container,
 		Runner: &Docker{
 			Container: container,
 			DestDir:   destDir,
 			Since:     since,
-			Until:     until,
 		},
 	}
 }
@@ -30,8 +29,6 @@ type Docker struct {
 	DestDir string
 	// Since marks the beginning of the time range to include logs
 	Since time.Time
-	// Until is not implemented yet, and is always "now"
-	Until time.Time
 }
 
 // Run executes the runner

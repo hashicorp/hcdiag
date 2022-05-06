@@ -45,7 +45,7 @@ func ConsulSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 		s.NewHTTPer(api, "/v1/status/leader"),
 		s.NewHTTPer(api, "/v1/status/peers"),
 
-		logs.NewDocker("consul", tmpDir, since, until),
+		logs.NewDocker("consul", tmpDir, since),
 	}
 
 	// try to detect log location to copy

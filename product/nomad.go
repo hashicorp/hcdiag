@@ -45,7 +45,7 @@ func NomadSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 		s.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
 
-		logs.NewDocker("nomad", tmpDir, since, until),
+		logs.NewDocker("nomad", tmpDir, since),
 	}
 
 	// try to detect log location to copy
