@@ -10,6 +10,7 @@ package main_test
 import (
 	"context"
 	"io/fs"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -22,98 +23,149 @@ import (
 )
 
 func TestFunctional(t *testing.T) {
-	// run consul, nomad, and vault in the background,
-	// and stop them when the tests are done.
-	t.Log("starting consul, nomad, vault")
-	stop, err := program.RunFromHCL(context.Background(), "go-run-programs.hcl")
-	t.Cleanup(stop)
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-
-	testTable := map[string]struct {
-		flags    []string // will be provided to hcdiag
-		outFiles []string // we'll assert that these files exist
-		skip     bool     // skip the sub-test or not
+	// run test against multiple program configurations
+	for _, testConfig := range []struct {
+		name       string
+		configPath string
 	}{
-		"host": {
-			flags:    []string{},
-			outFiles: []string{},
-			skip:     false,
+		{
+			"tls",
+			"go-run-programs-tls.hcl",
 		},
-		"consul": {
-			flags:    []string{"-consul"},
-			outFiles: []string{"ConsulDebug.tar.gz"},
-			skip:     false,
+		{
+			"dev",
+			"go-run-programs.hcl",
 		},
-		"nomad": {
-			flags: []string{"-nomad"},
-			// nomad is special and doesn't tar up its debug,
-			// so we glob * for a file in its debug dir: "nomad*/index.json"
-			outFiles: []string{filepath.Join("nomad*", "index.json")},
-			skip:     false,
-		},
-		"vault-unix": {
-			flags:    []string{"-vault"},
-			outFiles: []string{"VaultDebug.tar.gz"},
-			// TODO(gulducat): de-unique-ize when `vault debug` is fixed on windows
-			// dave's pr: https://github.com/hashicorp/vault/pull/14399
-			skip: runtime.GOOS == "windows",
-		},
-		"all-unix": {
-			flags: []string{"-all"},
-			outFiles: []string{
-				"ConsulDebug.tar.gz",
-				filepath.Join("nomad*", "index.json"),
-				"VaultDebug.tar.gz",
-			},
-			skip: runtime.GOOS == "windows",
-		},
-		"vault-windows": {
-			flags:    []string{"-vault", "-config", "exclude_debug.hcl"},
-			outFiles: []string{},
-			skip:     runtime.GOOS != "windows",
-		},
-	}
+	} {
 
-	for name, tc := range testTable {
-		t.Run(name, func(t *testing.T) {
-			// explicitly skipping here so the test output is not mysterious
-			if tc.skip {
-				t.SkipNow()
+		t.Run(testConfig.name, func(t *testing.T) {
+			// ensure that product env vars are cleaned up after each subtest,
+			// since go-run-programs sets env for its "check"s to work.
+			t.Cleanup(func() { cleanEnv(t) })
+
+			// run consul, nomad, and vault in the background,
+			// and stop them when the tests are done.
+			t.Log("starting consul, nomad, vault")
+			stop, err := program.RunFromHCL(context.Background(), testConfig.configPath)
+			t.Cleanup(stop)
+			if !assert.NoError(t, err) {
+				t.FailNow()
 			}
 
-			// get us a temp dir to put everything in, testing lib will clean it for us.
-			tmpDir := t.TempDir()
-
-			// run hcdiag
-			output := runHCDiag(t, tmpDir, tc.flags)
-
-			// ensure there was any output at all, "hcdiag" is semi-arbitrary
-			assert.Contains(t, output, "hcdiag", "hcdiag output missing expected string 'hcdiag'")
-
-			// for debugging, list files in the temp dir
-			listFiles(t, tmpDir)
-
-			// extract the .tar.gz file
-			tarFile := findTar(t, tmpDir)
-			extractedDir := unTar(t, tarFile, tmpDir)
-
-			// the full filename should be in the command output
-			assert.Contains(t, output, tarFile)
-
-			listFiles(t, tmpDir)
-
-			// ensure default and product-specific files are in our extracted directory
-			// these files must always exist in the archive
-			defaultFiles := []string{
-				"Manifest.json",
-				"Results.json",
+			testTable := map[string]struct {
+				flags    []string // will be provided to hcdiag
+				outFiles []string // we'll assert that these files exist
+				skip     bool     // skip the sub-test or not
+			}{
+				"host": {
+					flags:    []string{},
+					outFiles: []string{},
+					skip:     false,
+				},
+				"consul": {
+					flags:    []string{"-consul"},
+					outFiles: []string{"ConsulDebug.tar.gz"},
+					skip:     false,
+				},
+				"nomad": {
+					flags: []string{"-nomad"},
+					// nomad is special and doesn't tar up its debug,
+					// so we glob * for a file in its debug dir: "nomad*/index.json"
+					outFiles: []string{filepath.Join("nomad*", "index.json")},
+					skip:     false,
+				},
+				"vault-unix": {
+					flags:    []string{"-vault"},
+					outFiles: []string{"VaultDebug.tar.gz"},
+					// TODO(gulducat): de-unique-ize when `vault debug` is fixed on windows
+					// dave's pr: https://github.com/hashicorp/vault/pull/14399
+					skip: runtime.GOOS == "windows",
+				},
+				"all-unix": {
+					flags: []string{"-all"},
+					outFiles: []string{
+						"ConsulDebug.tar.gz",
+						filepath.Join("nomad*", "index.json"),
+						"VaultDebug.tar.gz",
+					},
+					skip: runtime.GOOS == "windows",
+				},
+				"vault-windows": {
+					flags:    []string{"-vault", "-config", "exclude_debug.hcl"},
+					outFiles: []string{},
+					skip:     runtime.GOOS != "windows",
+				},
 			}
-			files := append(defaultFiles, tc.outFiles...)
-			assertFilesExist(t, extractedDir, files)
 
+			for name, tc := range testTable {
+				// this is where the fun begins.
+				t.Run(name, func(t *testing.T) {
+					// explicitly skipping here so the test output is not mysterious
+					if tc.skip {
+						t.SkipNow()
+					}
+
+					// get us a temp dir to put everything in, testing lib will clean it for us.
+					tmpDir := t.TempDir()
+
+					// run hcdiag
+					output := runHCDiag(t, tmpDir, tc.flags)
+
+					// ensure there was any output at all, "hcdiag" is semi-arbitrary
+					assert.Contains(t, output, "hcdiag", "hcdiag output missing expected string 'hcdiag'")
+
+					// ensure output does not have certain error indicators
+					assertNotContains(t, output, "x509:", "unexpected TLS error")
+
+					// for debugging, list files in the temp dir
+					listFiles(t, tmpDir)
+
+					// extract the .tar.gz file
+					tarFile := findTar(t, tmpDir)
+					extractedDir := unTar(t, tarFile, tmpDir)
+
+					// the full filename should be in the command output
+					assert.Contains(t, output, tarFile)
+
+					listFiles(t, tmpDir)
+
+					// ensure default and product-specific files are in our extracted directory
+					// these files must always exist in the archive
+					defaultFiles := []string{
+						"Manifest.json",
+						"Results.json",
+					}
+					files := append(defaultFiles, tc.outFiles...)
+					assertFilesExist(t, extractedDir, files)
+
+				})
+			}
 		})
+	}
+}
+
+// cleanup consul,nomad,vault environment variables
+func cleanEnv(t *testing.T) {
+	t.Helper()
+	prefixes := []string{"CONSUL_", "NOMAD_", "VAULT_"}
+	for _, env := range os.Environ() {
+		for _, p := range prefixes {
+			if strings.HasPrefix(env, p) {
+				parts := strings.Split(env, "=")
+				t.Log("clearing env:", parts[0])
+				assert.NoError(t,
+					os.Unsetenv(parts[0]),
+				)
+			}
+		}
+	}
+}
+
+// assert contents per line for clearer error output
+func assertNotContains(t *testing.T, s, contains string, msgAndArgs ...interface{}) {
+	t.Helper()
+	for _, line := range strings.Split(s, "\n") {
+		assert.NotContains(t, line, contains, msgAndArgs...)
 	}
 }
 
