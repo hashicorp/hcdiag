@@ -3,7 +3,6 @@ package product
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
@@ -17,7 +16,12 @@ const (
 
 // NewConsul takes a product config and creates a Product with all of Consul's default seekers
 func NewConsul(cfg Config) (*Product, error) {
-	seekers, err := ConsulSeekers(cfg.TmpDir, cfg.Since, cfg.Until)
+	api, err := client.NewConsulAPI()
+	if err != nil {
+		return nil, err
+	}
+
+	seekers, err := ConsulSeekers(cfg, api)
 	if err != nil {
 		return nil, err
 	}
@@ -27,15 +31,10 @@ func NewConsul(cfg Config) (*Product, error) {
 }
 
 // ConsulSeekers seek information about Consul.
-func ConsulSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
-	api, err := client.NewConsulAPI()
-	if err != nil {
-		return nil, err
-	}
-
+func ConsulSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 	seekers := []*s.Seeker{
 		s.NewCommander("consul version", "string"),
-		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%ds -interval=%ds", tmpDir, DefaultDebugSeconds, DefaultIntervalSeconds), "string"),
+		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%ds -interval=%ds", cfg.TmpDir, DefaultDebugSeconds, DefaultIntervalSeconds), "string"),
 
 		s.NewHTTPer(api, "/v1/agent/self"),
 		s.NewHTTPer(api, "/v1/agent/metrics"),
@@ -45,17 +44,17 @@ func ConsulSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 		s.NewHTTPer(api, "/v1/status/leader"),
 		s.NewHTTPer(api, "/v1/status/peers"),
 
-		logs.NewDocker("consul", tmpDir, since),
+		logs.NewDocker("consul", cfg.TmpDir, cfg.Since),
 	}
 
 	// try to detect log location to copy
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
-		dest := filepath.Join(tmpDir, "logs/consul")
-		logCopier := s.NewCopier(logPath, dest, since, until)
+		dest := filepath.Join(cfg.TmpDir, "logs/consul")
+		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
 	}
 	// get logs from journald if available
-	if journald := s.JournaldGetter("consul", tmpDir, since, until); journald != nil {
+	if journald := s.JournaldGetter("consul", cfg.TmpDir, cfg.Since, cfg.Until); journald != nil {
 		seekers = append(seekers, journald)
 	}
 

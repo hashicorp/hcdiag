@@ -449,7 +449,10 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		p[product.Nomad] = newNomad
 	}
 	if a.Config.TFE {
-		newTFE := product.NewTFE(cfg)
+		newTFE, err := product.NewTFE(cfg)
+		if err != nil {
+			return nil, err
+		}
 		if tfe != nil {
 			customSeekers, err := customSeekers(tfe, a.tmpDir)
 			if err != nil {
@@ -571,7 +574,7 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	case product.Nomad:
 		c, err = client.NewNomadAPI()
 	case product.TFE:
-		c = client.NewTFEAPI()
+		c, err = client.NewTFEAPI()
 	case product.Vault:
 		c, err = client.NewVaultAPI()
 	}
