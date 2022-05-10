@@ -24,6 +24,8 @@ const (
 
 // NewVaultAPI returns an APIClient for Vault.
 func NewVaultAPI() (*APIClient, error) {
+	product := "vault"
+
 	addr := os.Getenv("VAULT_ADDR")
 	if addr == "" {
 		addr = DefaultVaultAddr
@@ -53,7 +55,14 @@ func NewVaultAPI() (*APIClient, error) {
 		return nil, err
 	}
 
-	apiClient, err := NewAPIClient("vault", addr, headers, tlsConfig)
+	cfg := APIConfig{
+		Product:   product,
+		BaseURL:   addr,
+		TLSConfig: tlsConfig,
+		headers:   headers,
+	}
+
+	apiClient, err := NewAPIClient(cfg)
 	if err != nil {
 		return nil, err
 	}

@@ -22,6 +22,8 @@ const (
 
 // NewConsulAPI returns an APIClient for Consul.
 func NewConsulAPI() (*APIClient, error) {
+	product := "consul"
+
 	addr := os.Getenv("CONSUL_HTTP_ADDR")
 	if addr == "" {
 		addr = DefaultConsulAddr
@@ -38,7 +40,14 @@ func NewConsulAPI() (*APIClient, error) {
 		return nil, err
 	}
 
-	apiClient, err := NewAPIClient("consul", addr, headers, tlsConfig)
+	cfg := APIConfig{
+		Product:   product,
+		BaseURL:   addr,
+		TLSConfig: tlsConfig,
+		headers:   headers,
+	}
+
+	apiClient, err := NewAPIClient(cfg)
 	if err != nil {
 		return nil, err
 	}

@@ -50,9 +50,9 @@ type TLSConfig struct {
 }
 
 // NewAPIClient gets an API client for a product.
-func NewAPIClient(product, baseURL string, headers map[string]string, tlsConfig TLSConfig) (*APIClient, error) {
+func NewAPIClient(cfg APIConfig) (*APIClient, error) {
 	transportConfig := httpTransportConfig{
-		tlsConfig: tlsConfig,
+		tlsConfig: cfg.TLSConfig,
 	}
 
 	transport, err := newHTTPTransport(transportConfig)
@@ -65,10 +65,8 @@ func NewAPIClient(product, baseURL string, headers map[string]string, tlsConfig 
 	}
 
 	return &APIClient{
-		Product: product,
-		BaseURL: baseURL,
-		headers: headers,
-		http:    client,
+		APIConfig: cfg,
+		http:      client,
 	}, nil
 }
 
@@ -151,13 +149,21 @@ func createTLSClientConfig(t TLSConfig) (*tls.Config, error) {
 	return tlsClientConfig, nil
 }
 
-// APIClient can make API calls.
-type APIClient struct {
-	Product string `json:"product"`
-	BaseURL string `json:"baseurl"`
+// APIConfig contains the configuration details for an APIClient.
+type APIConfig struct {
+	Product   string    `json:"product"`
+	BaseURL   string    `json:"baseurl"`
+	TLSConfig TLSConfig `json:"-"`
+
 	// headers may contain secrets, so *do not export*
 	headers map[string]string
-	http    HTTPClient
+}
+
+// APIClient can make API calls.
+type APIClient struct {
+	APIConfig
+
+	http HTTPClient
 }
 
 type APIResponse struct {
