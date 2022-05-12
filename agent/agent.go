@@ -111,8 +111,10 @@ func (a *Agent) Run() []error {
 
 	// Record metadata
 	// Build seeker metadata
-	a.l.Info("Recording manifest")
-	a.RecordManifest()
+	if !a.Config.Dryrun {
+		a.l.Info("Recording manifest")
+		a.RecordManifest()
+	}
 
 	// Execution finished, write our results and cleanup
 	a.recordEnd()
@@ -240,12 +242,14 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := seeker.StatusCounts(product.Seekers)
-		if err != nil {
-			a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
-		}
+		if !a.Config.Dryrun {
+			statuses, err := seeker.StatusCounts(product.Seekers)
+			if err != nil {
+				a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
+			}
 
-		a.l.Info("Product done", "product", name, "statuses", statuses)
+			a.l.Info("Product done", "product", name, "statuses", statuses)
+		}
 		wg.Done()
 	}
 
