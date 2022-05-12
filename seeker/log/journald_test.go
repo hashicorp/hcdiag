@@ -51,7 +51,8 @@ func TestJournalctlGetLogsCmd(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		result := JournalctlGetLogsCmd(tc.name, tc.destDir, tc.since, tc.until)
+		j := NewJournald(tc.name, tc.destDir, tc.since, tc.until).Runner.(Journald)
+		result := j.LogsCmd()
 		assert.Equal(t, tc.expect, result)
 	}
 }

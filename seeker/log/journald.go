@@ -40,15 +40,13 @@ func (j Journald) Run() (interface{}, seeker.Status, error) {
 	// Check if systemd has a unit with the provided name, return a nil pointer
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.service) // TODO(gulducat): another command?
 	out, err := seeker.NewCommander(cmd, "string").Run()
-	// TODO(mkcp): Check for command
 	if err != nil {
 		hclog.L().Debug("skipping journald", "service", j.service, "output", out, "error", err)
-		return nil, seeker.Fail, SystemctlServiceNotEnabled{
+		return nil, seeker.Fail, JournaldServiceNotEnabled{
 			service: j.service,
 			command: cmd,
-			// FIXME(mkcp): Does using Sprintf() here work?
-			result: fmt.Sprintf("%s", out),
-			err:    err,
+			result:  fmt.Sprintf("%s", out),
+			err:     err,
 		}
 	}
 
@@ -60,7 +58,7 @@ func (j Journald) Run() (interface{}, seeker.Status, error) {
 	}
 	// permissions error detected
 	if err == nil {
-		return nil, seeker.Fail, InvalidPermissionsError{
+		return nil, seeker.Fail, JournaldPermissionError{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", out),
@@ -97,32 +95,32 @@ func (j Journald) LogsCmd() string {
 	return cmd
 }
 
-type SystemctlServiceNotEnabled struct {
+type JournaldServiceNotEnabled struct {
 	service string
 	command string
 	result  string
 	err     error
 }
 
-func (e SystemctlServiceNotEnabled) Error() string {
+func (e JournaldServiceNotEnabled) Error() string {
 	return fmt.Sprintf("service not enabled in sysctl, service=%s, command=%s, result=%s, error=%s", e.service, e.command, e.result, e.err)
 }
 
-func (e SystemctlServiceNotEnabled) Unwrap() error {
+func (e JournaldServiceNotEnabled) Unwrap() error {
 	return e.err
 }
 
-type InvalidPermissionsError struct {
+type JournaldPermissionError struct {
 	service string
 	command string
 	result  string
 	err     error
 }
 
-func (e InvalidPermissionsError) Error() string {
+func (e JournaldPermissionError) Error() string {
 	return fmt.Sprintf("unable to read logs, is your user allowed? try sudo, service=%s, command=%s, result=%s, error=%s", e.service, e.command, e.result, e.err)
 }
 
-func (e InvalidPermissionsError) Unwrap() error {
+func (e JournaldPermissionError) Unwrap() error {
 	return e.err
 }
