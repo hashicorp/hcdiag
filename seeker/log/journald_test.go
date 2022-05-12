@@ -1,4 +1,4 @@
-package seeker
+package log
 
 import (
 	"testing"

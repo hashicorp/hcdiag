@@ -43,6 +43,7 @@ func VaultSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 		s.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%ds", tmpDir, DefaultDebugSeconds), "string"),
 
 		logs.NewDocker("vault", tmpDir, since),
+		logs.NewJournald("vault", tmpDir, since, until),
 	}
 
 	// try to detect log location to copy
@@ -50,10 +51,6 @@ func VaultSeekers(tmpDir string, since, until time.Time) ([]*s.Seeker, error) {
 		dest := filepath.Join(tmpDir, "logs/vault")
 		logCopier := s.NewCopier(logPath, dest, since, until)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
-	}
-	// get logs from journald if available
-	if journald := s.JournaldGetter("vault", tmpDir, since, until); journald != nil {
-		seekers = append(seekers, journald)
 	}
 
 	return seekers, nil
