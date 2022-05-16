@@ -7,7 +7,8 @@ import (
 )
 
 func TestNewTFEAPI(t *testing.T) {
-	api := NewTFEAPI()
+	api, err := NewTFEAPI()
+	assert.NoError(t, err)
 	assert.Equal(t, "terraform-ent", api.Product)
 	assert.Equal(t, api.BaseURL, DefaultTFEAddr)
 }
