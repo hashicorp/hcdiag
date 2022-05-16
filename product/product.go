@@ -22,19 +22,23 @@ const (
 )
 
 type Config struct {
-	Logger *hclog.Logger
-	Name   string
-	TmpDir string
-	Since  time.Time
-	Until  time.Time
-	OS     string
+	Logger        *hclog.Logger
+	Name          string
+	TmpDir        string
+	Since         time.Time
+	Until         time.Time
+	OS            string
+	DebugDuration time.Duration
+	DebugInterval time.Duration
 }
 
 type Product struct {
-	Name     string
-	Seekers  []*seeker.Seeker
-	Excludes []string
-	Selects  []string
+	Name          string
+	Seekers       []*seeker.Seeker
+	Excludes      []string
+	Selects       []string
+	DebugDuration time.Duration
+	DebugInterval time.Duration
 }
 
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers

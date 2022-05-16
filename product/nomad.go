@@ -12,8 +12,8 @@ import (
 const (
 	NomadClientCheck   = "nomad version"
 	NomadAgentCheck    = "nomad server members"
-	NomadDebugDuration = "2m"
-	NomadDebugInterval = "30s"
+	NomadDebugDuration = 2 * time.Minute
+	NomadDebugInterval = 30 * time.Second
 )
 
 // NewNomad takes a product config and creates a Product with all of Nomad's default seekers
@@ -27,8 +27,21 @@ func NewNomad(cfg Config) (*Product, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Apply nomad duration and interval default if CLI is using global defaults
+	dur := cfg.DebugDuration
+	if dur == 10*time.Second {
+		dur = NomadDebugDuration
+	}
+	interval := cfg.DebugInterval
+	if interval == 5*time.Second {
+		interval = NomadDebugInterval
+	}
+
 	return &Product{
-		Seekers: seekers,
+		Seekers:       seekers,
+		DebugDuration: dur,
+		DebugInterval: interval,
 	}, nil
 }
 
