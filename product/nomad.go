@@ -24,19 +24,18 @@ func NewNomad(cfg Config) (*Product, error) {
 		return nil, err
 	}
 
+	// Apply nomad duration and interval default if CLI is using global defaults
+	// NOTE(mkcp): This isn't ideal because we're using magic numbers here to match the CLI defaults. We could pass a
+	//  tuple or something in from the CLI that describes both the default and the user-set value... but i'm timeboxing this.
+	if cfg.DebugDuration == 10*time.Second {
+		cfg.DebugDuration = NomadDebugDuration
+	}
+	if cfg.DebugInterval == 5*time.Second {
+		cfg.DebugInterval = NomadDebugInterval
+	}
 	seekers, err := NomadSeekers(cfg, api)
 	if err != nil {
 		return nil, err
-	}
-
-	// Apply nomad duration and interval default if CLI is using global defaults
-	dur := cfg.DebugDuration
-	if dur == 10*time.Second {
-		dur = NomadDebugDuration
-	}
-	interval := cfg.DebugInterval
-	if interval == 5*time.Second {
-		interval = NomadDebugInterval
 	}
 
 	return &Product{
@@ -50,7 +49,6 @@ func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 		s.NewCommander("nomad version", "string"),
 		s.NewCommander("nomad node status -self -json", "json"),
 		s.NewCommander("nomad agent-info -json", "json"),
-		// TODO(mkcp): Override interval and duration with nomad defaults if CLI defaults are unchanged.
 		s.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
 		s.NewHTTPer(api, "/v1/agent/members?stale=true"),

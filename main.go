@@ -160,11 +160,8 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
 	flags.DurationVar(&f.IncludeSince, "include-since", SeventyTwoHours, "Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.DurationVar(&f.Since, "since", SeventyTwoHours, "Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
-
-	// FIXME(mkcp): Figure out what is going on with backticked strings in the usage showing up next to the flag as the param.
-	flags.DurationVar(&f.DebugDuration, "debug-duration", TenSeconds, "`10s` How long to run product debug bundle commands. See: -duration in `vault debug`, `consul debug`, and `nomad operator debug`")
-	flags.DurationVar(&f.DebugInterval, "debug-interval", FiveSeconds, "`5s` How long metrics collection intervals in product debug commands last. See: -interval in `vault debug`, `consul debug`, and `nomad operator debug`")
-
+	flags.DurationVar(&f.DebugDuration, "debug-duration", TenSeconds, "How long to run product debug bundle commands. Provide a duration ex: `00h00m00s`. See: -duration in `vault debug`, `consul debug`, and `nomad operator debug`")
+	flags.DurationVar(&f.DebugInterval, "debug-interval", FiveSeconds, "How long metrics collection intervals in product debug commands last. Provide a duration ex: `00h00m00s`. See: -interval in `vault debug`, `consul debug`, and `nomad operator debug`")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
 	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
 	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
