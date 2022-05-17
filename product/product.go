@@ -16,11 +16,6 @@ const (
 	Vault  = "vault"
 )
 
-const (
-	DefaultDebugSeconds    = 10
-	DefaultIntervalSeconds = 5
-)
-
 type Config struct {
 	Logger        *hclog.Logger
 	Name          string
@@ -33,12 +28,10 @@ type Config struct {
 }
 
 type Product struct {
-	Name          string
-	Seekers       []*seeker.Seeker
-	Excludes      []string
-	Selects       []string
-	DebugDuration time.Duration
-	DebugInterval time.Duration
+	Name     string
+	Seekers  []*seeker.Seeker
+	Excludes []string
+	Selects  []string
 }
 
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers

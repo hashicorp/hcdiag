@@ -3,6 +3,7 @@ package product
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
@@ -39,9 +40,7 @@ func NewNomad(cfg Config) (*Product, error) {
 	}
 
 	return &Product{
-		Seekers:       seekers,
-		DebugDuration: dur,
-		DebugInterval: interval,
+		Seekers: seekers,
 	}, nil
 }
 
@@ -51,7 +50,8 @@ func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 		s.NewCommander("nomad version", "string"),
 		s.NewCommander("nomad node status -self -json", "json"),
 		s.NewCommander("nomad agent-info -json", "json"),
-		s.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, NomadDebugDuration, NomadDebugInterval), "string"),
+		// TODO(mkcp): Override interval and duration with nomad defaults if CLI defaults are unchanged.
+		s.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
 		s.NewHTTPer(api, "/v1/agent/members?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
