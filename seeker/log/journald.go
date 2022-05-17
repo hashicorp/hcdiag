@@ -37,7 +37,7 @@ func NewJournald(service, destDir string, since, until time.Time) *seeker.Seeker
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func (j Journald) Run() (interface{}, seeker.Status, error) {
-	// Check if systemd has a unit with the provided name, return a nil pointer
+	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.service) // TODO(gulducat): another command?
 	out, err := seeker.NewCommander(cmd, "string").Run()
 	if err != nil {
