@@ -111,8 +111,10 @@ func (a *Agent) Run() []error {
 
 	// Record metadata
 	// Build seeker metadata
-	a.l.Info("Recording manifest")
-	a.RecordManifest()
+	if !a.Config.Dryrun {
+		a.l.Info("Recording manifest")
+		a.RecordManifest()
+	}
 
 	// Execution finished, write our results and cleanup
 	a.recordEnd()
@@ -240,12 +242,14 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := seeker.StatusCounts(product.Seekers)
-		if err != nil {
-			a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
-		}
+		if !a.Config.Dryrun {
+			statuses, err := seeker.StatusCounts(product.Seekers)
+			if err != nil {
+				a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
+			}
 
-		a.l.Info("Product done", "product", name, "statuses", statuses)
+			a.l.Info("Product done", "product", name, "statuses", statuses)
+		}
 		wg.Done()
 	}
 
@@ -449,7 +453,10 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		p[product.Nomad] = newNomad
 	}
 	if a.Config.TFE {
-		newTFE := product.NewTFE(cfg)
+		newTFE, err := product.NewTFE(cfg)
+		if err != nil {
+			return nil, err
+		}
 		if tfe != nil {
 			customSeekers, err := customSeekers(tfe, a.tmpDir)
 			if err != nil {
@@ -571,7 +578,7 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	case product.Nomad:
 		c, err = client.NewNomadAPI()
 	case product.TFE:
-		c = client.NewTFEAPI()
+		c, err = client.NewTFEAPI()
 	case product.Vault:
 		c, err = client.NewVaultAPI()
 	}
