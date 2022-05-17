@@ -53,9 +53,6 @@ func (j Journald) Run() (interface{}, seeker.Status, error) {
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.service)
 	out, err = seeker.NewSheller(cmd).Run()
-	if err != nil {
-		return out, seeker.Fail, err
-	}
 	// permissions error detected
 	if err == nil {
 		return nil, seeker.Fail, JournaldPermissionError{
