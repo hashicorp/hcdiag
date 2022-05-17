@@ -26,23 +26,13 @@ jobs:
         id: codesign
         env:
           VERSION: v0
-
-      - uses: hashicorp/setup-hc-releases@v1
+      - name: Setup hc-releases
+        uses: hashicorp/setup-hc-releases@v2
         with:
-          github-token: ${{ secrets.CODESIGN_GITHUB_TOKEN }}
+          github-token: "${{ secrets.CODESIGN_GITHUB_TOKEN }}"
 
       - name: Import key for archive signing
         run: echo -e "${{ secrets.GPG_PRIVATE_KEY_DECRYPTED }}" | gpg --import --batch --no-tty
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.ENGSRV_ENGSYS_PROD_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.ENGSRV_ENGSYS_PROD_AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-          role-to-assume: ${{ secrets.ENGSRV_ENGSYS_PROD_AWS_ROLE_TO_ASSUME }}
-          role-skip-session-tagging: true
-          role-duration-seconds: 3600
 
       - name: Release
         uses: goreleaser/goreleaser-action@v2
@@ -50,6 +40,8 @@ jobs:
           version: latest
           args: release
         env:
+          HC_RELEASES_HOST: ${{ secrets.HC_RELEASES_HOST_STAGING }}
+          HC_RELEASES_KEY: ${{ secrets.HC_RELEASES_KEY_STAGING }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_KEY_ID: ${{ secrets.GPG_PUBLIC_KEY_ID }}
           CODESIGN_IMAGE: ${{ steps.codesign.outputs.image }}
@@ -57,7 +49,20 @@ jobs:
           ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
           CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
 
-      - name: Publish released artifacts
-        run: hc-releases publish -product=hcdiag
-        env:
-          FASTLY_API_TOKEN: ${{ secrets.RELEASE_FASTLY_API_TOKEN }}
+      - name: Create Release metadata
+        uses: hashicorp/actions-hc-releases-create-metadata@v1
+        with:
+          private-tools-token: "${{ secrets.CODESIGN_GITHUB_TOKEN }}"
+          product-name: "hcdiag"
+          version: "${{ github.ref_name }}"
+          hc-releases-host: "${{ secrets.HC_RELEASES_HOST_STAGING}}"
+          hc-releases-key: "${{ secrets.HC_RELEASES_KEY_STAGING }}"
+
+      - name: Promote
+        uses: hashicorp/actions-hc-releases-promote@v1
+        with:
+          product-name: "hcdiag"
+          version: "${{ github.ref_name }}"
+          hc-releases-host: "${{ secrets.HC_RELEASES_HOST_PROD }}"
+          hc-releases-key: "${{ secrets.HC_RELEASES_KEY_PROD }}"
+          hc-releases-source_env_key: "${{ secrets.HC_RELEASES_KEY_STAGING }}"

@@ -9,7 +9,7 @@ import (
 const DefaultTFEAddr = "https://127.0.0.1"
 
 // NewTFEAPI returns an APIClient for TFE.
-func NewTFEAPI() *APIClient {
+func NewTFEAPI() (*APIClient, error) {
 	product := "terraform-ent"
 
 	addr := os.Getenv("TFE_HTTP_ADDR")
@@ -32,7 +32,7 @@ func NewTFEAPI() *APIClient {
 
 	apiClient, err := NewAPIClient(cfg)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return apiClient
+	return apiClient, nil
 }
