@@ -89,14 +89,19 @@ func TestNewHTTPTransport(t *testing.T) {
 
 // This is not a super thorough test, but it's something
 func TestAPIClientGet(t *testing.T) {
-	// set up mock
 	testBaseURL := "test://local"
-	testResp := `{"hello":"there"}`
-	headers := map[string]string{
-		"special": "headeroni",
+	cfg := APIConfig{
+		Product: "test",
+		BaseURL: testBaseURL,
+		headers: map[string]string{
+			"special": "headeroni",
+		},
+		TLSConfig: TLSConfig{},
 	}
+	// set up mock
+	testResp := `{"hello":"there"}`
 	mock := &mockHTTP{resp: testResp}
-	c, err := NewAPIClient("test", testBaseURL, headers, TLSConfig{})
+	c, err := NewAPIClient(cfg)
 	if err != nil {
 		t.Errorf("NewAPIClient returned error: %s", err)
 	}
@@ -141,8 +146,14 @@ func TestAPIClientGet(t *testing.T) {
 func TestAPIClientGetStringValue(t *testing.T) {
 	// this also implicily tests APIClient.GetValue()
 
+	cfg := APIConfig{
+		Product:   "test",
+		BaseURL:   "test://local",
+		TLSConfig: TLSConfig{},
+		headers:   map[string]string{},
+	}
 	mock := &mockHTTP{resp: `{"one": {"two": "three"}}`}
-	c, err := NewAPIClient("test", "test://local", map[string]string{}, TLSConfig{})
+	c, err := NewAPIClient(cfg)
 	if err != nil {
 		t.Errorf("NewAPIClient returned error: %s", err)
 	}

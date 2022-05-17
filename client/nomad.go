@@ -23,6 +23,8 @@ const (
 
 // NewNomadAPI returns an APIClient for Nomad.
 func NewNomadAPI() (*APIClient, error) {
+	product := "nomad"
+
 	addr := os.Getenv("NOMAD_ADDR")
 	if addr == "" {
 		addr = DefaultNomadAddr
@@ -39,7 +41,14 @@ func NewNomadAPI() (*APIClient, error) {
 		return nil, err
 	}
 
-	apiClient, err := NewAPIClient("nomad", addr, headers, tlsConfig)
+	cfg := APIConfig{
+		Product:   product,
+		BaseURL:   addr,
+		TLSConfig: tlsConfig,
+		headers:   headers,
+	}
+
+	apiClient, err := NewAPIClient(cfg)
 	if err != nil {
 		return nil, err
 	}
