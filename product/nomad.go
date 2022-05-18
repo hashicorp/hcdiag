@@ -45,6 +45,7 @@ func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 		s.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
 
 		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since),
+		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until),
 	}
 
 	// try to detect log location to copy
@@ -52,10 +53,6 @@ func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 		dest := filepath.Join(cfg.TmpDir, "logs", "nomad")
 		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
-	}
-	// get logs from journald if available
-	if journald := s.JournaldGetter("nomad", cfg.TmpDir, cfg.Since, cfg.Until); journald != nil {
-		seekers = append(seekers, journald)
 	}
 
 	return seekers, nil
