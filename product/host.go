@@ -26,5 +26,6 @@ func HostSeekers(os string) []*seeker.Seeker {
 		host.NewMemory(),
 		host.NewProcess(),
 		host.NewNetwork(),
+		host.NewIPTables(),
 	}
 }
