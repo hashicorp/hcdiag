@@ -102,3 +102,25 @@ func TestFstab_Run(t *testing.T) {
 		})
 	}
 }
+
+func TestNewFstab(t *testing.T) {
+	testCases := []struct {
+		name     string
+		os       string
+		expected Fstab
+	}{
+		{
+			name:     "Test Linux",
+			os:       "linux",
+			expected: Fstab{os: "linux"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fstab := NewFstab(tc.os)
+			runner := fstab.Runner.(Fstab)
+			assert.Equal(t, tc.expected.os, runner.os)
+		})
+	}
+}

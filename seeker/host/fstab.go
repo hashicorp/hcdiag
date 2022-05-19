@@ -2,7 +2,6 @@ package host
 
 import (
 	"fmt"
-	"runtime"
 
 	"github.com/hashicorp/hcdiag/seeker"
 )
@@ -14,11 +13,11 @@ type Fstab struct {
 	sheller *seeker.Seeker
 }
 
-func NewFstab() *seeker.Seeker {
+func NewFstab(os string) *seeker.Seeker {
 	return &seeker.Seeker{
 		Identifier: "/etc/fstab",
 		Runner: Fstab{
-			os:      runtime.GOOS,
+			os:      os,
 			sheller: seeker.NewSheller("cat /etc/fstab"),
 		},
 	}
