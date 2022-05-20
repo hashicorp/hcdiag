@@ -94,9 +94,7 @@ func TestFstab_Run(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			expected := tc.expected
 			result, status, err := tc.fstab.Run()
-			if expected.result != nil {
-				assert.Equal(t, expected.result, result)
-			}
+			assert.Equal(t, expected.result, result)
 			assert.Equal(t, expected.status, status)
 			assert.Equal(t, expected.err, err)
 		})
