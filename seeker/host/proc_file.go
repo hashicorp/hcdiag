@@ -2,7 +2,6 @@ package host
 
 import (
 	"fmt"
-	"runtime"
 
 	"github.com/hashicorp/hcdiag/seeker"
 )
@@ -14,11 +13,11 @@ type ProcFile struct {
 	commands []string
 }
 
-func NewProcFile() *seeker.Seeker {
+func NewProcFile(os string) *seeker.Seeker {
 	return &seeker.Seeker{
 		Identifier: "/proc/ files",
 		Runner: ProcFile{
-			os: runtime.GOOS,
+			os: os,
 			commands: []string{
 				"cat /proc/cpuinfo",
 				"cat /proc/loadavg",
