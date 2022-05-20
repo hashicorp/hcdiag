@@ -1,10 +1,9 @@
 package host
 
 import (
-	"net"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/seeker"
+	"github.com/shirou/gopsutil/v3/net"
 )
 
 var _ seeker.Runner = &Network{}
@@ -16,11 +15,11 @@ func NewNetwork() *seeker.Seeker {
 type Network struct{}
 
 func (n Network) Run() (interface{}, seeker.Status, error) {
-	networkInfo, err := net.Interfaces()
+	netInterfaces, err := net.Interfaces()
 	if err != nil {
 		hclog.L().Trace("seeker/host.Network.Run()", "error", err)
-		return networkInfo, seeker.Fail, err
+		return nil, seeker.Fail, err
 	}
 
-	return networkInfo, seeker.Success, err
+	return netInterfaces, seeker.Success, nil
 }
