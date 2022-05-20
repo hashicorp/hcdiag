@@ -19,6 +19,11 @@ type Config struct {
 	Until       time.Time `json:"until"`
 	Includes    []string  `json:"includes"`
 	Destination string    `json:"destination"`
+
+	// DebugDuration
+	DebugDuration time.Duration `json:"debug_duration"`
+	// DebugInterval
+	DebugInterval time.Duration `json:"debug_interval"`
 }
 
 type HostConfig struct {

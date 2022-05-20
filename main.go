@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/hcdiag/product"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/agent"
 )
@@ -16,7 +18,7 @@ import (
 const SemVer string = "0.3.0"
 
 // SeventyTwoHours represents the duration "72h" parsed in nanoseconds
-const SeventyTwoHours time.Duration = 259200000000000
+const SeventyTwoHours = 72 * time.Hour
 
 func main() {
 	os.Exit(realMain())
@@ -122,6 +124,12 @@ type Flags struct {
 
 	// Get hcdiag version
 	Version bool
+
+	// Duration param for product debug bundles
+	DebugDuration time.Duration
+
+	// Interval param for product debug bundles
+	DebugInterval time.Duration
 }
 
 type CSVFlag struct {
@@ -149,14 +157,16 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.TFE, "terraform-ent", false, "(Experimental) Run Terraform Enterprise diagnostics")
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
 	flags.BoolVar(&f.AllProducts, "all", false, "DEPRECATED: Run all available product diagnostics")
+	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
+	flags.DurationVar(&f.IncludeSince, "include-since", SeventyTwoHours, "Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
+	flags.DurationVar(&f.Since, "since", SeventyTwoHours, "Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
+	flags.DurationVar(&f.DebugDuration, "debug-duration", product.DefaultDuration, "How long to run product debug bundle commands. Provide a duration ex: `00h00m00s`. See: -duration in `vault debug`, `consul debug`, and `nomad operator debug`")
+	flags.DurationVar(&f.DebugInterval, "debug-interval", product.DefaultInterval, "How long metrics collection intervals in product debug commands last. Provide a duration ex: `00h00m00s`. See: -interval in `vault debug`, `consul debug`, and `nomad operator debug`")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
 	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
 	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
 	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file")
-	flags.DurationVar(&f.IncludeSince, "include-since", SeventyTwoHours, "Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
-	flags.DurationVar(&f.Since, "since", SeventyTwoHours, "Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
-	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
 
 	// Ensure f.Destination points to some kind of directory by its notation
 	// FIXME(mkcp): trailing slashes should be trimmed in path.Dir... why does a double slash end in a slash?
@@ -185,6 +195,10 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 
 	// Bundle write location
 	config.Destination = flags.Destination
+
+	// Apply Debug{Duration,Interval}
+	config.DebugDuration = flags.DebugDuration
+	config.DebugInterval = flags.DebugInterval
 
 	return config
 }

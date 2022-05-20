@@ -3,6 +3,7 @@ package product
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
@@ -12,8 +13,8 @@ import (
 const (
 	NomadClientCheck   = "nomad version"
 	NomadAgentCheck    = "nomad server members"
-	NomadDebugDuration = "2m"
-	NomadDebugInterval = "30s"
+	NomadDebugDuration = 2 * time.Minute
+	NomadDebugInterval = 30 * time.Second
 )
 
 // NewNomad takes a product config and creates a Product with all of Nomad's default seekers
@@ -23,10 +24,21 @@ func NewNomad(cfg Config) (*Product, error) {
 		return nil, err
 	}
 
+	// Apply nomad duration and interval default if CLI is using global defaults.
+	// NOTE(mkcp): The downside to this approach is that Nomad cannot be run with a 10s duration and 5s interval.
+	//  passing in a zero value from the agent would allow us to do that, but the flags library requires a default value
+	//  to be set in order to _show_ that default to the user, so we have to set the agent with that default.
+	if DefaultDuration == cfg.DebugDuration {
+		cfg.DebugDuration = NomadDebugDuration
+	}
+	if DefaultInterval == cfg.DebugDuration {
+		cfg.DebugInterval = NomadDebugInterval
+	}
 	seekers, err := NomadSeekers(cfg, api)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Product{
 		Seekers: seekers,
 	}, nil
@@ -38,7 +50,7 @@ func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 		s.NewCommander("nomad version", "string"),
 		s.NewCommander("nomad node status -self -json", "json"),
 		s.NewCommander("nomad agent-info -json", "json"),
-		s.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, NomadDebugDuration, NomadDebugInterval), "string"),
+		s.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
 		s.NewHTTPer(api, "/v1/agent/members?stale=true"),
 		s.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
