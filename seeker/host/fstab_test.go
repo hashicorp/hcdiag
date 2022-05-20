@@ -20,7 +20,7 @@ func (m mockShellRunner) Run() (interface{}, seeker.Status, error) {
 
 var _ seeker.Runner = mockShellRunner{}
 
-func TestFstab_Run(t *testing.T) {
+func TestFSTab_Run(t *testing.T) {
 	type response struct {
 		result    interface{}
 		status    seeker.Status
@@ -103,7 +103,7 @@ func TestFstab_Run(t *testing.T) {
 	}
 }
 
-func TestNewFstab(t *testing.T) {
+func TestNewFSTab(t *testing.T) {
 	testCases := []struct {
 		name     string
 		os       string
