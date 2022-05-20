@@ -24,13 +24,14 @@ func NewNomad(cfg Config) (*Product, error) {
 		return nil, err
 	}
 
-	// Apply nomad duration and interval default if CLI is using global defaults
-	// NOTE(mkcp): This isn't ideal because we're using magic numbers here to match the CLI defaults. We could pass a
-	//  tuple or something in from the CLI that describes both the default and the user-set value... but i'm timeboxing this.
-	if cfg.DebugDuration == 10*time.Second {
+	// Apply nomad duration and interval default if CLI is using global defaults.
+	// NOTE(mkcp): The downside to this approach is that Nomad cannot be run with a 10s duration and 5s interval.
+	//  passing in a zero value from the agent would allow us to do that, but the flags library requires a default value
+	//  to be set in order to _show_ that default to the user, so we have to set the agent with that default.
+	if DefaultDuration == cfg.DebugDuration {
 		cfg.DebugDuration = NomadDebugDuration
 	}
-	if cfg.DebugInterval == 5*time.Second {
+	if DefaultInterval == cfg.DebugDuration {
 		cfg.DebugInterval = NomadDebugInterval
 	}
 	seekers, err := NomadSeekers(cfg, api)

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/hcdiag/product"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/agent"
 )
@@ -17,8 +19,6 @@ const SemVer string = "0.3.0"
 
 // SeventyTwoHours represents the duration "72h" parsed in nanoseconds
 const SeventyTwoHours = 72 * time.Hour
-const TenSeconds = 10 * time.Second
-const FiveSeconds = 5 * time.Second
 
 func main() {
 	os.Exit(realMain())
@@ -160,8 +160,8 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
 	flags.DurationVar(&f.IncludeSince, "include-since", SeventyTwoHours, "Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.DurationVar(&f.Since, "since", SeventyTwoHours, "Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
-	flags.DurationVar(&f.DebugDuration, "debug-duration", TenSeconds, "How long to run product debug bundle commands. Provide a duration ex: `00h00m00s`. See: -duration in `vault debug`, `consul debug`, and `nomad operator debug`")
-	flags.DurationVar(&f.DebugInterval, "debug-interval", FiveSeconds, "How long metrics collection intervals in product debug commands last. Provide a duration ex: `00h00m00s`. See: -interval in `vault debug`, `consul debug`, and `nomad operator debug`")
+	flags.DurationVar(&f.DebugDuration, "debug-duration", product.DefaultDuration, "How long to run product debug bundle commands. Provide a duration ex: `00h00m00s`. See: -duration in `vault debug`, `consul debug`, and `nomad operator debug`")
+	flags.DurationVar(&f.DebugInterval, "debug-interval", product.DefaultInterval, "How long metrics collection intervals in product debug commands last. Provide a duration ex: `00h00m00s`. See: -interval in `vault debug`, `consul debug`, and `nomad operator debug`")
 	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
 	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
 	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
@@ -196,6 +196,7 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	// Bundle write location
 	config.Destination = flags.Destination
 
+	// Apply Debug{Duration,Interval}
 	config.DebugDuration = flags.DebugDuration
 	config.DebugInterval = flags.DebugInterval
 

@@ -16,6 +16,11 @@ const (
 	Vault  = "vault"
 )
 
+const (
+	DefaultDuration = 10 * time.Second
+	DefaultInterval = 5 * time.Second
+)
+
 type Config struct {
 	Logger        *hclog.Logger
 	Name          string
@@ -53,7 +58,7 @@ func (p *Product) Filter() error {
 	return err
 }
 
-// CommanderHealthCheck employs the the CLI to check if the client and then the agent are available.
+// CommanderHealthCheck employs the CLI to check if the client and then the agent are available.
 func CommanderHealthCheck(client, agent string) error {
 	isClientAvailable := seeker.NewCommander(client, "string")
 	if result, err := isClientAvailable.Run(); err != nil {
