@@ -22,39 +22,39 @@ var _ seeker.Runner = mockShellRunner{}
 
 func TestFstab_Run(t *testing.T) {
 	type response struct {
-		result interface{}
-		status seeker.Status
-		err    error
+		result    interface{}
+		status    seeker.Status
+		expectErr bool
 	}
 
 	testCases := []struct {
 		name     string
-		fstab    Fstab
+		fstab    FSTab
 		expected response
 	}{
 		{
 			name: "Test Windows Does Not Run",
-			fstab: Fstab{
+			fstab: FSTab{
 				os: "windows",
 			},
 			expected: response{
-				status: seeker.Success,
-				err:    fmt.Errorf("Fstab.Run() not available on os, os=windows"),
+				status:    seeker.Success,
+				expectErr: true,
 			},
 		},
 		{
 			name: "Test Darwin Does Not Run",
-			fstab: Fstab{
+			fstab: FSTab{
 				os: "darwin",
 			},
 			expected: response{
-				status: seeker.Success,
-				err:    fmt.Errorf("Fstab.Run() not available on os, os=darwin"),
+				status:    seeker.Success,
+				expectErr: true,
 			},
 		},
 		{
 			name: "Test Successful Run",
-			fstab: Fstab{
+			fstab: FSTab{
 				os: "linux",
 				sheller: &seeker.Seeker{
 					Runner: mockShellRunner{
@@ -65,14 +65,14 @@ func TestFstab_Run(t *testing.T) {
 				},
 			},
 			expected: response{
-				result: "contents",
-				status: seeker.Success,
-				err:    nil,
+				result:    "contents",
+				status:    seeker.Success,
+				expectErr: false,
 			},
 		},
 		{
 			name: "Test Unsuccessful Run",
-			fstab: Fstab{
+			fstab: FSTab{
 				os: "linux",
 				sheller: &seeker.Seeker{
 					Runner: mockShellRunner{
@@ -83,9 +83,9 @@ func TestFstab_Run(t *testing.T) {
 				},
 			},
 			expected: response{
-				result: nil,
-				status: seeker.Fail,
-				err:    fmt.Errorf("an error"),
+				result:    nil,
+				status:    seeker.Fail,
+				expectErr: true,
 			},
 		},
 	}
@@ -96,7 +96,9 @@ func TestFstab_Run(t *testing.T) {
 			result, status, err := tc.fstab.Run()
 			assert.Equal(t, expected.result, result)
 			assert.Equal(t, expected.status, status)
-			assert.Equal(t, expected.err, err)
+			if tc.expected.expectErr {
+				assert.Error(t, err)
+			}
 		})
 	}
 }
@@ -105,19 +107,19 @@ func TestNewFstab(t *testing.T) {
 	testCases := []struct {
 		name     string
 		os       string
-		expected Fstab
+		expected FSTab
 	}{
 		{
 			name:     "Test Linux",
 			os:       "linux",
-			expected: Fstab{os: "linux"},
+			expected: FSTab{os: "linux"},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fstab := NewFstab(tc.os)
-			runner := fstab.Runner.(Fstab)
+			fstab := NewFSTab(tc.os)
+			runner := fstab.Runner.(FSTab)
 			assert.Equal(t, tc.expected.os, runner.os)
 		})
 	}
