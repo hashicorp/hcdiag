@@ -22,3 +22,9 @@
 *.gz*
 *notes*
 .DS_Store*
+
+# GoLand files
+.idea
+
+# Vagrant box files
+.vagrant
