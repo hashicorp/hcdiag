@@ -34,7 +34,7 @@ func NewConsul(cfg Config) (*Product, error) {
 func ConsulSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 	seekers := []*s.Seeker{
 		s.NewCommander("consul version", "string"),
-		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%ds -interval=%ds", cfg.TmpDir, DefaultDebugSeconds, DefaultIntervalSeconds), "string"),
 
 		s.NewHTTPer(api, "/v1/agent/self"),
 		s.NewHTTPer(api, "/v1/agent/metrics"),

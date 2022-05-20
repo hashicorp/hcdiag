@@ -17,19 +17,17 @@ const (
 )
 
 const (
-	DefaultDuration = 10 * time.Second
-	DefaultInterval = 5 * time.Second
+	DefaultDebugSeconds    = 10
+	DefaultIntervalSeconds = 5
 )
 
 type Config struct {
-	Logger        *hclog.Logger
-	Name          string
-	TmpDir        string
-	Since         time.Time
-	Until         time.Time
-	OS            string
-	DebugDuration time.Duration
-	DebugInterval time.Duration
+	Logger *hclog.Logger
+	Name   string
+	TmpDir string
+	Since  time.Time
+	Until  time.Time
+	OS     string
 }
 
 type Product struct {
@@ -58,7 +56,7 @@ func (p *Product) Filter() error {
 	return err
 }
 
-// CommanderHealthCheck employs the CLI to check if the client and then the agent are available.
+// CommanderHealthCheck employs the the CLI to check if the client and then the agent are available.
 func CommanderHealthCheck(client, agent string) error {
 	isClientAvailable := seeker.NewCommander(client, "string")
 	if result, err := isClientAvailable.Run(); err != nil {

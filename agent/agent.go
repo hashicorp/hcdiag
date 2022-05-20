@@ -412,13 +412,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	}
 
 	cfg := product.Config{
-		Logger:        &a.l,
-		TmpDir:        a.tmpDir,
-		Since:         a.Config.Since,
-		Until:         a.Config.Until,
-		OS:            a.Config.OS,
-		DebugDuration: a.Config.DebugDuration,
-		DebugInterval: a.Config.DebugInterval,
+		Logger: &a.l,
+		TmpDir: a.tmpDir,
+		Since:  a.Config.Since,
+		Until:  a.Config.Until,
+		OS:     a.Config.OS,
 	}
 	p := make(map[string]*product.Product)
 	if a.Config.Consul {
