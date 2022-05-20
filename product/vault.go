@@ -42,6 +42,7 @@ func VaultSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 		s.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%ds", cfg.TmpDir, DefaultDebugSeconds), "string"),
 
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since),
+		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until),
 	}
 
 	// try to detect log location to copy
@@ -49,10 +50,6 @@ func VaultSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 		dest := filepath.Join(cfg.TmpDir, "logs/vault")
 		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
 		seekers = append([]*s.Seeker{logCopier}, seekers...)
-	}
-	// get logs from journald if available
-	if journald := s.JournaldGetter("vault", cfg.TmpDir, cfg.Since, cfg.Until); journald != nil {
-		seekers = append(seekers, journald)
 	}
 
 	return seekers, nil
