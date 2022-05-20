@@ -31,7 +31,7 @@ func NewNomad(cfg Config) (*Product, error) {
 	if DefaultDuration == cfg.DebugDuration {
 		cfg.DebugDuration = NomadDebugDuration
 	}
-	if DefaultInterval == cfg.DebugDuration {
+	if DefaultInterval == cfg.DebugInterval {
 		cfg.DebugInterval = NomadDebugInterval
 	}
 	seekers, err := NomadSeekers(cfg, api)
