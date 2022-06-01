@@ -1,6 +1,8 @@
 # don't cache tests
 export GOFLAGS = -count=1
 
+VERSION = $(shell ./build-scripts/version.sh version/version.go)
+
 help: ## show this make help
 	@awk -F'[:#]' '/#\#/ { printf "%-15s %s\n", $$1, $$NF }' $(MAKEFILE_LIST)
 .PHONY: help
@@ -41,6 +43,10 @@ show-versions: ## show product and hcdiag versions
 clean: ## clean bin and bundle files
 	rm -rf bin/ hcdiag-*
 .PHONY: clean
+
+version: ## Show the version of the project
+	@echo $(VERSION)
+.PHONY: version
 
 # windows:
 # $env:path = "$pwd/bin;$env:path"
