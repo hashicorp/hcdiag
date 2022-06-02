@@ -99,7 +99,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           mkdir dist out
-          go build ${{ needs.generate-ld-flags.outputs.ldflags }} -o dist/ .
+          go build -ldflags=${{ needs.generate-ld-flags.outputs.ldflags }} -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -136,7 +136,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           mkdir dist out
-          go build ${{ needs.generate-ld-flags.outputs.ldflags }} -o dist/ .
+          go build -ldflags=${{ needs.generate-ld-flags.outputs.ldflags }} -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -204,7 +204,7 @@ jobs:
       - name: Build
         run: |
           mkdir dist out
-          go build ${{ needs.generate-ld-flags.outputs.ldflags }} -o dist/ .
+          go build -ldflags=${{ needs.generate-ld-flags.outputs.ldflags }} -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
