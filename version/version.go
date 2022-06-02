@@ -4,81 +4,84 @@ import (
 	"fmt"
 )
 
-var (
-	// Version is the main version number that is being run at the moment.
-	//
-	// Version must be of the format <MAJOR>.<MINOR>.<PATCH>, as described in the semantic versioning specification.
-	Version = "0.4.0"
-
-	// Prerelease is a pre-release marker for the version. If this is "" (empty string) then it means that
-	//it is a final release. Otherwise, this is a pre-release such as "dev" (in development),
-	// "beta", "rc1", etc.
-	Prerelease = "dev"
-
-	// Metadata is any additional (optional) information regarding the build, as described by the semantic
-	// versioning specification.
-	Metadata string
-
-	// GitCommit is the commit associated with the build. It is set by the build process and should not require
-	// human updates under normal circumstances.
-	GitCommit string
-
-	// BuildDate is the date/time when the build was created. It is set by the build process and should not require
-	// human updates under normal circumstances.
-	BuildDate string
+const (
+	slug = "hcdiag v"
 )
 
-// VersionInfo is a container for version information.
-type VersionInfo struct {
+var (
+	// version is the main version number that is being run at the moment.
+	//
+	// version must be of the format <MAJOR>.<MINOR>.<PATCH>, as described in the semantic versioning specification.
+	version = "0.4.0"
+
+	// prerelease is a pre-release marker for the version. If this is "" (empty string) then it means that
+	// it is a final release. Otherwise, this is a pre-release such as "dev" (in development),
+	// "beta", "rc1", etc.
+	prerelease = "dev"
+
+	// metadata is any additional (optional) information regarding the build, as described by the semantic
+	// versioning specification.
+	metadata string
+
+	// gitCommit is the commit associated with the build. It is set by the build process and should not require
+	// human updates under normal circumstances.
+	gitCommit string
+
+	// buildDate is the date/time when the build was created. It is set by the build process and should not require
+	// human updates under normal circumstances.
+	buildDate string
+)
+
+// Version is a container for version information.
+type Version struct {
 	Version    string `json:"version,omitempty"`
 	Prerelease string `json:"prerelease,omitempty"`
 	Metadata   string `json:"build_metadata,omitempty"`
-	BuildDate  string `json:"build_date,omitempty"`
 	Revision   string `json:"revision,omitempty"`
+	BuildDate  string `json:"build_date,omitempty"`
 }
 
-// GetVersion produces a VersionInfo that includes fields set based on version package variables.
-func GetVersion() VersionInfo {
-	return VersionInfo{
-		Version:    Version,
-		Prerelease: Prerelease,
-		Metadata:   Metadata,
-		BuildDate:  BuildDate,
-		Revision:   GitCommit,
+// GetVersion produces a Version that includes fields set based on version package variables.
+func GetVersion() Version {
+	return Version{
+		Version:    version,
+		Prerelease: prerelease,
+		Metadata:   metadata,
+		Revision:   gitCommit,
+		BuildDate:  buildDate,
 	}
 }
 
-// VersionNumber produces a semantic version number from a VersionInfo object.
-func (c VersionInfo) VersionNumber() string {
-	version := c.Version
+// SemanticVersion produces a semantic version number from a Version object.
+func (v Version) SemanticVersion() string {
+	sv := v.Version
 
-	if c.Prerelease != "" {
-		version = fmt.Sprintf("%s-%s", version, c.Prerelease)
+	if v.Prerelease != "" {
+		sv = fmt.Sprintf("%s-%s", sv, v.Prerelease)
 	}
 
-	if c.Metadata != "" {
-		version = fmt.Sprintf("%s+%s", version, c.Metadata)
+	if v.Metadata != "" {
+		sv = fmt.Sprintf("%s+%s", sv, v.Metadata)
 	}
 
-	return version
+	return sv
 }
 
-// FullVersionNumber produces a human-readable string representation of the VersionInfo object.
+// FullVersionNumber produces a human-readable string representation of the Version object.
 //
 // In addition to a short slug that includes the product name (hcdiag) and the semantic version,
-// the Revision will be included if the optional argument, `rev`, is true. Further, if a BuildDate
+// the Revision will be included if the optional argument, `rev`, is true. Further, if a buildDate
 // is set, it is also included in the output.
-func (c VersionInfo) FullVersionNumber(rev bool) string {
-	const slug = "hcdiag v"
+func (v Version) FullVersionNumber(rev bool) string {
 	versionString := slug
-	versionString += c.VersionNumber()
+	versionString += v.SemanticVersion()
 
-	if rev && c.Revision != "" {
-		versionString += fmt.Sprintf(" (%s)", c.Revision)
+	if rev && v.Revision != "" {
+		versionString += fmt.Sprintf(" (%s)", v.Revision)
 	}
 
-	if c.BuildDate != "" {
-		versionString += fmt.Sprintf(", built %s", c.BuildDate)
+	if v.BuildDate != "" {
+		versionString += fmt.Sprintf(", built %s", v.BuildDate)
 	}
 
 	return versionString
