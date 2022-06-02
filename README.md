@@ -1,58 +1,75 @@
 # hcdiag
+`hcdiag` simplifies debugging HashiCorp products by automating shared and product-specific diagnostics data collection on individual nodes. The output of these commands is bundled up into a tar.gz bundle in the destination directory `hcdiag` is run 
 
-The purpose of this tool is to simplify the collection of relevant support data for HashiCorp products. The tool will execute a number of commands to collect system information (./hcdiag) and product information for any number of supported products. The output of these commands is stored in a temporary directory and bundled into a single archive as an output. You may perform a `-dryrun` to view these commands before executing them and you can also see them clearly defined in code in the aforementioned locations.
+The utility is optimized for transparency and frugality. We believe users should be fully informed on how `hcdiag` works and what it collects, and that `hcdiag` collects no more data than is necessary.
 
-## Prerequisites
+Features like `-dryrun`, declarative HCL config, and filters give users visibility and agency into what will run, and 
+the open, non-proprietary, bundle format makes the results, manifest, and included files available for inspection. Bundles can also be inspected by users directly 
 
-The following subsections cover product specific prerequisite items such as environment variables required to successfully communicate with a given environment.
-
-### Consul
-
-- CLI
-    - Consul CLI documentation is available [here](https://www.consul.io/commands/index)
-    - The [Consul binary](https://www.consul.io/downloads) must be available on the local machine
-- API
-    - Consul API documentation is available [here](https://www.consul.io/api-docs)
-    - Environment variable [CONSUL_HTTP_ADDR](https://www.consul.io/commands#consul_http_addr) must be set to the HTTP address to the local Consul agent
-    - Environment variable [CONSUL_TOKEN](https://www.consul.io/commands#consul_http_token) may be set to the API access token if ACLs are enabled.
-
-### Nomad
-
-- CLI
-    - Nomad CLI documentation is available [here](https://www.nomadproject.io/docs/commands)
-    - The [Nomad binary](https://www.nomadproject.io/downloads) must be available on the local machine
-- API
-    - Nomad API documentation is available [here](https://www.nomadproject.io/api-docs)
-    - Environment variable [NOMAD_ADDR](https://www.nomadproject.io/docs/commands#nomad_addr) must be set to the HTTP address of the Nomad server
-    - Environment variable [NOMAD_TOKEN](https://www.nomadproject.io/docs/commands#nomad_token) may be set to the SecretID of an ACL token for API requests if ACLs are enabled.
-
-### Terraform Enterprise/Cloud
-
-- CLI
-    - Replicated CLI documentation is available [here](https://help.replicated.com/api/replicatedctl/)
-    - The Terraform binary is not currently required on the local machine
-    - CLI currently limited to self-managed TFE environments
-- API
-    - Terraform Enterprise/Cloud API documentation is available [here](https://www.terraform.io/docs/cloud/api/index.html)
-    - Environment variable `TFE_HTTP_ADDR` must be set to the HTTP address of a Terraform Enterprise or Terraform Cloud environment
-    - Environment variable [TFE_TOKEN](https://www.terraform.io/docs/cloud/api/index.html#authentication) must be set to an appropriate bearer token (user, team, or organization)
-
-### Vault
-
-- CLI
-    - Vault CLI documentation is available [here](https://www.vaultproject.io/docs/commands)
-    - The [Vault binary](https://www.vaultproject.io/downloads) must be available on the local machine
-- API
-    - Vault API documentation is available [here](https://www.vaultproject.io/api)
-    - Environment variable [VAULT_ADDR](https://www.vaultproject.io/docs/commands#vault_addr) must be set to the HTTP address of the Vault server
-    - Environment variable [VAULT_TOKEN](https://www.vaultproject.io/docs/commands#vault_token) must be set to the Vault authentication token
-        - Alternatively, a token may also exist at ~/.vault-token
-        - If both are present, `VAULT_TOKEN` will be used.
+We are constantly refining the utility to be safe, reliable, and speedy. If you have any concerns please voice them via the GitHub issues so we may address them. 
 
 ## Usage
+To reliably debug the widest variety of issues with the lowest impact on each machine, `hcdiag` runs on one node at a time and gathers the view of the current node whenever possible. 
 
-### Input
+### Prerequisites
+The `hcdiag` binary often issues commands using HashiCorp's product clients so the utility must have access to a fully configured client in its environment for product diagnostics. Specifics are offered below per client.
 
+#### Consul
+- [Consul CLI documentation](https://www.consul.io/commands/index)
+- [Consul API documentation](https://www.consul.io/api-docs)
+- **Requirements**
+  - The [Consul binary](https://www.consul.io/downloads) must be available on the local machine
+  - Environment variable [CONSUL_HTTP_ADDR](https://www.consul.io/commands#consul_http_addr) must be set to the HTTP address to the local Consul agent
+  - Environment variable [CONSUL_TOKEN](https://www.consul.io/commands#consul_http_token) must be set to the API access token if ACLs are enabled.
+
+#### Nomad
+- [Nomad CLI documentation](https://www.nomadproject.io/docs/commands)
+- [Nomad API documentation](https://www.nomadproject.io/api-docs)
+- **Requirements**
+  - The [Nomad binary](https://www.nomadproject.io/downloads) must be available on the local machine
+  - Environment variable [NOMAD_ADDR](https://www.nomadproject.io/docs/commands#nomad_addr) must be set to the HTTP address of the Nomad server
+  - Environment variable [NOMAD_TOKEN](https://www.nomadproject.io/docs/commands#nomad_token) may be set to the SecretID of an ACL token for API requests if ACLs are enabled.
+
+#### Terraform Enterprise/Cloud
+Terraform Enterprise historically uses replicated to provide similar functionality to `hcdiag` and for ease of use and compatibility during the migration period we include its results in the hcdiag bundle.
+- [Terraform Enterprise/Cloud API documentation](https://www.terraform.io/docs/cloud/api/index.html)
+- [Replicated CLI documentation](https://help.replicated.com/api/replicatedctl/)
+- **Requirements**
+  - Environment variable `TFE_HTTP_ADDR` must be set to the HTTP address of a Terraform Enterprise or Terraform Cloud environment
+  - Environment variable [TFE_TOKEN](https://www.terraform.io/docs/cloud/api/index.html#authentication) must be set to an appropriate bearer token (user, team, or organization)
+  - Unlike other products, the Terraform binary is not required on the target machine
+  - CLI currently limited to self-managed TFE environments
+
+#### Vault
+- [Vault CLI documentation](https://www.vaultproject.io/docs/commands)
+- [Vault API documentation](https://www.vaultproject.io/api)
+- **Requirements**
+  - [Vault binary](https://www.vaultproject.io/downloads) must be available on the local machine
+  - Environment variable [VAULT_ADDR](https://www.vaultproject.io/docs/commands#vault_addr) must be set to the HTTP address of the Vault server
+  - Environment variable [VAULT_TOKEN](https://www.vaultproject.io/docs/commands#vault_token) must be set to the Vault authentication token
+  - Alternatively, a token may also exist at ~/.vault-token
+    - If both are present, `VAULT_TOKEN` will be used.
+
+### Example Runs
+- Log hcdiag run to console without reading or writing. (Also checks client requirements setup)
+  - `hcdiag -dryrun`
+
+- Gather node and diagnostics for one or many products
+  - `hcdiag -vault {-nomad, -consul}`
+
+- Gather diagnostics with config
+  - `hcdiag -vault -config cfg.hcl`
+
+- Gather diagnostics from the last day, rather than the default 3 days
+  - `hcdiag -vault -since 24hr`
+
+- Gather diagnostics and write bundle to a specific location. (default is `$PWD`)
+  - `hcdiag -vault -dest /tmp/hcdiag`
+
+- Gather diagnostics and use the CLI to copy individual files or whole directories
+  - `hcdiag -vault -include "/var/log/dmesg,/var/log/vault-"`
+
+### Flags
 | Argument | Description | Type | Default Value |
 |----------|-------------|------| ------------- |
 | `dryrun` | Perform a dry run to display commands without executing them | bool | false |
@@ -69,20 +86,6 @@ The following subsections cover product specific prerequisite items such as envi
 | `dest` | Shorthand for -destination | string | "." |
 | `config` | Path to HCL configuration file | string | "" |
 | `serial` | Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load. | bool | false |
-
-###  Examples
-
-- Host diagnostics only  
-    - `hcdiag`
-
-- Host and Vault diagnostics  
-    - `hcdiag -vault`
-
-- Host, Consul, and Nomad diagnostics  
-    - `hcdiag -consul -nomad`
-
-- Host and all available product diagnostics  
-    - `hcdiag -all`
 
 
 ### Custom Seekers with Configuration
@@ -103,13 +106,10 @@ tells hcdiag how to parse the result. The `product "consul" {}` block ensures we
 
 Let's go over how to write the custom configuration:
 
-We offer 3 seeker types: `command`, `GET`, and `copy`. `command` describes a CLI command to execute. `GET` describes an
-HTTP request to the corresponding product at the path extension. Finally, `copy` copies files over into the support
-bundle. 
-
 Seekers must be described in a `product` or `host` block. These contain our seekers and tell hcdiag where the store the
 results. If a command or file copy is not product specific, `host { ... }` scopes the seeker to the machine the seeker
-is run on. The supported product blocks are: `"consul", "vault", "nomad",` and `"terraform-ent"`.
+is run on. The supported product blocks are: `"consul", "vault", "nomad",` and `"terraform-ent"`. A full reference table
+of seekers is available in a table below.
 
 Lastly, we'll cover filters. Filters optionally let you remove results from the support bundle. The two options are
 `excludes` and `selects`. Each is an array that takes a list of seeker IDs. `exclude` removes matching seekers from the
