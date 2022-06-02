@@ -12,7 +12,7 @@ func TestGetVersion(t *testing.T) {
 	assert.Equal(t, prerelease, vi.Prerelease)
 }
 
-func TestVersionInfo_VersionNumber(t *testing.T) {
+func TestVersionInfo_SemanticVersion(t *testing.T) {
 	testCases := []struct {
 		name     string
 		v        Version
