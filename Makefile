@@ -18,7 +18,7 @@ bin:
 	mkdir -p bin
 
 bin/hcdiag: bin
-	go build -o bin -ldflags="-X main.GitRef=$(shell whoami)" .
+	go build -trimpath -o bin .
 	$(PWD)/bin/hcdiag -version
 
 test: ## run tests
