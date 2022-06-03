@@ -57,7 +57,6 @@ jobs:
     needs:
       - get-go-version
       - get-product-version
-      - generate-ld-flags
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -93,7 +92,6 @@ jobs:
     needs:
       - get-go-version
       - get-product-version
-      - generate-ld-flags
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -160,7 +158,6 @@ jobs:
     needs:
       - get-go-version
       - get-product-version
-      - generate-ld-flags
     runs-on: macos-latest
     strategy:
       matrix:
