@@ -150,3 +150,14 @@ product "consul" {
   selects = ["consul include this", "consul and this"]
 }
 ```
+
+#### Table of Available Seekers
+
+More will be added as they are made available
+
+| Constructor | Config Block  | Description | Parameters
+|---| --- | --- | ---
+|  `seeker.NewCommander(...)` | `command` | Issues a CLI command and optionally parses the result if format JSON is specified. Otherwise use string. | `command = <string,required>` <br/> `format = <string,required>`
+|  `seeker.NewCopier(...)`    | `copy`    | Copies the file or directory and all of its contents into the bundle using the same name. Since will check the last modified time of the file and ignore if it's outside the duration. | `path = <string,required>` <br/> `since = <duration,optional>`
+|  `seeker.NewHTTPer(...)`    | `GET`     | Makes an HTTP get request to the path | `path = <string,required>`
+|  `seeker.NewSheller(...)`   | `shell`   | An "escape hatch" allowing arbitrary shell strings to be executed. | `run = <string,required>`
