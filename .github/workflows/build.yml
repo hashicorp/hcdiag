@@ -53,23 +53,6 @@ jobs:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
 
-  generate-ld-flags:
-    needs: get-product-version
-    runs-on: ubuntu-latest
-    outputs:
-      ldflags: ${{ steps.generate-ld-flags.outputs.ldflags }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.inputs.build-ref }}
-      - name: "Generate ld flags"
-        id: generate-ld-flags
-        run: |
-          project="$(go list -m)"
-          sha="$(git rev-parse --short HEAD)"
-          echo "::set-output name=ldflags::"-s -w \
-            -X \'$project/version.gitCommit=${sha}\'""
-
   build-other:
     needs:
       - get-go-version
@@ -98,9 +81,8 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          mkdir dist out
-          go build -ldflags="${{ needs.generate-ld-flags.outputs.ldflags }}" -o dist/ .
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          make build
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip bin/
 
       - uses: actions/upload-artifact@v2
         with:
@@ -135,9 +117,8 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          mkdir dist out
-          go build -ldflags="${{ needs.generate-ld-flags.outputs.ldflags }}" -o dist/ .
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          make build
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip bin/
 
       - uses: actions/upload-artifact@v2
         with:
@@ -203,9 +184,8 @@ jobs:
 
       - name: Build
         run: |
-          mkdir dist out
-          go build -ldflags="${{ needs.generate-ld-flags.outputs.ldflags }}" -o dist/ .
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          make build
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip bin/
 
       - uses: actions/upload-artifact@v2
         with:

@@ -1,7 +1,7 @@
 # don't cache tests
 export GOFLAGS = -count=1
 
-VERSION = $(shell ./build-scripts/version.sh version/version.go)
+VERSION := $(shell ./build-scripts/version.sh version/version.go)
 
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 GIT_DIRTY := $(if $(shell git status --porcelain),+CHANGES)
@@ -27,7 +27,6 @@ bin:
 
 bin/hcdiag: bin
 	go build -trimpath -ldflags=$(GO_LDFLAGS) -o bin .
-	$(PWD)/bin/hcdiag -version
 
 test: ## run tests
 	go test -cover ./...
