@@ -4,7 +4,7 @@
 The utility is optimized for transparency and frugality. We believe users should be fully informed on how `hcdiag` works and what it collects, and that `hcdiag` collects no more data than is necessary.
 
 Features like `-dryrun`, declarative HCL config, and filters give users visibility and agency into what will run, and 
-the open, non-proprietary, bundle format makes the results, manifest, and included files available for inspection. Bundles can also be inspected by users directly 
+the open, non-proprietary, bundle format makes the results, manifest, and included files available for inspection. Bundles can also be inspected by users directly.
 
 We are constantly refining the utility to be safe, reliable, and speedy. If you have any concerns please voice them via the GitHub issues so we may address them. 
 
