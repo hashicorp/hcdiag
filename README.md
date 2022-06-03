@@ -1,18 +1,18 @@
 # hcdiag
-`hcdiag` simplifies debugging HashiCorp products by automating shared and product-specific diagnostics data collection on individual nodes. The output of these commands is bundled up into a tar.gz bundle in the destination directory where `hcdiag` is run.
+`hcdiag` simplifies debugging HashiCorp products by automating shared and product-specific diagnostics data collection on individual nodes. Running the binary issues a set of operations that read the current state of the system then write the results to a tar.gz bundle.
 
-The utility is optimized for transparency and frugality. We believe users should be fully informed on how `hcdiag` works and what it collects, and that `hcdiag` collects no more data than is necessary.
+The utility is optimized for transparency and frugality. We believe users should be fully informed on how `hcdiag` works and what it collects and that `hcdiag` collects no more data than is necessary.
 
 Features like `-dryrun`, declarative HCL config, and filters give users visibility and agency into what will run, and 
-the open, non-proprietary, bundle format makes the results, manifest, and included files available for inspection. Bundles can also be inspected by users directly.
+the open, non-proprietary, bundle format makes the results, manifest, and included files available for inspection by users.
 
-We are constantly refining the utility to be safe, reliable, and speedy. If you have any concerns please voice them via the GitHub issues so we may address them. 
+We are constantly refining the utility to be safe, robust, and speedy. If you have any concerns please voice them via the GitHub issues so we may address them. 
 
 ## Usage
 To reliably debug the widest variety of issues with the lowest impact on each machine, `hcdiag` runs on one node at a time and gathers the view of the current node whenever possible. 
 
 ### Prerequisites
-The `hcdiag` binary often issues commands using HashiCorp's product clients so the utility must have access to a fully configured client in its environment for product diagnostics. Specifics are offered below per client.
+The `hcdiag` binary often issues commands using HashiCorp's product clients. Therefore the utility must have access to a fully configured client in its environment for product diagnostics. Specifics are offered below per client.
 
 #### Consul
 - [Consul CLI documentation](https://www.consul.io/commands/index)
