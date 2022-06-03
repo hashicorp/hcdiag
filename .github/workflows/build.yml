@@ -136,7 +136,7 @@ jobs:
           maintainer: "HashiCorp"
           homepage: "https://github.com/hashicorp/hcdiag"
           license: "MPL-2.0"
-          binary: "dist/${{ env.PKG_NAME }}"
+          binary: "bin/${{ env.PKG_NAME }}"
 
       - name: Set Package Names
         if: ${{ matrix.goos == 'linux' }}
