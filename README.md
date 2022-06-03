@@ -1,5 +1,5 @@
 # hcdiag
-`hcdiag` simplifies debugging HashiCorp products by automating shared and product-specific diagnostics data collection on individual nodes. The output of these commands is bundled up into a tar.gz bundle in the destination directory `hcdiag` is run 
+`hcdiag` simplifies debugging HashiCorp products by automating shared and product-specific diagnostics data collection on individual nodes. The output of these commands is bundled up into a tar.gz bundle in the destination directory where `hcdiag` is run.
 
 The utility is optimized for transparency and frugality. We believe users should be fully informed on how `hcdiag` works and what it collects, and that `hcdiag` collects no more data than is necessary.
 
