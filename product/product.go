@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/hcdiag/agent"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/seeker"
 )
@@ -30,6 +32,18 @@ type Config struct {
 	OS            string
 	DebugDuration time.Duration
 	DebugInterval time.Duration
+}
+
+func NewConfig(l *hclog.Logger, tmpDir string, cfg agent.Config) Config {
+	return Config{
+		Logger:        l,
+		TmpDir:        tmpDir,
+		Since:         cfg.Since,
+		Until:         cfg.Until,
+		OS:            cfg.OS,
+		DebugDuration: cfg.DebugDuration,
+		DebugInterval: cfg.DebugInterval,
+	}
 }
 
 type Product struct {

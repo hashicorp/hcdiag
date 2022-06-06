@@ -25,6 +25,7 @@ func NewConsul(cfg Config) (*Product, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO(
 	return &Product{
 		Seekers: seekers,
 	}, nil

@@ -78,6 +78,7 @@ func (a *Agent) Run() []error {
 	}
 
 	// Create products
+	// TODO(mkcp): Push this down into a function
 	a.l.Debug("Gathering Products' Seekers")
 	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
@@ -411,16 +412,10 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		}
 	}
 
-	cfg := product.Config{
-		Logger:        &a.l,
-		TmpDir:        a.tmpDir,
-		Since:         a.Config.Since,
-		Until:         a.Config.Until,
-		OS:            a.Config.OS,
-		DebugDuration: a.Config.DebugDuration,
-		DebugInterval: a.Config.DebugInterval,
-	}
+	cfg := product.NewConfig(&a.l, a.tmpDir, a.Config)
 	p := make(map[string]*product.Product)
+
+	// Check for each product, if it's enabled build a new product struct with all of the default seekers, custom seekers, then filters applied.
 	if a.Config.Consul {
 		newConsul, err := product.NewConsul(cfg)
 		if err != nil {
@@ -436,7 +431,6 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			newConsul.Selects = consul.Selects
 		}
 		p[product.Consul] = newConsul
-
 	}
 	if a.Config.Nomad {
 		newNomad, err := product.NewNomad(cfg)
@@ -527,6 +521,7 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error)
 		seekers = append(seekers, sheller)
 	}
 
+	// FIXME(mkcp): Extract this into a host httper
 	for _, g := range cfg.GETs {
 		cmd := strings.Join([]string{"curl -s", g.Path}, " ")
 		// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
