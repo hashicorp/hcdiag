@@ -9,13 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/hcdiag/product"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/agent"
+	"github.com/hashicorp/hcdiag/product"
+	"github.com/hashicorp/hcdiag/version"
 )
-
-const SemVer string = "0.3.0"
 
 // SeventyTwoHours represents the duration "72h" parsed in nanoseconds
 const SeventyTwoHours = 72 * time.Hour
@@ -40,7 +38,8 @@ func realMain() (returnCode int) {
 
 	// If -version, skip agent setup and print version
 	if flags.Version {
-		printVersion()
+		v := version.GetVersion()
+		fmt.Println(v.FullVersionNumber(true))
 		return
 	}
 
@@ -201,11 +200,6 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	config.DebugInterval = flags.DebugInterval
 
 	return config
-}
-
-func printVersion() {
-	slug := "hcdiag v" + SemVer
-	fmt.Println(slug)
 }
 
 // pickSinceVsIncludeSince if Since is default and IncludeSince is NOT default, use IncludeSince
