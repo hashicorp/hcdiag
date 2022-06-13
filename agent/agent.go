@@ -38,13 +38,12 @@ type Agent struct {
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
-	a := Agent{
+	return &Agent{
 		l:               logger,
 		results:         make(map[string]map[string]interface{}),
 		Config:          config,
 		ManifestSeekers: make(map[string][]ManifestSeeker),
 	}
-	return &a
 }
 
 // Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
@@ -53,8 +52,12 @@ func NewAgent(config Config, logger hclog.Logger) *Agent {
 func (a *Agent) Run() []error {
 	var errs []error
 
-	// Begin execution, copy files and run seekers
 	a.Start = time.Now()
+
+	// If dryrun is enabled we short circuit the main lifecycle and run the dryrun mode instead.
+	if a.Config.Dryrun {
+		return a.DryRun()
+	}
 
 	// File processing
 	if errTemp := a.CreateTemp(); errTemp != nil {
@@ -127,6 +130,59 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errCleanup)
 		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
 	}
+	return errs
+}
+
+// DryRun runs the agent to log what would occur during a run, without issuing any commands or writing to disk.
+func (a *Agent) DryRun() []error {
+	var errs []error
+
+	a.l.Info("Starting dry run")
+
+	// glob "*" here is to support copy/paste of seeker identifiers
+	// from -dryrun output into select/exclude filters
+	a.tmpDir = "*"
+	a.l.Info("Would copy included files", "includes", a.Config.Includes)
+
+	// Running healthchecks for products. We don't want to stop if any fail though.
+	a.l.Info("Checking product availability")
+	if errProductChecks := a.CheckAvailable(); errProductChecks != nil {
+		errs = append(errs, errProductChecks)
+		a.l.Error("Product failed healthcheck. ensure setup steps are complete", "error", errProductChecks)
+	}
+
+	// Create products and their seekers
+	a.l.Info("Gathering seekers for each product")
+	p, errProductSetup := a.Setup()
+	if errProductSetup != nil {
+		errs = append(errs, errProductSetup)
+		a.l.Error("Failed running Products", "error", errProductSetup)
+		return errs
+	}
+	a.l.Info("Filtering seeker lists")
+	for _, prod := range p {
+		if errProductFilter := prod.Filter(); errProductFilter != nil {
+			a.l.Error("Failed to filter Products", "error", errProductFilter)
+			errs = append(errs, errProductFilter)
+			return errs
+		}
+	}
+	// TODO(mkcp): We should pass the products forward in run, not store them on the agent.
+	a.products = p
+
+	// Dryrun Run products
+	a.l.Info("Showing diagnostics that would be gathered")
+	for _, p := range a.products {
+		set := p.Seekers
+		for _, s := range set {
+			a.l.Info("would run", "product", p.Name, "seeker", s.Identifier)
+		}
+	}
+
+	a.l.Info("Would write output", "dest", a.Config.Destination)
+
+	a.l.Info("Dry run complete", "duration", time.Since(a.Start))
+
 	return errs
 }
 
