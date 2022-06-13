@@ -26,6 +26,7 @@ func NewConsul(cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
+		Name:    Consul,
 		Seekers: seekers,
 	}, nil
 }

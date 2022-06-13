@@ -27,6 +27,7 @@ func NewVault(cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
+		Name:    Vault,
 		Seekers: seekers,
 	}, nil
 }
