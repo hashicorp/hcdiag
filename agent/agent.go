@@ -114,10 +114,8 @@ func (a *Agent) Run() []error {
 
 	// Record metadata
 	// Build seeker metadata
-	if !a.Config.Dryrun {
-		a.l.Info("Recording manifest")
-		a.RecordManifest()
-	}
+	a.l.Info("Recording manifest")
+	a.RecordManifest()
 
 	// Execution finished, write our results and cleanup
 	a.recordEnd()
@@ -170,7 +168,6 @@ func (a *Agent) DryRun() []error {
 	// TODO(mkcp): We should pass the products forward in run, not store them on the agent.
 	a.products = p
 
-	// Dryrun Run products
 	a.l.Info("Showing diagnostics that would be gathered")
 	for _, p := range a.products {
 		set := p.Seekers
@@ -178,11 +175,8 @@ func (a *Agent) DryRun() []error {
 			a.l.Info("would run", "product", p.Name, "seeker", s.Identifier)
 		}
 	}
-
 	a.l.Info("Would write output", "dest", a.Config.Destination)
-
 	a.l.Info("Dry run complete", "duration", time.Since(a.Start))
-
 	return errs
 }
 
@@ -203,13 +197,6 @@ func (a *Agent) TempDir() string {
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
 //  artifact.
 func (a *Agent) CreateTemp() error {
-	if a.Config.Dryrun {
-		// glob "*" here is to support copy/paste of seeker identifiers
-		// from -dryrun output into select/exclude filters
-		a.tmpDir = "*"
-		return nil
-	}
-
 	a.tmpDir = a.TempDir()
 	if err := os.Mkdir(a.tmpDir, 0700); err != nil {
 		a.l.Error("Error creating temp directory", "name", hclog.Fmt("%s", a.tmpDir), "message", err)
@@ -222,10 +209,6 @@ func (a *Agent) CreateTemp() error {
 
 // Cleanup attempts to delete the contents of the tempdir when the diagnostics are done.
 func (a *Agent) Cleanup() (err error) {
-	if a.Config.Dryrun {
-		return nil
-	}
-
 	a.l.Debug("Cleaning up temporary files")
 
 	err = os.RemoveAll(a.tmpDir)
@@ -244,19 +227,12 @@ func (a *Agent) CopyIncludes() (err error) {
 	a.l.Info("Copying includes")
 
 	dest := filepath.Join(a.tmpDir, "includes")
-	if !a.Config.Dryrun {
-		err = os.MkdirAll(dest, 0755)
-		if err != nil {
-			return err
-		}
+	err = os.MkdirAll(dest, 0755)
+	if err != nil {
+		return err
 	}
 
 	for _, f := range a.Config.Includes {
-		if a.Config.Dryrun {
-			a.l.Info("Would include", "from", f)
-			continue
-		}
-
 		a.l.Debug("validating include exists", "path", f)
 		// Wildcards don't represent a single file or dir, so we can't validate that they exist.
 		if !strings.Contains(f, "*") {
@@ -298,14 +274,12 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		if !a.Config.Dryrun {
-			statuses, err := seeker.StatusCounts(product.Seekers)
-			if err != nil {
-				a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
-			}
-
-			a.l.Info("Product done", "product", name, "statuses", statuses)
+		statuses, err := seeker.StatusCounts(product.Seekers)
+		if err != nil {
+			a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
 		}
+
+		a.l.Info("Product done", "product", name, "statuses", statuses)
 		wg.Done()
 	}
 
@@ -342,11 +316,6 @@ func (a *Agent) RecordManifest() {
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
 func (a *Agent) WriteOutput() (err error) {
-	// If the mode is drY ruUn, you can skip it
-	if a.Config.Dryrun {
-		return nil
-	}
-
 	// Ensure dir exists
 	// TODO(mkcp): Once an error here can hard-fail the process, we should execute this before we run the seekers to ensure
 	//  we don't waste users' time.
@@ -403,11 +372,6 @@ func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interfa
 	a.l.Info("Running seekers for", "product", product)
 	results := make(map[string]interface{})
 	for _, s := range set {
-		if a.Config.Dryrun {
-			a.l.Info("would run", "seeker", s.Identifier)
-			continue
-		}
-
 		a.l.Info("running", "seeker", s.Identifier)
 		result, err := s.Run()
 		results[s.Identifier] = s
