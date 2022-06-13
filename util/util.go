@@ -9,13 +9,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 )
 
 // TarGz accepts a source directory and destination file name to archive and compress files.
-func TarGz(sourceDir string, destFileName string) error {
+// TODO: Update doc comment
+func TarGz(sourceDir string, destFileName string, baseName string) error {
 	// tar
 	destFile, err := os.Create(destFileName)
 	if err != nil {
@@ -64,7 +66,7 @@ func TarGz(sourceDir string, destFileName string) error {
 			}
 
 			header := &tar.Header{
-				Name:    path,
+				Name:    fmt.Sprint(baseName, strings.TrimPrefix(path, sourceDir)),
 				Size:    stat.Size(),
 				Mode:    int64(stat.Mode()),
 				ModTime: stat.ModTime(),

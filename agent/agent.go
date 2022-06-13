@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -55,6 +54,13 @@ func (a *Agent) Run() []error {
 
 	// Begin execution, copy files and run seekers
 	a.Start = time.Now()
+
+	a.l.Info("Ensuring destination directory exists", "directory", a.Config.Destination)
+	errDest := a.makeDestinationDirectory()
+	if errDest != nil {
+		errs = append(errs, errDest)
+		a.l.Error("Failed to verify or make destination directory", "error", errDest)
+	}
 
 	// File processing
 	if errTemp := a.CreateTemp(); errTemp != nil {
@@ -154,12 +160,18 @@ func (a *Agent) CreateTemp() error {
 		return nil
 	}
 
-	a.tmpDir = a.TempDir()
-	if err := os.Mkdir(a.tmpDir, 0700); err != nil {
-		a.l.Error("Error creating temp directory", "name", hclog.Fmt("%s", a.tmpDir), "message", err)
+	tmp, err := os.MkdirTemp(a.Config.Destination, a.TempDir())
+	if err != nil {
+		a.l.Error("Error creating temp directory", "message", err)
 		return err
 	}
-	a.l.Debug("Created temp directory", "name", hclog.Fmt("./%s", a.tmpDir))
+	tmp, err = filepath.Abs(tmp)
+	if err != nil {
+		a.l.Error("Error identifying absolute path for temp directory", "message", err)
+		return err
+	}
+	a.tmpDir = tmp
+	a.l.Debug("Created temp directory", "name", a.tmpDir)
 
 	return nil
 }
@@ -286,23 +298,14 @@ func (a *Agent) RecordManifest() {
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
 func (a *Agent) WriteOutput() (err error) {
-	// If the mode is drY ruUn, you can skip it
+	// If the mode is dry run, you can skip it
 	if a.Config.Dryrun {
 		return nil
 	}
 
-	// Ensure dir exists
-	// TODO(mkcp): Once an error here can hard-fail the process, we should execute this before we run the seekers to ensure
-	//  we don't waste users' time.
-	if mkdirErr := os.Mkdir(a.Config.Destination, 0755); mkdirErr != nil {
-		//  There are some cases where an error is a "happy path"
-		if errors.Is(mkdirErr, os.ErrExist) {
-			// a dir exists, great, we can write to it.
-			a.l.Trace("its just a harmless little bunny", "error", err)
-		} else {
-			a.l.Error("os.Mkdir", "error", err)
-			return mkdirErr
-		}
+	err = a.makeDestinationDirectory()
+	if err != nil {
+		return err
 	}
 
 	a.l.Debug("Writing results and manifest, and creating tar.gz archive")
@@ -330,12 +333,25 @@ func (a *Agent) WriteOutput() (err error) {
 	resultsDest := filepath.Join(a.Config.Destination, resultsFile)
 
 	// Archive and compress outputs
-	err = util.TarGz(a.tmpDir, resultsDest)
+	err = util.TarGz(a.tmpDir, resultsDest, a.TempDir())
 	if err != nil {
 		a.l.Error("util.TarGz", "error", err)
 		return err
 	}
 	a.l.Info("Compressed and archived output file", "dest", resultsDest)
+
+	return nil
+}
+
+// makeDestinationDirectory will ensure that the agent's destination directory exists. If the full
+// path exists, this is a no-op and will return nil. Otherwise, it will create any directories that do not
+// exist in the destination path.
+func (a *Agent) makeDestinationDirectory() error {
+	// MkdirAll handles cases where directories already exist, so we do not need to check for `os.ErrExist` errors.
+	if err := os.MkdirAll(a.Config.Destination, 0755); err != nil {
+		a.l.Error("Error encountered in creating destination directory", "error", err)
+		return err
+	}
 
 	return nil
 }
