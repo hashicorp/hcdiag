@@ -154,7 +154,7 @@ func (a *Agent) DryRun() []error {
 	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
-		a.l.Error("Failed running Products", "error", errProductSetup)
+		a.l.Error("Failed gathering seekers for products", "error", errProductSetup)
 		return errs
 	}
 	a.l.Info("Filtering seeker lists")
