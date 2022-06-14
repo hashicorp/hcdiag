@@ -1,12 +1,13 @@
 package product
 
 import (
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
 )
 
 // NewTFE takes a product config and creates a Product containing all of TFE's seekers.
-func NewTFE(cfg Config) (*Product, error) {
+func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	api, err := client.NewTFEAPI()
 	if err != nil {
 		return nil, err
@@ -17,8 +18,10 @@ func NewTFE(cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
+		l:       logger,
 		Name:    TFE,
 		Seekers: seekers,
+		Config:  cfg,
 	}, nil
 }
 

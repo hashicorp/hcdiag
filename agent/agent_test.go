@@ -123,12 +123,12 @@ func TestCopyIncludes(t *testing.T) {
 }
 
 func TestRunProducts(t *testing.T) {
+	l := hclog.Default()
 	pCfg := product.Config{OS: "auto"}
 	p := make(map[string]*product.Product)
-	p["host"] = product.NewHost(pCfg)
-
 	a := NewAgent(Config{}, hclog.Default())
 	a.products = p
+	p["host"] = product.NewHost(l, pCfg)
 
 	err := a.RunProducts()
 	assert.NoError(t, err)
@@ -143,7 +143,7 @@ func TestAgent_RecordManifest(t *testing.T) {
 		a := NewAgent(Config{}, hclog.Default())
 		pCfg := product.Config{OS: "auto"}
 		p := make(map[string]*product.Product)
-		p[testProduct] = product.NewHost(pCfg)
+		p[testProduct] = product.NewHost(hclog.Default(), pCfg)
 		a.products = p
 		assert.NotEmptyf(t, a.products[testProduct].Seekers, "test setup failure, no seekers available")
 

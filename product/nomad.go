@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
 	logs "github.com/hashicorp/hcdiag/seeker/log"
@@ -18,7 +20,7 @@ const (
 )
 
 // NewNomad takes a product config and creates a Product with all of Nomad's default seekers
-func NewNomad(cfg Config) (*Product, error) {
+func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	api, err := client.NewNomadAPI()
 	if err != nil {
 		return nil, err
@@ -40,8 +42,10 @@ func NewNomad(cfg Config) (*Product, error) {
 	}
 
 	return &Product{
+		l:       logger,
 		Name:    Nomad,
 		Seekers: seekers,
+		Config:  cfg,
 	}, nil
 }
 
