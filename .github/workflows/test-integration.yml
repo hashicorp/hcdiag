@@ -1,6 +1,5 @@
 name: test-integration
 on:
-  workflow_dispatch:
   push:
     branches: [main]
     tags:
