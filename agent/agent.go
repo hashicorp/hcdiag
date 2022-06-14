@@ -18,8 +18,6 @@ import (
 	"github.com/hashicorp/hcdiag/util"
 )
 
-// TODO: NewDryAgent() to simplify all the 'if d.Dryrun's ??
-
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
 	l           hclog.Logger
