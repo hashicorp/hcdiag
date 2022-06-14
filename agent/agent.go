@@ -146,7 +146,7 @@ func (a *Agent) DryRun() []error {
 	a.l.Info("Checking product availability")
 	if errProductChecks := a.CheckAvailable(); errProductChecks != nil {
 		errs = append(errs, errProductChecks)
-		a.l.Error("Product failed healthcheck. ensure setup steps are complete", "error", errProductChecks)
+		a.l.Error("Product failed healthcheck. Ensure setup steps are complete (see https://github.com/hashicorp/hcdiag for prerequisites)", "error", errProductChecks)
 	}
 
 	// Create products and their seekers
