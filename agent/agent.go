@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/client"
+	"github.com/hashicorp/hcdiag/version"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 
 	"github.com/hashicorp/go-hclog"
@@ -27,11 +28,12 @@ type Agent struct {
 	results     map[string]map[string]interface{}
 	resultsLock sync.Mutex
 	tmpDir      string
-	Start       time.Time `json:"started_at"`
-	End         time.Time `json:"ended_at"`
-	Duration    string    `json:"duration"`
-	NumSeekers  int       `json:"num_seekers"`
-	Config      Config    `json:"configuration"`
+	Start       time.Time       `json:"started_at"`
+	End         time.Time       `json:"ended_at"`
+	Duration    string          `json:"duration"`
+	NumSeekers  int             `json:"num_seekers"`
+	Config      Config          `json:"configuration"`
+	Version     version.Version `json:"version"`
 	// ManifestSeekers holds a slice of seekers with a subset of normal seekers' fields so we can safely render them in
 	// `manifest.json`
 	ManifestSeekers map[string][]ManifestSeeker `json:"seekers"`
@@ -43,6 +45,7 @@ func NewAgent(config Config, logger hclog.Logger) *Agent {
 		results:         make(map[string]map[string]interface{}),
 		Config:          config,
 		ManifestSeekers: make(map[string][]ManifestSeeker),
+		Version:         version.GetVersion(),
 	}
 	return &a
 }
