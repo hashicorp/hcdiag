@@ -15,8 +15,9 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-// TarGz accepts a source directory and destination file name to archive and compress files.
-// TODO: Update doc comment
+// TarGz is a utility function for archiving and compressing files. Its arguments include the source directory that
+// you wish to archive; a destination filename, which is the .tar.gz file you want to create; and a baseName, which
+// is the name of the directory that should be created when the resulting .tar.gz file is later extracted.
 func TarGz(sourceDir string, destFileName string, baseName string) error {
 	// tar
 	destFile, err := os.Create(destFileName)
