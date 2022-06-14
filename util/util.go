@@ -66,7 +66,7 @@ func TarGz(sourceDir string, destFileName string, baseName string) error {
 			}
 
 			header := &tar.Header{
-				Name:    fmt.Sprint(baseName, strings.TrimPrefix(path, sourceDir)),
+				Name:    getTarRelativePathName(baseName, path, sourceDir),
 				Size:    stat.Size(),
 				Mode:    int64(stat.Mode()),
 				ModTime: stat.ModTime(),
@@ -89,6 +89,14 @@ func TarGz(sourceDir string, destFileName string, baseName string) error {
 	}
 
 	return nil
+}
+
+// getTarRelativePathName is a helper for building the Name of archived files in a way that allows for clean extraction.
+// The function takes a baseName, which is the desired directory name when the Tar is unarchived. It takes a filePath
+// which is the full path to the file that is to be archived. And, it takes a fileRoot, which is the portion of the
+// filePath to remove. The result will be, essentially, `baseName + (filePath - fileRoot)`.
+func getTarRelativePathName(baseName, filePath, fileRoot string) string {
+	return fmt.Sprint(baseName, strings.TrimPrefix(filePath, fileRoot))
 }
 
 // WriteJSON converts an interface{} to JSON then writes to filePath.

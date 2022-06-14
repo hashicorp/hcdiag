@@ -147,6 +147,45 @@ func TestIsInRange(t *testing.T) {
 	}
 }
 
+func Test_getTarRelativePathName(t *testing.T) {
+	type arguments struct {
+		baseName string
+		filePath string
+		fileRoot string
+	}
+	testCases := []struct {
+		name     string
+		args     arguments
+		expected string
+	}{
+		{
+			name: "Test Source Files that are not Nested in File Root",
+			args: arguments{
+				baseName: "hcdiag0123456",
+				filePath: "/tmp/a/b/c/Results.json",
+				fileRoot: "/tmp/a/b/c",
+			},
+			expected: "hcdiag0123456/Results.json",
+		},
+		{
+			name: "Test Source Files that are Nested in File Root",
+			args: arguments{
+				baseName: "hcdiag0123456",
+				filePath: "/tmp/a/b/c/d/e/f/Results.json",
+				fileRoot: "/tmp/a/b/c",
+			},
+			expected: "hcdiag0123456/d/e/f/Results.json",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := getTarRelativePathName(tc.args.baseName, tc.args.filePath, tc.args.fileRoot)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
 // FIXME(mkcp): Ensure the since and until works with modtime properly
 // func TestFilterWalk(t *testing.T) {
 // 	testTable := []struct{
