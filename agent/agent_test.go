@@ -138,7 +138,6 @@ func TestRunProducts(t *testing.T) {
 
 	a := NewAgent(Config{}, hclog.Default())
 	a.products = p
-	a.results = make(map[string]map[string]interface{})
 
 	err := a.RunProducts()
 	assert.NoError(t, err)
@@ -165,7 +164,6 @@ func TestAgent_RecordManifest(t *testing.T) {
 
 func TestWriteOutput(t *testing.T) {
 	a := NewAgent(Config{}, hclog.Default())
-	a.results = make(map[string]map[string]interface{})
 
 	testOut := "."
 	resultsDest := a.TempDir() + ".tar.gz"
@@ -174,13 +172,20 @@ func TestWriteOutput(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}
+
 	defer func() {
 		if err := a.Cleanup(); err != nil {
 			a.l.Error("Failed to cleanup", "error", err)
 		}
 	}()
-	// NOTE(mkcp): Should we handle the error back from this?
-	defer os.Remove(resultsDest)
+
+	defer func() {
+		err := os.Remove(resultsDest)
+		if err != nil {
+			// Simply log this case because it's not an error in the function we're testing
+			t.Logf("Error removing test results file: %s", resultsDest)
+		}
+	}()
 
 	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
