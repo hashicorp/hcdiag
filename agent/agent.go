@@ -56,10 +56,10 @@ func (a *Agent) Run() []error {
 	a.Start = time.Now()
 
 	a.l.Info("Ensuring destination directory exists", "directory", a.Config.Destination)
-	errDest := a.makeDestinationDirectory()
+	errDest := util.EnsureDirectory(a.Config.Destination)
 	if errDest != nil {
 		errs = append(errs, errDest)
-		a.l.Error("Failed to verify or make destination directory", "error", errDest)
+		a.l.Error("Failed to ensure destination directory exists", "dir", a.Config.Destination, "error", errDest)
 	}
 
 	// File processing
@@ -303,8 +303,9 @@ func (a *Agent) WriteOutput() (err error) {
 		return nil
 	}
 
-	err = a.makeDestinationDirectory()
+	err = util.EnsureDirectory(a.Config.Destination)
 	if err != nil {
+		a.l.Error("Failed to ensure destination directory exists", "dir", a.Config.Destination, "error", err)
 		return err
 	}
 
@@ -339,19 +340,6 @@ func (a *Agent) WriteOutput() (err error) {
 		return err
 	}
 	a.l.Info("Compressed and archived output file", "dest", resultsDest)
-
-	return nil
-}
-
-// makeDestinationDirectory will ensure that the agent's destination directory exists. If the full
-// path exists, this is a no-op and will return nil. Otherwise, it will create any directories that do not
-// exist in the destination path.
-func (a *Agent) makeDestinationDirectory() error {
-	// MkdirAll handles cases where directories already exist, so we do not need to check for `os.ErrExist` errors.
-	if err := os.MkdirAll(a.Config.Destination, 0755); err != nil {
-		a.l.Error("Error encountered in creating destination directory", "error", err)
-		return err
-	}
 
 	return nil
 }

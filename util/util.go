@@ -238,3 +238,16 @@ func FindInInterface(iface interface{}, mapKeys ...string) (interface{}, error) 
 	}
 	return mapped, nil
 }
+
+// EnsureDirectory will ensure that the full path to the destination directory exists. If the full
+// path exists, this is a no-op and will return nil. Otherwise, it will create any directories that do not
+// exist in the destination path. Any directories created will be given file permissions 0755.
+func EnsureDirectory(dir string) error {
+	// MkdirAll handles cases where directories already exist, so we do not need to check for `os.ErrExist` errors.
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		hclog.L().Debug("util.EnsureDirectory() unable to ensure directory exists", "dir", dir, "error", err)
+		return err
+	}
+
+	return nil
+}
