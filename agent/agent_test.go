@@ -20,7 +20,7 @@ func TestNewAgent(t *testing.T) {
 }
 
 func TestStartAndEnd(t *testing.T) {
-	a := Agent{l: hclog.Default()}
+	a := NewAgent(Config{}, hclog.Default())
 
 	// Start and End fields should be nil at first,
 	// and Duration should be empty ""
@@ -63,21 +63,21 @@ func TestCreateTemp(t *testing.T) {
 
 func TestCreateTempAndCleanup(t *testing.T) {
 	var err error
-	d := Agent{l: hclog.Default()}
+	a := NewAgent(Config{}, hclog.Default())
 
-	if err = d.CreateTemp(); err != nil {
+	if err = a.CreateTemp(); err != nil {
 		t.Errorf("Error creating tmpDir: %s", err)
 	}
 
-	if _, err = os.Stat(d.tmpDir); err != nil {
+	if _, err = os.Stat(a.tmpDir); err != nil {
 		t.Errorf("Error checking for temp dir: %s", err)
 	}
 
-	if err = d.Cleanup(); err != nil {
+	if err = a.Cleanup(); err != nil {
 		t.Errorf("Cleanup error: %s", err)
 	}
 
-	_, err = os.Stat(d.tmpDir)
+	_, err = os.Stat(a.tmpDir)
 	if !os.IsNotExist(err) {
 		t.Errorf("Got unexpected error when validating that tmpDir was removed: %s", err)
 	}
@@ -135,11 +135,10 @@ func TestRunProducts(t *testing.T) {
 	pCfg := product.Config{OS: "auto"}
 	p := make(map[string]*product.Product)
 	p["host"] = product.NewHost(pCfg)
-	a := Agent{
-		l:        hclog.Default(),
-		products: p,
-		results:  make(map[string]map[string]interface{}),
-	}
+
+	a := NewAgent(Config{}, hclog.Default())
+	a.products = p
+	a.results = make(map[string]map[string]interface{})
 
 	err := a.RunProducts()
 	assert.NoError(t, err)
@@ -165,10 +164,8 @@ func TestAgent_RecordManifest(t *testing.T) {
 }
 
 func TestWriteOutput(t *testing.T) {
-	a := Agent{
-		l:       hclog.Default(),
-		results: make(map[string]map[string]interface{}),
-	}
+	a := NewAgent(Config{}, hclog.Default())
+	a.results = make(map[string]map[string]interface{})
 
 	testOut := "."
 	resultsDest := a.TempDir() + ".tar.gz"
@@ -203,10 +200,7 @@ func TestWriteOutput(t *testing.T) {
 func TestSetup(t *testing.T) {
 	t.Run("Should only get host if no products enabled", func(t *testing.T) {
 		cfg := Config{OS: "auto"}
-		a := Agent{
-			l:      hclog.Default(),
-			Config: cfg,
-		}
+		a := NewAgent(cfg, hclog.Default())
 		p, err := a.Setup()
 		assert.NoError(t, err)
 		assert.Len(t, p, 1)
@@ -216,10 +210,7 @@ func TestSetup(t *testing.T) {
 			Nomad: true,
 			OS:    "auto",
 		}
-		a := Agent{
-			l:      hclog.Default(),
-			Config: cfg,
-		}
+		a := NewAgent(cfg, hclog.Default())
 		p, err := a.Setup()
 		assert.NoError(t, err)
 		assert.Len(t, p, 2)
