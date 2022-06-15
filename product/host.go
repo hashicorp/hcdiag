@@ -12,7 +12,7 @@ import (
 // NewHost takes a product config and creates a Product containing all of the host's seekers.
 func NewHost(logger hclog.Logger, cfg Config) *Product {
 	return &Product{
-		l:       logger,
+		l:       logger.Named("product"),
 		Name:    Host,
 		Seekers: HostSeekers(cfg.OS),
 		Config:  cfg,

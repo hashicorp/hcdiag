@@ -266,6 +266,7 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // RunProducts executes all seekers for this run.
+// TODO(mkcp): This is due for a bit of a redesign
 func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
@@ -275,10 +276,7 @@ func (a *Agent) RunProducts() error {
 	//   This is a little complex, but saves us duplication in the product loop. Maybe we extract this to a private
 	//   package function in the future?
 	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
-		result, err := product.Run()
-		if err != nil {
-			a.l.Error("Error running seekers", "product", product, "error", err)
-		}
+		result := product.Run()
 
 		// Write results
 		a.resultsLock.Lock()

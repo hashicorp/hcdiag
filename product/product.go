@@ -41,14 +41,14 @@ type Product struct {
 }
 
 // Run runs the seekers
-// TODO(mkcp): Should we return a collection of errors from here?
-func (p *Product) Run() (map[string]interface{}, error) {
+func (p *Product) Run() map[string]interface{} {
 	p.l.Info("Running seekers for", "product", p.Name)
 	results := make(map[string]interface{})
 	for _, s := range p.Seekers {
 		p.l.Info("running operation", "product", p.Name, "seeker", s.Identifier)
 		result, err := s.Run()
 		results[s.Identifier] = s
+		// Note seeker errors to users and keep going.
 		if err != nil {
 			p.l.Warn("result",
 				"seeker", s.Identifier,
@@ -57,7 +57,7 @@ func (p *Product) Run() (map[string]interface{}, error) {
 			)
 		}
 	}
-	return results, nil
+	return results
 }
 
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers

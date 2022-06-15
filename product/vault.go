@@ -29,7 +29,7 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
-		l:       logger,
+		l:       logger.Named("product"),
 		Name:    Vault,
 		Seekers: seekers,
 		Config:  cfg,

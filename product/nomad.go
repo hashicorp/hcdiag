@@ -42,7 +42,7 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	return &Product{
-		l:       logger,
+		l:       logger.Named("product"),
 		Name:    Nomad,
 		Seekers: seekers,
 		Config:  cfg,
