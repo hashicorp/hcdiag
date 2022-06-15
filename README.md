@@ -12,7 +12,7 @@ We are constantly refining the utility to be safe, robust, and speedy. If you ha
 To reliably debug the widest variety of issues with the lowest impact on each machine, `hcdiag` runs on one node at a time and gathers the view of the current node whenever possible. 
 
 ### Prerequisites
-The `hcdiag` binary often issues commands using HashiCorp's product clients. Therefore the utility must have access to a fully configured client in its environment for product diagnostics. Specifics are offered below per client.
+The `hcdiag` binary often issues commands using HashiCorp's product clients. Therefore, the utility must have access to a fully configured client in its environment for product diagnostics. Specifics are offered below per client.
 
 #### Consul
 - [Consul CLI documentation](https://www.consul.io/commands/index)
@@ -70,22 +70,22 @@ Terraform Enterprise historically uses replicated to provide similar functionali
   - `hcdiag -vault -include "/var/log/dmesg,/var/log/vault-"`
 
 ### Flags
-| Argument | Description | Type | Default Value |
-|----------|-------------|------| ------------- |
-| `dryrun` | Perform a dry run to display commands without executing them | bool | false |
-| `os` | Override operating system detection | string | "auto" |
-| `consul` | Run Consul diagnostics | bool | false |
-| `nomad` | Run Nomad diagnostics | bool | false |
-| `terraform-ent` | Run Terraform Enterprise/Cloud diagnostics | bool | false |
-| `vault` | Run Vault diagnostics | bool | false |
-| `all` | DEPRECATED: Run all available product diagnostics | bool | false |
-| `since` | Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s` | string | "72h" |
-| `include-since` | Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s` | string | "72h" |
-| `includes` | files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | "" |
-| `destination` | Path to the directory the bundle should be written in | string | "." |
-| `dest` | Shorthand for -destination | string | "." |
-| `config` | Path to HCL configuration file | string | "" |
-| `serial` | Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load. | bool | false |
+| Argument        | Description                                                                                                                                            | Type   | Default Value |
+|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------|---------------|
+| `dryrun`        | Perform a dry run to display commands without executing them                                                                                           | bool   | false         |
+| `os`            | Override operating system detection                                                                                                                    | string | "auto"        |
+| `consul`        | Run Consul diagnostics                                                                                                                                 | bool   | false         |
+| `nomad`         | Run Nomad diagnostics                                                                                                                                  | bool   | false         |
+| `terraform-ent` | Run Terraform Enterprise/Cloud diagnostics                                                                                                             | bool   | false         |
+| `vault`         | Run Vault diagnostics                                                                                                                                  | bool   | false         |
+| `all`           | DEPRECATED: Run all available product diagnostics                                                                                                      | bool   | false         |
+| `since`         | Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                | string | "72h"         |
+| `include-since` | Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                      | string | "72h"         |
+| `includes`      | files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | ""            |
+| `destination`   | Path to the directory the bundle should be written in                                                                                                  | string | "."           |
+| `dest`          | Shorthand for -destination                                                                                                                             | string | "."           |
+| `config`        | Path to HCL configuration file                                                                                                                         | string | ""            |
+| `serial`        | Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load.                   | bool   | false         |
 
 
 ### Custom Seekers with Configuration
@@ -155,9 +155,35 @@ product "consul" {
 
 More will be added as they are made available
 
-| Constructor | Config Block  | Description | Parameters
-|---| --- | --- | ---
-|  `seeker.NewCommander(...)` | `command` | Issues a CLI command and optionally parses the result if format JSON is specified. Otherwise use string. | `command = <string,required>` <br/> `format = <string,required>`
-|  `seeker.NewCopier(...)`    | `copy`    | Copies the file or directory and all of its contents into the bundle using the same name. Since will check the last modified time of the file and ignore if it's outside the duration. | `path = <string,required>` <br/> `since = <duration,optional>`
-|  `seeker.NewHTTPer(...)`    | `GET`     | Makes an HTTP get request to the path | `path = <string,required>`
-|  `seeker.NewSheller(...)`   | `shell`   | An "escape hatch" allowing arbitrary shell strings to be executed. | `run = <string,required>`
+| Constructor                | Config Block | Description                                                                                                                                                                            | Parameters                                                       |
+|----------------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| `seeker.NewCommander(...)` | `command`    | Issues a CLI command and optionally parses the result if format JSON is specified. Otherwise use string.                                                                               | `command = <string,required>` <br/> `format = <string,required>` |
+| `seeker.NewCopier(...)`    | `copy`       | Copies the file or directory and all of its contents into the bundle using the same name. Since will check the last modified time of the file and ignore if it's outside the duration. | `path = <string,required>` <br/> `since = <duration,optional>`   |
+| `seeker.NewHTTPer(...)`    | `GET`        | Makes an HTTP get request to the path                                                                                                                                                  | `path = <string,required>`                                       |
+| `seeker.NewSheller(...)`   | `shell`      | An "escape hatch" allowing arbitrary shell strings to be executed.                                                                                                                     | `run = <string,required>`                                        |
+
+
+## FAQs
+
+### How do I use hcdiag with Kubernetes?
+
+Although Kubernetes is a complex topic with many configuration options, the key to remember is that hcdiag must be able
+to communicate with your pod(s) via a network connection in order to get diagnostic details from the products running in
+those pods. If the management interface is not already exposed externally from k8s, you may consider setting up a port-forward
+when collecting diagnostics. The command would be similar to `kubectl -n consul port-forward consul-server-0 8500:8500`; 
+in this example, we are in the namespace `consul` (noted by `-n consul`), and we are forwarding the external port `8500`
+(the port before the `:`) to port `8500` (the port after the `:`) on the pod `consul-server-0`.
+
+If you would like to experiment with a setup like this, assuming you have both minikube and helm installed on your machine,
+you could use the following as a reference:
+
+```shell
+minikube start
+helm repo add hashicorp https://helm.releases.hashicorp.com
+helm search repo hashicorp/consul
+helm install consul hashicorp/consul --set global.name=consul --create-namespace -n consul
+kubectl -n consul port-forward consul-server-0 8500:8500
+
+# Now, run hcdiag
+hcdiag -consul
+```
