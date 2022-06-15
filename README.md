@@ -161,3 +161,29 @@ More will be added as they are made available
 | `seeker.NewCopier(...)`    | `copy`       | Copies the file or directory and all of its contents into the bundle using the same name. Since will check the last modified time of the file and ignore if it's outside the duration. | `path = <string,required>` <br/> `since = <duration,optional>`   |
 | `seeker.NewHTTPer(...)`    | `GET`        | Makes an HTTP get request to the path                                                                                                                                                  | `path = <string,required>`                                       |
 | `seeker.NewSheller(...)`   | `shell`      | An "escape hatch" allowing arbitrary shell strings to be executed.                                                                                                                     | `run = <string,required>`                                        |
+
+
+## FAQs
+
+### How do I use hcdiag with Kubernetes?
+
+Although Kubernetes is a complex topic with many configuration options, the key to remember is that hcdiag must be able
+to communicate with your pod(s) via a network connection in order to get diagnostic details from the products running in
+those pods. If the management interface is not already exposed externally from k8s, you may consider setting up a port-forward
+when collecting diagnostics. The command would be similar to `kubectl -n consul port-forward consul-server-0 8500:8500`; 
+in this example, we are in the namespace `consul` (noted by `-n consul`), and we are forwarding the external port `8500`
+(the port before the `:`) to port `8500` (the port after the `:`) on the pod `consul-server-0`.
+
+If you would like to experiment with a setup like this, assuming you have both minikube and helm installed on your machine,
+you could use the following as a reference:
+
+```shell
+minikube start
+helm repo add hashicorp https://helm.releases.hashicorp.com
+helm search repo hashicorp/consul
+helm install consul hashicorp/consul --set global.name=consul --create-namespace -n consul
+kubectl -n consul port-forward consul-server-0 8500:8500
+
+# Now, run hcdiag
+hcdiag -consul
+```
