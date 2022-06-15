@@ -22,26 +22,17 @@ func TestNewAgent(t *testing.T) {
 func TestStartAndEnd(t *testing.T) {
 	a := NewAgent(Config{}, hclog.Default())
 
-	// Start and End fields should be nil at first,
+	// Start and End fields should be zero at first,
 	// and Duration should be empty ""
-	if !a.Start.IsZero() {
-		t.Errorf("Start value non-zero before start(): %s", a.Start)
-	}
-	if !a.End.IsZero() {
-		t.Errorf("End value non-zero before start(): %s", a.Start)
-	}
-	if a.Duration != "" {
-		t.Errorf("Duration value not an empty string before start(): %s", a.Duration)
-	}
+	assert.Zero(t, a.Start, "Start value non-zero before start")
+	assert.Zero(t, a.End, "End value non-zero before start")
+	assert.Equal(t, "", a.Duration, "Duration value not an empty string before start")
 
 	// recordEnd should set a time and calculate a duration
 	a.recordEnd()
-	if a.End.IsZero() {
-		t.Errorf("End value still zero after start(): %s", a.Start)
-	}
-	if a.Duration == "" {
-		t.Error("Duration value still an empty string after start()")
-	}
+
+	assert.NotZero(t, a.End, "End value still zero after recordEnd()")
+	assert.NotEqual(t, "", a.Duration, "Duration value still an empty string after recordEnd()")
 }
 
 func TestCreateTemp(t *testing.T) {
