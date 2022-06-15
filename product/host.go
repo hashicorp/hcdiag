@@ -10,6 +10,7 @@ import (
 // NewHost takes a product config and creates a Product containing all of the host's seekers.
 func NewHost(cfg Config) *Product {
 	return &Product{
+		Name:    Host,
 		Seekers: HostSeekers(cfg.OS),
 	}
 }

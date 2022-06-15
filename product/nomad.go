@@ -40,6 +40,7 @@ func NewNomad(cfg Config) (*Product, error) {
 	}
 
 	return &Product{
+		Name:    Nomad,
 		Seekers: seekers,
 	}, nil
 }

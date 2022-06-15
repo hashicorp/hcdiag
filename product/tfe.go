@@ -17,6 +17,7 @@ func NewTFE(cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
+		Name:    TFE,
 		Seekers: seekers,
 	}, nil
 }
