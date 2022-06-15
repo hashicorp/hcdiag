@@ -117,7 +117,7 @@ func TestCopyIncludes(t *testing.T) {
 
 	// execute what we're aiming to test
 	err = a.CopyIncludes()
-	assert.NoError(t, err, "could not copy includes")
+	assert.NoError(t, err, "Could not copy includes")
 
 	// verify expected file locations
 	for _, data := range testTable {
@@ -203,45 +203,58 @@ func TestWriteOutput(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
-	t.Run("Should only get host if no products enabled", func(t *testing.T) {
-		cfg := Config{OS: "auto"}
-		a := NewAgent(cfg, hclog.Default())
-		p, err := a.Setup()
-		assert.NoError(t, err)
-		assert.Len(t, p, 1)
-	})
-	t.Run("Should have host and nomad enabled", func(t *testing.T) {
-		cfg := Config{
-			Nomad: true,
-			OS:    "auto",
-		}
-		a := NewAgent(cfg, hclog.Default())
-		p, err := a.Setup()
-		assert.NoError(t, err)
-		assert.Len(t, p, 2)
-	})
+	testCases := []struct {
+		name        string
+		cfg         Config
+		expectedLen int
+	}{
+		{
+			name: "Should only get host if no products enabled",
+			cfg: Config{
+				OS: "auto",
+			},
+			expectedLen: 1,
+		},
+		{
+			name: "Should have host and nomad enabled",
+			cfg: Config{
+				Nomad: true,
+				OS:    "auto",
+			},
+			expectedLen: 2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := NewAgent(tc.cfg, hclog.Default())
+			p, err := a.Setup()
+			assert.NoError(t, err)
+			assert.Len(t, p, tc.expectedLen)
+		})
+	}
 }
 
 func TestParseHCL(t *testing.T) {
-	testTable := []struct {
-		desc   string
+	testCases := []struct {
+		name   string
 		path   string
 		expect Config
 	}{
 		{
-			desc:   "Empty config is valid",
+			name:   "Empty config is valid",
 			path:   "../tests/resources/config/empty.hcl",
 			expect: Config{},
 		},
 		{
-			desc: "Host with no attributes is valid",
+			name: "Host with no attributes is valid",
 			path: "../tests/resources/config/host_no_seekers.hcl",
 			expect: Config{
 				Host: &HostConfig{},
 			},
 		},
 		{
-			desc: "Host with one of each seeker is valid",
+			name: "Host with one of each seeker is valid",
 			path: "../tests/resources/config/host_each_seeker.hcl",
 			expect: Config{
 				Host: &HostConfig{
@@ -261,7 +274,7 @@ func TestParseHCL(t *testing.T) {
 			},
 		},
 		{
-			desc: "Host with multiple of a seeker type is valid",
+			name: "Host with multiple of a seeker type is valid",
 			path: "../tests/resources/config/multi_seekers.hcl",
 			expect: Config{
 				Host: &HostConfig{
@@ -283,7 +296,7 @@ func TestParseHCL(t *testing.T) {
 			},
 		},
 		{
-			desc: "Config with a host and one product with everything is valid",
+			name: "Config with a host and one product with everything is valid",
 			path: "../tests/resources/config/config.hcl",
 			expect: Config{
 				Host: &HostConfig{
@@ -317,7 +330,7 @@ func TestParseHCL(t *testing.T) {
 			},
 		},
 		{
-			desc: "Config with multiple products is valid",
+			name: "Config with multiple products is valid",
 			path: "../tests/resources/config/multi_product.hcl",
 			expect: Config{
 				Products: []*ProductConfig{
@@ -338,10 +351,12 @@ func TestParseHCL(t *testing.T) {
 		},
 	}
 
-	for _, c := range testTable {
-		res, err := ParseHCL(c.path)
-		assert.NoError(t, err)
-		assert.Equal(t, c.expect, res, c.desc)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := ParseHCL(tc.path)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expect, res, tc.name)
+		})
 	}
 }
 
