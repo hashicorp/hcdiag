@@ -22,7 +22,7 @@ import (
 type Agent struct {
 	l           hclog.Logger
 	products    map[string]*product.Product
-	results     map[string]map[string]interface{}
+	results     map[string]map[string]seeker.Seeker
 	resultsLock sync.Mutex
 	tmpDir      string
 	Start       time.Time       `json:"started_at"`
@@ -39,7 +39,7 @@ type Agent struct {
 func NewAgent(config Config, logger hclog.Logger) *Agent {
 	return &Agent{
 		l:               logger,
-		results:         make(map[string]map[string]interface{}),
+		results:         make(map[string]map[string]seeker.Seeker),
 		Config:          config,
 		ManifestSeekers: make(map[string][]ManifestSeeker),
 		Version:         version.GetVersion(),
@@ -266,13 +266,14 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // RunProducts executes all seekers for this run.
-// TODO(mkcp): This is due for a bit of a redesign
+// TODO(mkcp): We can avoid locking and waiting on results if all results are generated async. Then they can get streamed
+//  back to the dispatcher and merged into either a sync.Map or a purpose-built results map with insert(), read(), and merge().
 func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
 	wg.Add(len(a.products))
 
-	// NOTE(mkcp): Create a closure around runSet, writing results to the agent's result map, and wg.Done().
+	// NOTE(mkcp): Wraps product.Run(), writes to the a.results map, then counts up the results
 	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
 		result := product.Run()
 
