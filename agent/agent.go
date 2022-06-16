@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/hcdiag/seeker/host"
+
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/version"
 	"github.com/hashicorp/hcl/v2/hclsimple"
@@ -525,11 +527,7 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error)
 	}
 
 	for _, g := range cfg.GETs {
-		cmd := strings.Join([]string{"curl -s", g.Path}, " ")
-		// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
-		format := "string"
-		cmder := seeker.NewCommander(cmd, format)
-		seekers = append(seekers, cmder)
+		seekers = append(seekers, host.NewGetter(g.Path))
 	}
 
 	// Build copiers
