@@ -538,6 +538,22 @@ func ParseHCL(path string) (Config, error) {
 	return config, nil
 }
 
+func formatReportLine(cells ...string) string {
+	format := ""
+
+	// The coercion from the argument of type []string to type []interface is required for the later
+	// call to fmt.Sprintf, in which variadic arguments must be of type any/interface{}.
+	strValues := make([]interface{}, len(cells))
+	for i, cell := range cells {
+		format += "%s\t"
+		strValues[i] = cell
+	}
+
+	format += "\n"
+
+	return fmt.Sprintf(format, strValues...)
+}
+
 // TODO(mkcp): This duplicates much of customSeekers and can certainly be improved.
 func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error) {
 	seekers := make([]*seeker.Seeker, 0)

@@ -351,6 +351,37 @@ func TestParseHCL(t *testing.T) {
 	}
 }
 
+func Test_formatReportLine(t *testing.T) {
+	testCases := []struct {
+		name   string
+		cells  []string
+		expect string
+	}{
+		{
+			name:   "Test Nil Input",
+			cells:  nil,
+			expect: "\n",
+		},
+		{
+			name:   "Test Empty Input",
+			cells:  []string{},
+			expect: "\n",
+		},
+		{
+			name:   "Test Sample Header Row",
+			cells:  []string{"product", "success", "failed", "unknown", "total"},
+			expect: "product\tsuccess\tfailed\tunknown\ttotal\t\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := formatReportLine(tc.cells...)
+			assert.Equal(t, tc.expect, res, tc.name)
+		})
+	}
+}
+
 func cleanupHelper(t *testing.T, a *Agent) {
 	err := a.Cleanup()
 	if err != nil {
