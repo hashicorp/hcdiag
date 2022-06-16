@@ -22,7 +22,6 @@ const (
 )
 
 type Config struct {
-	Logger        *hclog.Logger
 	Name          string
 	TmpDir        string
 	Since         time.Time
@@ -33,10 +32,32 @@ type Config struct {
 }
 
 type Product struct {
+	l        hclog.Logger
 	Name     string
 	Seekers  []*seeker.Seeker
 	Excludes []string
 	Selects  []string
+	Config   Config
+}
+
+// Run runs the seekers
+func (p *Product) Run() map[string]interface{} {
+	p.l.Info("Running seekers for", "product", p.Name)
+	results := make(map[string]interface{})
+	for _, s := range p.Seekers {
+		p.l.Info("running operation", "product", p.Name, "seeker", s.Identifier)
+		result, err := s.Run()
+		results[s.Identifier] = s
+		// Note seeker errors to users and keep going.
+		if err != nil {
+			p.l.Warn("result",
+				"seeker", s.Identifier,
+				"result", fmt.Sprintf("%s", result),
+				"error", err,
+			)
+		}
+	}
+	return results
 }
 
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers

@@ -3,15 +3,19 @@ package product
 import (
 	"runtime"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/hcdiag/seeker"
 	"github.com/hashicorp/hcdiag/seeker/host"
 )
 
 // NewHost takes a product config and creates a Product containing all of the host's seekers.
-func NewHost(cfg Config) *Product {
+func NewHost(logger hclog.Logger, cfg Config) *Product {
 	return &Product{
+		l:       logger.Named("product"),
 		Name:    Host,
 		Seekers: HostSeekers(cfg.OS),
+		Config:  cfg,
 	}
 }
 

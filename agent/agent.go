@@ -266,21 +266,15 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // RunProducts executes all seekers for this run.
-// TODO(mkcp): Migrate much of this functionality into the product package
+// TODO(mkcp): This is due for a bit of a redesign
 func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
 	wg.Add(len(a.products))
 
 	// NOTE(mkcp): Create a closure around runSet, writing results to the agent's result map, and wg.Done().
-	//   This is a little complex, but saves us duplication in the product loop. Maybe we extract this to a private
-	//   package function in the future?
 	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
-		set := product.Seekers
-		result, err := a.runSet(name, set)
-		if err != nil {
-			a.l.Error("Error running seekers", "product", product, "error", err)
-		}
+		result := product.Run()
 
 		// Write results
 		a.resultsLock.Lock()
@@ -370,27 +364,6 @@ func (a *Agent) WriteOutput() (err error) {
 	return nil
 }
 
-// runSeekers runs the seekers
-// TODO(mkcp): Should we return a collection of errors from here?
-// TODO(mkcp): Migrate this onto the product
-func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interface{}, error) {
-	a.l.Info("Running seekers for", "product", product)
-	results := make(map[string]interface{})
-	for _, s := range set {
-		a.l.Info("running", "seeker", s.Identifier)
-		result, err := s.Run()
-		results[s.Identifier] = s
-		if err != nil {
-			a.l.Warn("result",
-				"seeker", s.Identifier,
-				"result", fmt.Sprintf("%s", result),
-				"error", err,
-			)
-		}
-	}
-	return results, nil
-}
-
 // CheckAvailable runs healthchecks for each enabled product
 func (a *Agent) CheckAvailable() error {
 	if a.Config.Consul {
@@ -437,7 +410,6 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	}
 
 	cfg := product.Config{
-		Logger:        &a.l,
 		TmpDir:        a.tmpDir,
 		Since:         a.Config.Since,
 		Until:         a.Config.Until,
@@ -447,7 +419,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	}
 	p := make(map[string]*product.Product)
 	if a.Config.Consul {
-		newConsul, err := product.NewConsul(cfg)
+		newConsul, err := product.NewConsul(a.l, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -464,7 +436,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	}
 	if a.Config.Nomad {
-		newNomad, err := product.NewNomad(cfg)
+		newNomad, err := product.NewNomad(a.l, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -480,7 +452,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		p[product.Nomad] = newNomad
 	}
 	if a.Config.TFE {
-		newTFE, err := product.NewTFE(cfg)
+		newTFE, err := product.NewTFE(a.l, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -496,7 +468,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		p[product.TFE] = newTFE
 	}
 	if a.Config.Vault {
-		newVault, err := product.NewVault(cfg)
+		newVault, err := product.NewVault(a.l, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -512,7 +484,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		p[product.Vault] = newVault
 	}
 
-	newHost := product.NewHost(cfg)
+	newHost := product.NewHost(a.l, cfg)
 	if a.Config.Host != nil {
 		customSeekers, err := customHostSeekers(a.Config.Host, a.tmpDir)
 		if err != nil {
