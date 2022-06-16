@@ -1,14 +1,20 @@
 package agent
 
 import (
+	"bytes"
+	"flag"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/product"
+	"github.com/hashicorp/hcdiag/seeker"
 	"github.com/stretchr/testify/assert"
 )
+
+var update = flag.Bool("update", false, "update golden files")
 
 // TODO: abstract away filesystem-related actions,
 // so mocks can be used instead of actually writing files?
@@ -347,6 +353,70 @@ func TestParseHCL(t *testing.T) {
 			res, err := ParseHCL(tc.path)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expect, res, tc.name)
+		})
+	}
+}
+
+func TestAgent_WriteSummary(t *testing.T) {
+	testCases := []struct {
+		name  string
+		agent *Agent
+	}{
+		{
+			name:  "Test Header Only",
+			agent: NewAgent(Config{}, hclog.Default()),
+		},
+		{
+			name: "Test with Products",
+			agent: &Agent{ManifestSeekers: map[string][]ManifestSeeker{
+				"consul": {
+					{
+						Status: seeker.Success,
+					},
+					{
+						Status: seeker.Success,
+					},
+					{
+						Status: seeker.Fail,
+					},
+					{
+						Status: seeker.Unknown,
+					},
+				},
+				"nomad": {
+					{
+						Status: seeker.Fail,
+					},
+					{
+						Status: seeker.Unknown,
+					},
+				},
+			}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			agent := tc.agent
+			b := new(bytes.Buffer)
+
+			err := agent.WriteSummary(b)
+
+			assert.NoError(t, err)
+			golden := filepath.Join("testdata/WriteSummary", tc.name+".golden")
+
+			if *update {
+				writeErr := ioutil.WriteFile(golden, b.Bytes(), 0644)
+				if writeErr != nil {
+					t.Errorf("Error writing golden file (%s): %s", golden, writeErr)
+				}
+			}
+
+			expected, readErr := ioutil.ReadFile(golden)
+			if readErr != nil {
+				t.Errorf("Error reading golden file (%s): %s", golden, readErr)
+			}
+			assert.Equal(t, expected, b.Bytes())
 		})
 	}
 }
