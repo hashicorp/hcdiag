@@ -358,6 +358,10 @@ func TestParseHCL(t *testing.T) {
 }
 
 func TestAgent_WriteSummary(t *testing.T) {
+	// NOTE: If you make changes to WriteSummary, you may break existing unit tests until the golden files are updated
+	// to reflect your changes. To update them, run `go test ./agent -update`, and then manually verify that the new
+	// files under testdata/WriteSummary look like you expect. If so, commit them to source control, and future
+	// test executions should succeed.
 	testCases := []struct {
 		name  string
 		agent *Agent
