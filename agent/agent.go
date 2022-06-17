@@ -550,17 +550,6 @@ func ParseHCL(path string) (Config, error) {
 // WriteSummary writes a summary report that includes the products and seeker statuses present in the agent's
 // ManifestSeekers. The intended use case is to write to output at the end of the Agent's Run.
 func (a *Agent) WriteSummary(writer io.Writer) error {
-	title := "SUMMARY OF SEEKER STATUS BY PRODUCT"
-	_, err := fmt.Fprintln(writer, title)
-	if err != nil {
-		return err
-	}
-
-	_, err = fmt.Fprintln(writer, strings.Repeat("-", len(title)))
-	if err != nil {
-		return err
-	}
-
 	t := tabwriter.NewWriter(writer, 0, 0, 2, ' ', 0)
 	headers := []string{
 		"product",
@@ -570,7 +559,7 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 		"total",
 	}
 
-	_, err = fmt.Fprint(t, formatReportLine(headers...))
+	_, err := fmt.Fprint(t, formatReportLine(headers...))
 	if err != nil {
 		return err
 	}
