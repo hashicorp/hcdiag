@@ -40,14 +40,16 @@ type Product struct {
 	Config   Config
 }
 
-// Run runs the seekers
-func (p *Product) Run() map[string]interface{} {
+// Run iterates over the list of seekers in a product and stores each seeker into a map.
+func (p *Product) Run() map[string]seeker.Seeker {
 	p.l.Info("Running seekers for", "product", p.Name)
-	results := make(map[string]interface{})
+	results := make(map[string]seeker.Seeker)
 	for _, s := range p.Seekers {
 		p.l.Info("running operation", "product", p.Name, "seeker", s.Identifier)
 		result, err := s.Run()
-		results[s.Identifier] = s
+		// NOTE(mkcp): There's nothing stopping Run() from being called multiple times, so we'll copy the seeker off the product once it's done.
+		// TODO(mkcp): It would be nice if we got an immutable seeker result type back from seeker runs instead.
+		results[s.Identifier] = *s
 		// Note seeker errors to users and keep going.
 		if err != nil {
 			p.l.Warn("result",
