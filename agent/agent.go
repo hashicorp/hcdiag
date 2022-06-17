@@ -2,10 +2,13 @@ package agent
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	"github.com/hashicorp/hcdiag/client"
@@ -134,6 +137,12 @@ func (a *Agent) Run() []error {
 	if errCleanup := a.Cleanup(); errCleanup != nil {
 		errs = append(errs, errCleanup)
 		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
+	}
+
+	a.l.Info("Writing summary of products and seekers to standard output")
+	if errSummary := a.WriteSummary(os.Stdout); errSummary != nil {
+		errs = append(errs, errSummary)
+		a.l.Error("Failed to write summary report following run", "error", errSummary)
 	}
 	return errs
 }
@@ -508,6 +517,72 @@ func ParseHCL(path string) (Config, error) {
 		return Config{}, err
 	}
 	return config, nil
+}
+
+// WriteSummary writes a summary report that includes the products and seeker statuses present in the agent's
+// ManifestSeekers. The intended use case is to write to output at the end of the Agent's Run.
+func (a *Agent) WriteSummary(writer io.Writer) error {
+	t := tabwriter.NewWriter(writer, 0, 0, 2, ' ', 0)
+	headers := []string{
+		"product",
+		string(seeker.Success),
+		string(seeker.Fail),
+		string(seeker.Unknown),
+		"total",
+	}
+
+	_, err := fmt.Fprint(t, formatReportLine(headers...))
+	if err != nil {
+		return err
+	}
+
+	for prod, seekers := range a.ManifestSeekers {
+		var success, fail, unknown int
+
+		for _, s := range seekers {
+			switch s.Status {
+			case seeker.Success:
+				success++
+			case seeker.Fail:
+				fail++
+			default:
+				unknown++
+			}
+		}
+
+		_, err := fmt.Fprint(t, formatReportLine(
+			prod,
+			strconv.Itoa(success),
+			strconv.Itoa(fail),
+			strconv.Itoa(unknown),
+			strconv.Itoa(len(seekers))))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = t.Flush()
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func formatReportLine(cells ...string) string {
+	format := ""
+
+	// The coercion from the argument of type []string to type []interface is required for the later
+	// call to fmt.Sprintf, in which variadic arguments must be of type any/interface{}.
+	strValues := make([]interface{}, len(cells))
+	for i, cell := range cells {
+		format += "%s\t"
+		strValues[i] = cell
+	}
+
+	format += "\n"
+
+	return fmt.Sprintf(format, strValues...)
 }
 
 // TODO(mkcp): This duplicates much of customSeekers and can certainly be improved.
