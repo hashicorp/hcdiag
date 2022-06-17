@@ -199,7 +199,7 @@ event "promote-production" {
 }
 
 event "promote-production-packaging" {
-  depends = ["promote-production-docker"]
+  depends = ["promote-production"]
   action "promote-production-packaging" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
