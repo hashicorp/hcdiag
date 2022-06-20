@@ -539,11 +539,9 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 
 	// For deterministic output, we sort the products in alphabetical order. Otherwise, ranging over the map
 	// a.ManifestSeekers directly, we wouldn't know for certain which order the keys - and therefore the rows - would be in.
-	products := make([]string, len(a.ManifestSeekers))
-	i := 0
+	var products []string
 	for k := range a.ManifestSeekers {
-		products[i] = k
-		i++
+		products = append(products, k)
 	}
 	sort.Strings(products)
 
