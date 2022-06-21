@@ -22,7 +22,6 @@ const (
 )
 
 type Config struct {
-	Logger        *hclog.Logger
 	Name          string
 	TmpDir        string
 	Since         time.Time
@@ -33,10 +32,34 @@ type Config struct {
 }
 
 type Product struct {
+	l        hclog.Logger
 	Name     string
 	Seekers  []*seeker.Seeker
 	Excludes []string
 	Selects  []string
+	Config   Config
+}
+
+// Run iterates over the list of seekers in a product and stores each seeker into a map.
+func (p *Product) Run() map[string]seeker.Seeker {
+	p.l.Info("Running seekers for", "product", p.Name)
+	results := make(map[string]seeker.Seeker)
+	for _, s := range p.Seekers {
+		p.l.Info("running operation", "product", p.Name, "seeker", s.Identifier)
+		result, err := s.Run()
+		// NOTE(mkcp): There's nothing stopping Run() from being called multiple times, so we'll copy the seeker off the product once it's done.
+		// TODO(mkcp): It would be nice if we got an immutable seeker result type back from seeker runs instead.
+		results[s.Identifier] = *s
+		// Note seeker errors to users and keep going.
+		if err != nil {
+			p.l.Warn("result",
+				"seeker", s.Identifier,
+				"result", fmt.Sprintf("%s", result),
+				"error", err,
+			)
+		}
+	}
+	return results
 }
 
 // Filter applies our slices of exclude and select seeker.Identifier matchers to the set of the product's seekers

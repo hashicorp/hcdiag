@@ -9,13 +9,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 )
 
-// TarGz accepts a source directory and destination file name to archive and compress files.
-func TarGz(sourceDir string, destFileName string) error {
+// TarGz is a utility function for archiving and compressing files. Its arguments include the source directory that
+// you wish to archive; a destination filename, which is the .tar.gz file you want to create; and a baseName, which
+// is the name of the directory that should be created when the resulting .tar.gz file is later extracted.
+func TarGz(sourceDir string, destFileName string, baseName string) error {
 	// tar
 	destFile, err := os.Create(destFileName)
 	if err != nil {
@@ -64,7 +67,7 @@ func TarGz(sourceDir string, destFileName string) error {
 			}
 
 			header := &tar.Header{
-				Name:    path,
+				Name:    getTarRelativePathName(baseName, path, sourceDir),
 				Size:    stat.Size(),
 				Mode:    int64(stat.Mode()),
 				ModTime: stat.ModTime(),
@@ -87,6 +90,14 @@ func TarGz(sourceDir string, destFileName string) error {
 	}
 
 	return nil
+}
+
+// getTarRelativePathName is a helper for building the Name of archived files in a way that allows for clean extraction.
+// The function takes a baseName, which is the desired directory name when the Tar is unarchived. It takes a filePath
+// which is the full path to the file that is to be archived. And, it takes a fileRoot, which is the portion of the
+// filePath to remove. The result will be, essentially, `baseName + (filePath - fileRoot)`.
+func getTarRelativePathName(baseName, filePath, fileRoot string) string {
+	return fmt.Sprint(baseName, strings.TrimPrefix(filePath, fileRoot))
 }
 
 // WriteJSON converts an interface{} to JSON then writes to filePath.
@@ -226,4 +237,17 @@ func FindInInterface(iface interface{}, mapKeys ...string) (interface{}, error) 
 		}
 	}
 	return mapped, nil
+}
+
+// EnsureDirectory will ensure that the full path to the destination directory exists. If the full
+// path exists, this is a no-op and will return nil. Otherwise, it will create any directories that do not
+// exist in the destination path. Any directories created will be given file permissions 0755.
+func EnsureDirectory(dir string) error {
+	// MkdirAll handles cases where directories already exist, so we do not need to check for `os.ErrExist` errors.
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		hclog.L().Debug("util.EnsureDirectory() unable to ensure directory exists", "dir", dir, "error", err)
+		return err
+	}
+
+	return nil
 }

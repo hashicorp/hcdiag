@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/hashicorp/go-hclog"
+
 	logs "github.com/hashicorp/hcdiag/seeker/log"
 
 	"github.com/hashicorp/hcdiag/client"
@@ -16,7 +18,7 @@ const (
 )
 
 // NewVault takes a product config and creates a Product containing all of Vault's seekers.
-func NewVault(cfg Config) (*Product, error) {
+func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 	api, err := client.NewVaultAPI()
 	if err != nil {
 		return nil, err
@@ -27,7 +29,10 @@ func NewVault(cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
+		l:       logger.Named("product"),
+		Name:    Vault,
 		Seekers: seekers,
+		Config:  cfg,
 	}, nil
 }
 
