@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/hcdiag/client"
 	s "github.com/hashicorp/hcdiag/seeker"
 	logs "github.com/hashicorp/hcdiag/seeker/log"
@@ -15,7 +17,7 @@ const (
 )
 
 // NewConsul takes a product config and creates a Product with all of Consul's default seekers
-func NewConsul(cfg Config) (*Product, error) {
+func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 	api, err := client.NewConsulAPI()
 	if err != nil {
 		return nil, err
@@ -26,7 +28,10 @@ func NewConsul(cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
+		l:       logger.Named("product"),
+		Name:    Consul,
 		Seekers: seekers,
+		Config:  cfg,
 	}, nil
 }
 

@@ -1,15 +1,21 @@
 package agent
 
 import (
-	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
+	"github.com/hashicorp/hcdiag/seeker/host"
+
 	"github.com/hashicorp/hcdiag/client"
+	"github.com/hashicorp/hcdiag/version"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 
 	"github.com/hashicorp/go-hclog"
@@ -18,33 +24,32 @@ import (
 	"github.com/hashicorp/hcdiag/util"
 )
 
-// TODO: NewDryAgent() to simplify all the 'if d.Dryrun's ??
-
 // Agent holds our set of seekers to be executed and their results.
 type Agent struct {
 	l           hclog.Logger
 	products    map[string]*product.Product
-	results     map[string]map[string]interface{}
+	results     map[string]map[string]seeker.Seeker
 	resultsLock sync.Mutex
 	tmpDir      string
-	Start       time.Time `json:"started_at"`
-	End         time.Time `json:"ended_at"`
-	Duration    string    `json:"duration"`
-	NumSeekers  int       `json:"num_seekers"`
-	Config      Config    `json:"configuration"`
+	Start       time.Time       `json:"started_at"`
+	End         time.Time       `json:"ended_at"`
+	Duration    string          `json:"duration"`
+	NumSeekers  int             `json:"num_seekers"`
+	Config      Config          `json:"configuration"`
+	Version     version.Version `json:"version"`
 	// ManifestSeekers holds a slice of seekers with a subset of normal seekers' fields so we can safely render them in
 	// `manifest.json`
 	ManifestSeekers map[string][]ManifestSeeker `json:"seekers"`
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
-	a := Agent{
+	return &Agent{
 		l:               logger,
-		results:         make(map[string]map[string]interface{}),
+		results:         make(map[string]map[string]seeker.Seeker),
 		Config:          config,
 		ManifestSeekers: make(map[string][]ManifestSeeker),
+		Version:         version.GetVersion(),
 	}
-	return &a
 }
 
 // Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
@@ -53,8 +58,19 @@ func NewAgent(config Config, logger hclog.Logger) *Agent {
 func (a *Agent) Run() []error {
 	var errs []error
 
-	// Begin execution, copy files and run seekers
 	a.Start = time.Now()
+
+	// If dryrun is enabled we short circuit the main lifecycle and run the dryrun mode instead.
+	if a.Config.Dryrun {
+		return a.DryRun()
+	}
+
+	a.l.Info("Ensuring destination directory exists", "directory", a.Config.Destination)
+	errDest := util.EnsureDirectory(a.Config.Destination)
+	if errDest != nil {
+		errs = append(errs, errDest)
+		a.l.Error("Failed to ensure destination directory exists", "dir", a.Config.Destination, "error", errDest)
+	}
 
 	// File processing
 	if errTemp := a.CreateTemp(); errTemp != nil {
@@ -111,10 +127,8 @@ func (a *Agent) Run() []error {
 
 	// Record metadata
 	// Build seeker metadata
-	if !a.Config.Dryrun {
-		a.l.Info("Recording manifest")
-		a.RecordManifest()
-	}
+	a.l.Info("Recording manifest")
+	a.RecordManifest()
 
 	// Execution finished, write our results and cleanup
 	a.recordEnd()
@@ -127,6 +141,61 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errCleanup)
 		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
 	}
+
+	a.l.Info("Writing summary of products and seekers to standard output")
+	if errSummary := a.WriteSummary(os.Stdout); errSummary != nil {
+		errs = append(errs, errSummary)
+		a.l.Error("Failed to write summary report following run", "error", errSummary)
+	}
+	return errs
+}
+
+// DryRun runs the agent to log what would occur during a run, without issuing any commands or writing to disk.
+func (a *Agent) DryRun() []error {
+	var errs []error
+
+	a.l.Info("Starting dry run")
+
+	// glob "*" here is to support copy/paste of seeker identifiers
+	// from -dryrun output into select/exclude filters
+	a.tmpDir = "*"
+	a.l.Info("Would copy included files", "includes", a.Config.Includes)
+
+	// Running healthchecks for products. We don't want to stop if any fail though.
+	a.l.Info("Checking product availability")
+	if errProductChecks := a.CheckAvailable(); errProductChecks != nil {
+		errs = append(errs, errProductChecks)
+		a.l.Error("Product failed healthcheck. Ensure setup steps are complete (see https://github.com/hashicorp/hcdiag for prerequisites)", "error", errProductChecks)
+	}
+
+	// Create products and their seekers
+	a.l.Info("Gathering seekers for each product")
+	p, errProductSetup := a.Setup()
+	if errProductSetup != nil {
+		errs = append(errs, errProductSetup)
+		a.l.Error("Failed gathering seekers for products", "error", errProductSetup)
+		return errs
+	}
+	a.l.Info("Filtering seeker lists")
+	for _, prod := range p {
+		if errProductFilter := prod.Filter(); errProductFilter != nil {
+			a.l.Error("Failed to filter Products", "error", errProductFilter)
+			errs = append(errs, errProductFilter)
+			return errs
+		}
+	}
+	// TODO(mkcp): We should pass the products forward in run, not store them on the agent.
+	a.products = p
+
+	a.l.Info("Showing diagnostics that would be gathered")
+	for _, p := range a.products {
+		set := p.Seekers
+		for _, s := range set {
+			a.l.Info("would run", "product", p.Name, "seeker", s.Identifier)
+		}
+	}
+	a.l.Info("Would write output", "dest", a.Config.Destination)
+	a.l.Info("Dry run complete", "duration", time.Since(a.Start))
 	return errs
 }
 
@@ -147,29 +216,24 @@ func (a *Agent) TempDir() string {
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
 //  artifact.
 func (a *Agent) CreateTemp() error {
-	if a.Config.Dryrun {
-		// glob "*" here is to support copy/paste of seeker identifiers
-		// from -dryrun output into select/exclude filters
-		a.tmpDir = "*"
-		return nil
-	}
-
-	a.tmpDir = a.TempDir()
-	if err := os.Mkdir(a.tmpDir, 0700); err != nil {
-		a.l.Error("Error creating temp directory", "name", hclog.Fmt("%s", a.tmpDir), "message", err)
+	tmp, err := os.MkdirTemp(a.Config.Destination, a.TempDir())
+	if err != nil {
+		a.l.Error("Error creating temp directory", "message", err)
 		return err
 	}
-	a.l.Debug("Created temp directory", "name", hclog.Fmt("./%s", a.tmpDir))
+	tmp, err = filepath.Abs(tmp)
+	if err != nil {
+		a.l.Error("Error identifying absolute path for temp directory", "message", err)
+		return err
+	}
+	a.tmpDir = tmp
+	a.l.Debug("Created temp directory", "name", a.tmpDir)
 
 	return nil
 }
 
 // Cleanup attempts to delete the contents of the tempdir when the diagnostics are done.
 func (a *Agent) Cleanup() (err error) {
-	if a.Config.Dryrun {
-		return nil
-	}
-
 	a.l.Debug("Cleaning up temporary files")
 
 	err = os.RemoveAll(a.tmpDir)
@@ -188,19 +252,12 @@ func (a *Agent) CopyIncludes() (err error) {
 	a.l.Info("Copying includes")
 
 	dest := filepath.Join(a.tmpDir, "includes")
-	if !a.Config.Dryrun {
-		err = os.MkdirAll(dest, 0755)
-		if err != nil {
-			return err
-		}
+	err = os.MkdirAll(dest, 0755)
+	if err != nil {
+		return err
 	}
 
 	for _, f := range a.Config.Includes {
-		if a.Config.Dryrun {
-			a.l.Info("Would include", "from", f)
-			continue
-		}
-
 		a.l.Debug("validating include exists", "path", f)
 		// Wildcards don't represent a single file or dir, so we can't validate that they exist.
 		if !strings.Contains(f, "*") {
@@ -221,35 +278,28 @@ func (a *Agent) CopyIncludes() (err error) {
 }
 
 // RunProducts executes all seekers for this run.
-// TODO(mkcp): Migrate much of this functionality into the product package
+// TODO(mkcp): We can avoid locking and waiting on results if all results are generated async. Then they can get streamed
+//  back to the dispatcher and merged into either a sync.Map or a purpose-built results map with insert(), read(), and merge().
 func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
 	wg.Add(len(a.products))
 
-	// NOTE(mkcp): Create a closure around runSet, writing results to the agent's result map, and wg.Done().
-	//   This is a little complex, but saves us duplication in the product loop. Maybe we extract this to a private
-	//   package function in the future?
+	// NOTE(mkcp): Wraps product.Run(), writes to the a.results map, then counts up the results
 	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
-		set := product.Seekers
-		result, err := a.runSet(name, set)
-		if err != nil {
-			a.l.Error("Error running seekers", "product", product, "error", err)
-		}
+		result := product.Run()
 
 		// Write results
 		a.resultsLock.Lock()
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		if !a.Config.Dryrun {
-			statuses, err := seeker.StatusCounts(product.Seekers)
-			if err != nil {
-				a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
-			}
-
-			a.l.Info("Product done", "product", name, "statuses", statuses)
+		statuses, err := seeker.StatusCounts(product.Seekers)
+		if err != nil {
+			a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
 		}
+
+		a.l.Info("Product done", "product", name, "statuses", statuses)
 		wg.Done()
 	}
 
@@ -286,23 +336,10 @@ func (a *Agent) RecordManifest() {
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
 func (a *Agent) WriteOutput() (err error) {
-	// If the mode is drY ruUn, you can skip it
-	if a.Config.Dryrun {
-		return nil
-	}
-
-	// Ensure dir exists
-	// TODO(mkcp): Once an error here can hard-fail the process, we should execute this before we run the seekers to ensure
-	//  we don't waste users' time.
-	if mkdirErr := os.Mkdir(a.Config.Destination, 0755); mkdirErr != nil {
-		//  There are some cases where an error is a "happy path"
-		if errors.Is(mkdirErr, os.ErrExist) {
-			// a dir exists, great, we can write to it.
-			a.l.Trace("its just a harmless little bunny", "error", err)
-		} else {
-			a.l.Error("os.Mkdir", "error", err)
-			return mkdirErr
-		}
+	err = util.EnsureDirectory(a.Config.Destination)
+	if err != nil {
+		a.l.Error("Failed to ensure destination directory exists", "dir", a.Config.Destination, "error", err)
+		return err
 	}
 
 	a.l.Debug("Writing results and manifest, and creating tar.gz archive")
@@ -330,7 +367,7 @@ func (a *Agent) WriteOutput() (err error) {
 	resultsDest := filepath.Join(a.Config.Destination, resultsFile)
 
 	// Archive and compress outputs
-	err = util.TarGz(a.tmpDir, resultsDest)
+	err = util.TarGz(a.tmpDir, resultsDest, a.TempDir())
 	if err != nil {
 		a.l.Error("util.TarGz", "error", err)
 		return err
@@ -338,32 +375,6 @@ func (a *Agent) WriteOutput() (err error) {
 	a.l.Info("Compressed and archived output file", "dest", resultsDest)
 
 	return nil
-}
-
-// runSeekers runs the seekers
-// TODO(mkcp): Should we return a collection of errors from here?
-// TODO(mkcp): Migrate this onto the product
-func (a *Agent) runSet(product string, set []*seeker.Seeker) (map[string]interface{}, error) {
-	a.l.Info("Running seekers for", "product", product)
-	results := make(map[string]interface{})
-	for _, s := range set {
-		if a.Config.Dryrun {
-			a.l.Info("would run", "seeker", s.Identifier)
-			continue
-		}
-
-		a.l.Info("running", "seeker", s.Identifier)
-		result, err := s.Run()
-		results[s.Identifier] = s
-		if err != nil {
-			a.l.Warn("result",
-				"seeker", s.Identifier,
-				"result", fmt.Sprintf("%s", result),
-				"error", err,
-			)
-		}
-	}
-	return results, nil
 }
 
 // CheckAvailable runs healthchecks for each enabled product
@@ -412,7 +423,6 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	}
 
 	cfg := product.Config{
-		Logger:        &a.l,
 		TmpDir:        a.tmpDir,
 		Since:         a.Config.Since,
 		Until:         a.Config.Until,
@@ -422,7 +432,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	}
 	p := make(map[string]*product.Product)
 	if a.Config.Consul {
-		newConsul, err := product.NewConsul(cfg)
+		newConsul, err := product.NewConsul(a.l, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -439,7 +449,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	}
 	if a.Config.Nomad {
-		newNomad, err := product.NewNomad(cfg)
+		newNomad, err := product.NewNomad(a.l, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -455,7 +465,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		p[product.Nomad] = newNomad
 	}
 	if a.Config.TFE {
-		newTFE, err := product.NewTFE(cfg)
+		newTFE, err := product.NewTFE(a.l, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -471,7 +481,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		p[product.TFE] = newTFE
 	}
 	if a.Config.Vault {
-		newVault, err := product.NewVault(cfg)
+		newVault, err := product.NewVault(a.l, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -487,7 +497,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		p[product.Vault] = newVault
 	}
 
-	newHost := product.NewHost(cfg)
+	newHost := product.NewHost(a.l, cfg)
 	if a.Config.Host != nil {
 		customSeekers, err := customHostSeekers(a.Config.Host, a.tmpDir)
 		if err != nil {
@@ -513,6 +523,81 @@ func ParseHCL(path string) (Config, error) {
 	return config, nil
 }
 
+// WriteSummary writes a summary report that includes the products and seeker statuses present in the agent's
+// ManifestSeekers. The intended use case is to write to output at the end of the Agent's Run.
+func (a *Agent) WriteSummary(writer io.Writer) error {
+	t := tabwriter.NewWriter(writer, 0, 0, 2, ' ', 0)
+	headers := []string{
+		"product",
+		string(seeker.Success),
+		string(seeker.Fail),
+		string(seeker.Unknown),
+		"total",
+	}
+
+	_, err := fmt.Fprint(t, formatReportLine(headers...))
+	if err != nil {
+		return err
+	}
+
+	// For deterministic output, we sort the products in alphabetical order. Otherwise, ranging over the map
+	// a.ManifestSeekers directly, we wouldn't know for certain which order the keys - and therefore the rows - would be in.
+	var products []string
+	for k := range a.ManifestSeekers {
+		products = append(products, k)
+	}
+	sort.Strings(products)
+
+	for _, prod := range products {
+		var success, fail, unknown int
+		seekers := a.ManifestSeekers[prod]
+
+		for _, s := range seekers {
+			switch s.Status {
+			case seeker.Success:
+				success++
+			case seeker.Fail:
+				fail++
+			default:
+				unknown++
+			}
+		}
+
+		_, err := fmt.Fprint(t, formatReportLine(
+			prod,
+			strconv.Itoa(success),
+			strconv.Itoa(fail),
+			strconv.Itoa(unknown),
+			strconv.Itoa(len(seekers))))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = t.Flush()
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func formatReportLine(cells ...string) string {
+	format := ""
+
+	// The coercion from the argument of type []string to type []interface is required for the later
+	// call to fmt.Sprintf, in which variadic arguments must be of type any/interface{}.
+	strValues := make([]interface{}, len(cells))
+	for i, cell := range cells {
+		format += "%s\t"
+		strValues[i] = cell
+	}
+
+	format += "\n"
+
+	return fmt.Sprintf(format, strValues...)
+}
+
 // TODO(mkcp): This duplicates much of customSeekers and can certainly be improved.
 func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error) {
 	seekers := make([]*seeker.Seeker, 0)
@@ -528,11 +613,7 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error)
 	}
 
 	for _, g := range cfg.GETs {
-		cmd := strings.Join([]string{"curl -s", g.Path}, " ")
-		// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
-		format := "string"
-		cmder := seeker.NewCommander(cmd, format)
-		seekers = append(seekers, cmder)
+		seekers = append(seekers, host.NewGetter(g.Path))
 	}
 
 	// Build copiers

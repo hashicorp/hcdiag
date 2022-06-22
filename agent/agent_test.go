@@ -1,14 +1,20 @@
 package agent
 
 import (
+	"bytes"
+	"flag"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/product"
+	"github.com/hashicorp/hcdiag/seeker"
 	"github.com/stretchr/testify/assert"
 )
+
+var update = flag.Bool("update", false, "update golden files")
 
 // TODO: abstract away filesystem-related actions,
 // so mocks can be used instead of actually writing files?
@@ -20,36 +26,19 @@ func TestNewAgent(t *testing.T) {
 }
 
 func TestStartAndEnd(t *testing.T) {
-	a := Agent{l: hclog.Default()}
+	a := NewAgent(Config{}, hclog.Default())
 
-	// Start and End fields should be nil at first,
+	// Start and End fields should be zero at first,
 	// and Duration should be empty ""
-	if !a.Start.IsZero() {
-		t.Errorf("Start value non-zero before start(): %s", a.Start)
-	}
-	if !a.End.IsZero() {
-		t.Errorf("End value non-zero before start(): %s", a.Start)
-	}
-	if a.Duration != "" {
-		t.Errorf("Duration value not an empty string before start(): %s", a.Duration)
-	}
+	assert.Zero(t, a.Start, "Start value non-zero before start")
+	assert.Zero(t, a.End, "End value non-zero before start")
+	assert.Equal(t, "", a.Duration, "Duration value not an empty string before start")
 
 	// recordEnd should set a time and calculate a duration
 	a.recordEnd()
-	if a.End.IsZero() {
-		t.Errorf("End value still zero after start(): %s", a.Start)
-	}
-	if a.Duration == "" {
-		t.Error("Duration value still an empty string after start()")
-	}
-}
 
-func TestCreateTempDryrun(t *testing.T) {
-	a := NewAgent(Config{Dryrun: true}, hclog.Default())
-	// Does not require cleanup as `Dryrun: true` should not make a directory
-	err := a.CreateTemp()
-	assert.Nil(t, err)
-	assert.Equal(t, a.tmpDir, "*")
+	assert.NotZero(t, a.End, "End value still zero after recordEnd()")
+	assert.NotEqual(t, "", a.Duration, "Duration value still an empty string after recordEnd()")
 }
 
 func TestCreateTemp(t *testing.T) {
@@ -71,21 +60,21 @@ func TestCreateTemp(t *testing.T) {
 
 func TestCreateTempAndCleanup(t *testing.T) {
 	var err error
-	d := Agent{l: hclog.Default()}
+	a := NewAgent(Config{}, hclog.Default())
 
-	if err = d.CreateTemp(); err != nil {
+	if err = a.CreateTemp(); err != nil {
 		t.Errorf("Error creating tmpDir: %s", err)
 	}
 
-	if _, err = os.Stat(d.tmpDir); err != nil {
+	if _, err = os.Stat(a.tmpDir); err != nil {
 		t.Errorf("Error checking for temp dir: %s", err)
 	}
 
-	if err = d.Cleanup(); err != nil {
+	if err = a.Cleanup(); err != nil {
 		t.Errorf("Cleanup error: %s", err)
 	}
 
-	_, err = os.Stat(d.tmpDir)
+	_, err = os.Stat(a.tmpDir)
 	if !os.IsNotExist(err) {
 		t.Errorf("Got unexpected error when validating that tmpDir was removed: %s", err)
 	}
@@ -125,7 +114,7 @@ func TestCopyIncludes(t *testing.T) {
 
 	// execute what we're aiming to test
 	err = a.CopyIncludes()
-	assert.NoError(t, err, "could not copy includes")
+	assert.NoError(t, err, "Could not copy includes")
 
 	// verify expected file locations
 	for _, data := range testTable {
@@ -140,14 +129,12 @@ func TestCopyIncludes(t *testing.T) {
 }
 
 func TestRunProducts(t *testing.T) {
+	l := hclog.Default()
 	pCfg := product.Config{OS: "auto"}
 	p := make(map[string]*product.Product)
-	p["host"] = product.NewHost(pCfg)
-	a := Agent{
-		l:        hclog.Default(),
-		products: p,
-		results:  make(map[string]map[string]interface{}),
-	}
+	a := NewAgent(Config{}, hclog.Default())
+	a.products = p
+	p["host"] = product.NewHost(l, pCfg)
 
 	err := a.RunProducts()
 	assert.NoError(t, err)
@@ -162,7 +149,7 @@ func TestAgent_RecordManifest(t *testing.T) {
 		a := NewAgent(Config{}, hclog.Default())
 		pCfg := product.Config{OS: "auto"}
 		p := make(map[string]*product.Product)
-		p[testProduct] = product.NewHost(pCfg)
+		p[testProduct] = product.NewHost(hclog.Default(), pCfg)
 		a.products = p
 		assert.NotEmptyf(t, a.products[testProduct].Seekers, "test setup failure, no seekers available")
 
@@ -173,10 +160,7 @@ func TestAgent_RecordManifest(t *testing.T) {
 }
 
 func TestWriteOutput(t *testing.T) {
-	a := Agent{
-		l:       hclog.Default(),
-		results: make(map[string]map[string]interface{}),
-	}
+	a := NewAgent(Config{}, hclog.Default())
 
 	testOut := "."
 	resultsDest := a.TempDir() + ".tar.gz"
@@ -185,13 +169,20 @@ func TestWriteOutput(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}
+
 	defer func() {
 		if err := a.Cleanup(); err != nil {
 			a.l.Error("Failed to cleanup", "error", err)
 		}
 	}()
-	// NOTE(mkcp): Should we handle the error back from this?
-	defer os.Remove(resultsDest)
+
+	defer func() {
+		err := os.Remove(resultsDest)
+		if err != nil {
+			// Simply log this case because it's not an error in the function we're testing
+			t.Logf("Error removing test results file: %s", resultsDest)
+		}
+	}()
 
 	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
@@ -209,51 +200,58 @@ func TestWriteOutput(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
-	t.Run("Should only get host if no products enabled", func(t *testing.T) {
-		cfg := Config{OS: "auto"}
-		a := Agent{
-			l:      hclog.Default(),
-			Config: cfg,
-		}
-		p, err := a.Setup()
-		assert.NoError(t, err)
-		assert.Len(t, p, 1)
-	})
-	t.Run("Should have host and nomad enabled", func(t *testing.T) {
-		cfg := Config{
-			Nomad: true,
-			OS:    "auto",
-		}
-		a := Agent{
-			l:      hclog.Default(),
-			Config: cfg,
-		}
-		p, err := a.Setup()
-		assert.NoError(t, err)
-		assert.Len(t, p, 2)
-	})
+	testCases := []struct {
+		name        string
+		cfg         Config
+		expectedLen int
+	}{
+		{
+			name: "Should only get host if no products enabled",
+			cfg: Config{
+				OS: "auto",
+			},
+			expectedLen: 1,
+		},
+		{
+			name: "Should have host and nomad enabled",
+			cfg: Config{
+				Nomad: true,
+				OS:    "auto",
+			},
+			expectedLen: 2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := NewAgent(tc.cfg, hclog.Default())
+			p, err := a.Setup()
+			assert.NoError(t, err)
+			assert.Len(t, p, tc.expectedLen)
+		})
+	}
 }
 
 func TestParseHCL(t *testing.T) {
-	testTable := []struct {
-		desc   string
+	testCases := []struct {
+		name   string
 		path   string
 		expect Config
 	}{
 		{
-			desc:   "Empty config is valid",
+			name:   "Empty config is valid",
 			path:   "../tests/resources/config/empty.hcl",
 			expect: Config{},
 		},
 		{
-			desc: "Host with no attributes is valid",
+			name: "Host with no attributes is valid",
 			path: "../tests/resources/config/host_no_seekers.hcl",
 			expect: Config{
 				Host: &HostConfig{},
 			},
 		},
 		{
-			desc: "Host with one of each seeker is valid",
+			name: "Host with one of each seeker is valid",
 			path: "../tests/resources/config/host_each_seeker.hcl",
 			expect: Config{
 				Host: &HostConfig{
@@ -273,7 +271,7 @@ func TestParseHCL(t *testing.T) {
 			},
 		},
 		{
-			desc: "Host with multiple of a seeker type is valid",
+			name: "Host with multiple of a seeker type is valid",
 			path: "../tests/resources/config/multi_seekers.hcl",
 			expect: Config{
 				Host: &HostConfig{
@@ -295,7 +293,7 @@ func TestParseHCL(t *testing.T) {
 			},
 		},
 		{
-			desc: "Config with a host and one product with everything is valid",
+			name: "Config with a host and one product with everything is valid",
 			path: "../tests/resources/config/config.hcl",
 			expect: Config{
 				Host: &HostConfig{
@@ -329,7 +327,7 @@ func TestParseHCL(t *testing.T) {
 			},
 		},
 		{
-			desc: "Config with multiple products is valid",
+			name: "Config with multiple products is valid",
 			path: "../tests/resources/config/multi_product.hcl",
 			expect: Config{
 				Products: []*ProductConfig{
@@ -350,10 +348,111 @@ func TestParseHCL(t *testing.T) {
 		},
 	}
 
-	for _, c := range testTable {
-		res, err := ParseHCL(c.path)
-		assert.NoError(t, err)
-		assert.Equal(t, c.expect, res, c.desc)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := ParseHCL(tc.path)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expect, res, tc.name)
+		})
+	}
+}
+
+func TestAgent_WriteSummary(t *testing.T) {
+	// NOTE: If you make changes to WriteSummary, you may break existing unit tests until the golden files are updated
+	// to reflect your changes. To update them, run `go test ./agent -update`, and then manually verify that the new
+	// files under testdata/WriteSummary look like you expect. If so, commit them to source control, and future
+	// test executions should succeed.
+	testCases := []struct {
+		name  string
+		agent *Agent
+	}{
+		{
+			name:  "Test Header Only",
+			agent: NewAgent(Config{}, hclog.Default()),
+		},
+		{
+			name: "Test with Products",
+			agent: &Agent{ManifestSeekers: map[string][]ManifestSeeker{
+				"consul": {
+					{
+						Status: seeker.Success,
+					},
+					{
+						Status: seeker.Success,
+					},
+					{
+						Status: seeker.Fail,
+					},
+					{
+						Status: seeker.Unknown,
+					},
+				},
+				"nomad": {
+					{
+						Status: seeker.Fail,
+					},
+					{
+						Status: seeker.Unknown,
+					},
+				},
+			}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			agent := tc.agent
+			b := new(bytes.Buffer)
+
+			err := agent.WriteSummary(b)
+
+			assert.NoError(t, err)
+			golden := filepath.Join("testdata/WriteSummary", tc.name+".golden")
+
+			if *update {
+				writeErr := ioutil.WriteFile(golden, b.Bytes(), 0644)
+				if writeErr != nil {
+					t.Errorf("Error writing golden file (%s): %s", golden, writeErr)
+				}
+			}
+
+			expected, readErr := ioutil.ReadFile(golden)
+			if readErr != nil {
+				t.Errorf("Error reading golden file (%s): %s", golden, readErr)
+			}
+			assert.Equal(t, expected, b.Bytes())
+		})
+	}
+}
+
+func Test_formatReportLine(t *testing.T) {
+	testCases := []struct {
+		name   string
+		cells  []string
+		expect string
+	}{
+		{
+			name:   "Test Nil Input",
+			cells:  nil,
+			expect: "\n",
+		},
+		{
+			name:   "Test Empty Input",
+			cells:  []string{},
+			expect: "\n",
+		},
+		{
+			name:   "Test Sample Header Row",
+			cells:  []string{"product", "success", "failed", "unknown", "total"},
+			expect: "product\tsuccess\tfailed\tunknown\ttotal\t\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := formatReportLine(tc.cells...)
+			assert.Equal(t, tc.expect, res, tc.name)
+		})
 	}
 }
 
