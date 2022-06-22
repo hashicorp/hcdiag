@@ -1,4 +1,4 @@
-package seeker
+package op
 
 import (
 	"encoding/json"
@@ -13,9 +13,9 @@ type Commander struct {
 	format  string
 }
 
-// NewCommander provides a Seeker for running shell commands.
-func NewCommander(command string, format string) *Seeker {
-	return &Seeker{
+// NewCommander provides a Op for running shell commands.
+func NewCommander(command string, format string) *Op {
+	return &Op{
 		Identifier: command,
 		Runner: Commander{
 			Command: command,

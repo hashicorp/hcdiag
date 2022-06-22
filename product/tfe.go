@@ -3,7 +3,7 @@ package product
 import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
-	s "github.com/hashicorp/hcdiag/seeker"
+	s "github.com/hashicorp/hcdiag/op"
 )
 
 // NewTFE takes a product config and creates a Product containing all of TFE's seekers.
@@ -26,8 +26,8 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // TFESeekers seek information about Terraform Enterprise/Cloud.
-func TFESeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
-	return []*s.Seeker{
+func TFESeekers(cfg Config, api *client.APIClient) ([]*s.Op, error) {
+	return []*s.Op{
 		s.NewCommander("replicatedctl support-bundle", "string"),
 
 		s.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until),

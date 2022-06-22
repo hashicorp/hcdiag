@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
-	s "github.com/hashicorp/hcdiag/seeker"
-	logs "github.com/hashicorp/hcdiag/seeker/log"
+	s "github.com/hashicorp/hcdiag/op"
+	logs "github.com/hashicorp/hcdiag/op/log"
 )
 
 const (
@@ -50,8 +50,8 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // NomadSeekers seek information about Nomad.
-func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
-	seekers := []*s.Seeker{
+func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Op, error) {
+	seekers := []*s.Op{
 		s.NewCommander("nomad version", "string"),
 		s.NewCommander("nomad node status -self -json", "json"),
 		s.NewCommander("nomad agent-info -json", "json"),
@@ -69,7 +69,7 @@ func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs", "nomad")
 		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		seekers = append([]*s.Seeker{logCopier}, seekers...)
+		seekers = append([]*s.Op{logCopier}, seekers...)
 	}
 
 	return seekers, nil

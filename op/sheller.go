@@ -1,4 +1,4 @@
-package seeker
+package op
 
 import (
 	"fmt"
@@ -13,9 +13,9 @@ type Sheller struct {
 	Shell   string `json:"shell"`
 }
 
-// NewSheller provides a Seeker for running shell commands.
-func NewSheller(command string) *Seeker {
-	return &Seeker{
+// NewSheller provides a Op for running shell commands.
+func NewSheller(command string) *Op {
+	return &Op{
 		Identifier: command,
 		Runner:     &Sheller{Command: command},
 	}

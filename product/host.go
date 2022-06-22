@@ -5,8 +5,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/hcdiag/seeker"
-	"github.com/hashicorp/hcdiag/seeker/host"
+	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/op/host"
 )
 
 // NewHost takes a product config and creates a Product containing all of the host's seekers.
@@ -20,11 +20,11 @@ func NewHost(logger hclog.Logger, cfg Config) *Product {
 }
 
 // HostSeekers checks the operating system and passes it into the seekers.
-func HostSeekers(os string) []*seeker.Seeker {
+func HostSeekers(os string) []*op.Op {
 	if os == "auto" {
 		os = runtime.GOOS
 	}
-	return []*seeker.Seeker{
+	return []*op.Op{
 		host.NewOS(os),
 		host.NewDisk(),
 		host.NewInfo(),

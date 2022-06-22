@@ -1,4 +1,4 @@
-package seeker
+package op
 
 import (
 	"reflect"
@@ -11,7 +11,7 @@ func TestNewCopier(t *testing.T) {
 	dest := "/testing/dest"
 	since := time.Time{}
 	until := time.Now()
-	expect := Seeker{
+	expect := Op{
 		Identifier: "copy /testing/src",
 		Runner: Copier{
 			SourceDir: "/testing/",

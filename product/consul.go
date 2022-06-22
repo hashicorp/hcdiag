@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
-	s "github.com/hashicorp/hcdiag/seeker"
-	logs "github.com/hashicorp/hcdiag/seeker/log"
+	s "github.com/hashicorp/hcdiag/op"
+	logs "github.com/hashicorp/hcdiag/op/log"
 )
 
 const (
@@ -36,8 +36,8 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // ConsulSeekers seek information about Consul.
-func ConsulSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
-	seekers := []*s.Seeker{
+func ConsulSeekers(cfg Config, api *client.APIClient) ([]*s.Op, error) {
+	seekers := []*s.Op{
 		s.NewCommander("consul version", "string"),
 		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
@@ -57,7 +57,7 @@ func ConsulSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/consul")
 		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		seekers = append([]*s.Seeker{logCopier}, seekers...)
+		seekers = append([]*s.Op{logCopier}, seekers...)
 	}
 
 	return seekers, nil

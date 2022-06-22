@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/hcdiag/seeker"
+	"github.com/hashicorp/hcdiag/op"
 )
 
-var _ seeker.Runner = Docker{}
+var _ op.Runner = Docker{}
 
-// NewDocker returns a seeker with an identifier and fully configured docker runner
-func NewDocker(container, destDir string, since time.Time) *seeker.Seeker {
-	return &seeker.Seeker{
+// NewDocker returns a op with an identifier and fully configured docker runner
+func NewDocker(container, destDir string, since time.Time) *op.Op {
+	return &op.Op{
 		Identifier: "log/docker " + container,
 		Runner: &Docker{
 			Container: container,
@@ -32,11 +32,11 @@ type Docker struct {
 }
 
 // Run executes the runner
-func (d Docker) Run() (interface{}, seeker.Status, error) {
+func (d Docker) Run() (interface{}, op.Status, error) {
 	// Check that docker exists
-	checkResult, _, err := seeker.NewSheller("docker version").Runner.Run()
+	checkResult, _, err := op.NewSheller("docker version").Runner.Run()
 	if err != nil {
-		return checkResult, seeker.Fail, DockerNotFoundError{
+		return checkResult, op.Fail, DockerNotFoundError{
 			container: d.Container,
 			err:       err,
 		}
@@ -44,7 +44,7 @@ func (d Docker) Run() (interface{}, seeker.Status, error) {
 
 	// Retrieve logs
 	cmd := DockerLogCmd(d.Container, d.DestDir, d.Since)
-	logResult, status, err := seeker.NewSheller(cmd).Runner.Run()
+	logResult, status, err := op.NewSheller(cmd).Runner.Run()
 	// NOTE(mkcp): If the container does not exist, docker will exit non-zero and it'll surface as a ShellExecError.
 	//  The result actionably states that the container wasn't found. In the future we may want to scrub the result
 	//  and only return an actionable error message
@@ -52,10 +52,10 @@ func (d Docker) Run() (interface{}, seeker.Status, error) {
 		return logResult, status, err
 	}
 	if logResult == "" {
-		return logResult, seeker.Unknown, DockerNoLogsError{container: d.Container}
+		return logResult, op.Unknown, DockerNoLogsError{container: d.Container}
 	}
 
-	return logResult, seeker.Success, nil
+	return logResult, op.Success, nil
 }
 
 func DockerLogCmd(container, destDir string, since time.Time) string {

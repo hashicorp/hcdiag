@@ -1,4 +1,4 @@
-package seeker
+package op
 
 import (
 	"fmt"
@@ -18,10 +18,10 @@ type Copier struct {
 	Until     time.Time `json:"until"`
 }
 
-// NewCopier provides a Seeker for copying files to temp dir based on a filter.
-func NewCopier(path, destDir string, since, until time.Time) *Seeker {
+// NewCopier provides a Op for copying files to temp dir based on a filter.
+func NewCopier(path, destDir string, since, until time.Time) *Op {
 	sourceDir, filter := util.SplitFilepath(path)
-	return &Seeker{
+	return &Op{
 		Identifier: "copy " + filepath.Join(sourceDir, filter),
 		Runner: Copier{
 			SourceDir: sourceDir,

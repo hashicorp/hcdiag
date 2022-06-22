@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/product"
-	"github.com/hashicorp/hcdiag/seeker"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -251,7 +251,7 @@ func TestParseHCL(t *testing.T) {
 			},
 		},
 		{
-			name: "Host with one of each seeker is valid",
+			name: "Host with one of each op is valid",
 			path: "../tests/resources/config/host_each_seeker.hcl",
 			expect: Config{
 				Host: &HostConfig{
@@ -271,7 +271,7 @@ func TestParseHCL(t *testing.T) {
 			},
 		},
 		{
-			name: "Host with multiple of a seeker type is valid",
+			name: "Host with multiple of a op type is valid",
 			path: "../tests/resources/config/multi_seekers.hcl",
 			expect: Config{
 				Host: &HostConfig{
@@ -375,24 +375,24 @@ func TestAgent_WriteSummary(t *testing.T) {
 			agent: &Agent{ManifestSeekers: map[string][]ManifestSeeker{
 				"consul": {
 					{
-						Status: seeker.Success,
+						Status: op.Success,
 					},
 					{
-						Status: seeker.Success,
+						Status: op.Success,
 					},
 					{
-						Status: seeker.Fail,
+						Status: op.Fail,
 					},
 					{
-						Status: seeker.Unknown,
+						Status: op.Unknown,
 					},
 				},
 				"nomad": {
 					{
-						Status: seeker.Fail,
+						Status: op.Fail,
 					},
 					{
-						Status: seeker.Unknown,
+						Status: op.Unknown,
 					},
 				},
 			}},

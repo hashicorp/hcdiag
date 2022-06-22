@@ -1,4 +1,4 @@
-package seeker
+package op
 
 import (
 	"errors"
@@ -22,20 +22,20 @@ func (r MockRunner) Run() (interface{}, Status, error) {
 
 func TestSeekerRun(t *testing.T) {
 	r := MockRunner{}
-	s := Seeker{Identifier: "mock", Runner: r}
+	s := Op{Identifier: "mock", Runner: r}
 
 	result, err := s.Run()
 
 	// assert that return values are also being stored as struct fields
 	if s.Result != result {
-		t.Errorf("returned result (%s) does not match Seeker Result field (%s)", result, s.Result)
+		t.Errorf("returned result (%s) does not match Op Result field (%s)", result, s.Result)
 	}
 	if s.Error != err {
-		t.Errorf("returned err (%s) does not match Seeker Error field (%s)", err, s.Error)
+		t.Errorf("returned err (%s) does not match Op Error field (%s)", err, s.Error)
 	}
 	errStr := fmt.Sprintf("%s", err)
 	if s.ErrString != errStr {
-		t.Errorf("Seeker ErrString (%s) not formatted as expected (%s)", s.ErrString, errStr)
+		t.Errorf("Op ErrString (%s) not formatted as expected (%s)", s.ErrString, errStr)
 	}
 
 	// assert that values are what we expect from MockRunner.Run()
@@ -52,13 +52,13 @@ func TestExclude(t *testing.T) {
 	testTable := []struct {
 		desc     string
 		matchers []string
-		seekers  []*Seeker
+		seekers  []*Op
 		expect   int
 	}{
 		{
 			desc:     "Can exclude none",
 			matchers: []string{"hello"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "nope"},
 				{Identifier: "nah"},
 				{Identifier: "sry"},
@@ -68,13 +68,13 @@ func TestExclude(t *testing.T) {
 		{
 			desc:     "Can exclude one",
 			matchers: []string{"hi"},
-			seekers:  []*Seeker{{Identifier: "hi"}},
+			seekers:  []*Op{{Identifier: "hi"}},
 			expect:   0,
 		},
 		{
 			desc:     "Can exclude two",
 			matchers: []string{"hi", "sup"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "hi"},
 				{Identifier: "sup"},
 			},
@@ -83,7 +83,7 @@ func TestExclude(t *testing.T) {
 		{
 			desc:     "Can exclude many and and ignore one",
 			matchers: []string{"exclude1", "exclude2", "exclude3"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "exclude1"},
 				{Identifier: "exclude2"},
 				{Identifier: "exclude3"},
@@ -94,7 +94,7 @@ func TestExclude(t *testing.T) {
 		{
 			desc:     "Can exclude glob *",
 			matchers: []string{"exclude*"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "exclude1"},
 				{Identifier: "exclude2"},
 				{Identifier: "keep"},
@@ -114,13 +114,13 @@ func TestSelect(t *testing.T) {
 	testTable := []struct {
 		desc     string
 		matchers []string
-		seekers  []*Seeker
+		seekers  []*Op
 		expect   int
 	}{
 		{
 			desc:     "Can select none",
 			matchers: []string{"hello"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "nope"},
 				{Identifier: "nah"},
 				{Identifier: "sry"},
@@ -130,7 +130,7 @@ func TestSelect(t *testing.T) {
 		{
 			desc:     "Can select one",
 			matchers: []string{"match"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "nope"},
 				{Identifier: "nah"},
 				{Identifier: "sry"},
@@ -140,7 +140,7 @@ func TestSelect(t *testing.T) {
 		{
 			desc:     "Can select two",
 			matchers: []string{"match1", "match2"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "nope"},
 				{Identifier: "nah"},
 				{Identifier: "sry"},
@@ -152,7 +152,7 @@ func TestSelect(t *testing.T) {
 		{
 			desc:     "Can select many regardless of order",
 			matchers: []string{"select1", "select2", "select3"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "skip1"},
 				{Identifier: "select2"},
 				{Identifier: "skip2"},
@@ -165,7 +165,7 @@ func TestSelect(t *testing.T) {
 		{
 			desc:     "Can select glob *",
 			matchers: []string{"select*"},
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Identifier: "skip1"},
 				{Identifier: "select2"},
 				{Identifier: "skip2"},
@@ -186,12 +186,12 @@ func TestSelect(t *testing.T) {
 func Test_StatusCounts(t *testing.T) {
 	testTable := []struct {
 		desc    string
-		seekers []*Seeker
+		seekers []*Op
 		expect  map[Status]int
 	}{
 		{
 			desc: "Statuses sums statuses",
-			seekers: []*Seeker{
+			seekers: []*Op{
 				{Status: Success},
 				{Status: Unknown},
 				{Status: Success},
@@ -205,8 +205,8 @@ func Test_StatusCounts(t *testing.T) {
 			},
 		},
 		{
-			desc: "returns an error if a seeker doesn't have a status",
-			seekers: []*Seeker{
+			desc: "returns an error if a op doesn't have a status",
+			seekers: []*Op{
 				{Status: Unknown},
 				{Status: Success},
 				{Status: ""},

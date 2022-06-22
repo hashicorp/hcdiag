@@ -1,4 +1,4 @@
-package seeker
+package op
 
 import (
 	"io/ioutil"

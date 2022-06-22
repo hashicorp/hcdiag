@@ -6,10 +6,10 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	logs "github.com/hashicorp/hcdiag/seeker/log"
+	logs "github.com/hashicorp/hcdiag/op/log"
 
 	"github.com/hashicorp/hcdiag/client"
-	s "github.com/hashicorp/hcdiag/seeker"
+	s "github.com/hashicorp/hcdiag/op"
 )
 
 const (
@@ -37,8 +37,8 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // VaultSeekers seek information about Vault.
-func VaultSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
-	seekers := []*s.Seeker{
+func VaultSeekers(cfg Config, api *client.APIClient) ([]*s.Op, error) {
+	seekers := []*s.Op{
 		s.NewCommander("vault version", "string"),
 		s.NewCommander("vault status -format=json", "json"),
 		s.NewCommander("vault read sys/health -format=json", "json"),
@@ -54,7 +54,7 @@ func VaultSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/vault")
 		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		seekers = append([]*s.Seeker{logCopier}, seekers...)
+		seekers = append([]*s.Op{logCopier}, seekers...)
 	}
 
 	return seekers, nil

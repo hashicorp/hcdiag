@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/hcdiag/seeker"
+	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/go-hclog"
 )
 
-var _ seeker.Runner = Journald{}
+var _ op.Runner = Journald{}
 
 // JournaldTimeLayout custom go time layouts must match the reference time Jan 2 15:04:05 2006 MST
 const JournaldTimeLayout = "2006-01-02 15:04:05"
@@ -21,9 +21,9 @@ type Journald struct {
 	until   time.Time
 }
 
-// NewJournald sets the defaults for the journald runner and returns a seeker
-func NewJournald(service, destDir string, since, until time.Time) *seeker.Seeker {
-	return &seeker.Seeker{
+// NewJournald sets the defaults for the journald runner and returns a op
+func NewJournald(service, destDir string, since, until time.Time) *op.Op {
+	return &op.Op{
 		Identifier: "journald",
 		Runner: Journald{
 			service: service,
@@ -36,13 +36,13 @@ func NewJournald(service, destDir string, since, until time.Time) *seeker.Seeker
 
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
-func (j Journald) Run() (interface{}, seeker.Status, error) {
+func (j Journald) Run() (interface{}, op.Status, error) {
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.service) // TODO(gulducat): another command?
-	out, err := seeker.NewCommander(cmd, "string").Run()
+	out, err := op.NewCommander(cmd, "string").Run()
 	if err != nil {
 		hclog.L().Debug("skipping journald", "service", j.service, "output", out, "error", err)
-		return nil, seeker.Fail, JournaldServiceNotEnabled{
+		return nil, op.Fail, JournaldServiceNotEnabled{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", out),
@@ -52,10 +52,10 @@ func (j Journald) Run() (interface{}, seeker.Status, error) {
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.service)
-	out, err = seeker.NewSheller(cmd).Run()
+	out, err = op.NewSheller(cmd).Run()
 	// permissions error detected
 	if err == nil {
-		return nil, seeker.Fail, JournaldPermissionError{
+		return nil, op.Fail, JournaldPermissionError{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", out),
@@ -64,7 +64,7 @@ func (j Journald) Run() (interface{}, seeker.Status, error) {
 	}
 
 	cmd = j.LogsCmd()
-	s := seeker.NewSheller(cmd)
+	s := op.NewSheller(cmd)
 	s.Identifier = "journald"
 
 	return s.Runner.Run()

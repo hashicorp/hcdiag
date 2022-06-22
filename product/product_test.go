@@ -3,7 +3,7 @@ package product
 import (
 	"testing"
 
-	"github.com/hashicorp/hcdiag/seeker"
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,81 +11,81 @@ func TestFilters(t *testing.T) {
 	testTable := []struct {
 		desc    string
 		product *Product
-		expect  []*seeker.Seeker
+		expect  []*op.Op
 	}{
 		{
 			desc: "Handles empty seekers and empty filters",
 			product: &Product{
-				Seekers: []*seeker.Seeker{},
+				Seekers: []*op.Op{},
 			},
-			expect: []*seeker.Seeker{},
+			expect: []*op.Op{},
 		},
 		{
 			desc: "Handles empty seekers with non-empty filters",
 			product: &Product{
-				Seekers:  []*seeker.Seeker{},
+				Seekers:  []*op.Op{},
 				Excludes: []string{"hello"},
 			},
-			expect: []*seeker.Seeker{},
+			expect: []*op.Op{},
 		},
 		{
 			desc: "Handles nil filters",
 			product: &Product{
-				Seekers: []*seeker.Seeker{{Identifier: "still here"}},
+				Seekers: []*op.Op{{Identifier: "still here"}},
 			},
-			expect: []*seeker.Seeker{{Identifier: "still here"}},
+			expect: []*op.Op{{Identifier: "still here"}},
 		},
 		{
 			desc: "Handles nil seekers",
 			product: &Product{
 				Excludes: []string{"nope"},
 			},
-			expect: []*seeker.Seeker{},
+			expect: []*op.Op{},
 		},
 		{
 			desc: "Handles empty filters",
 			product: &Product{
-				Seekers: []*seeker.Seeker{
+				Seekers: []*op.Op{
 					{Identifier: "still here"},
 				},
 				Excludes: []string{},
 				Selects:  []string{},
 			},
-			expect: []*seeker.Seeker{{Identifier: "still here"}},
+			expect: []*op.Op{{Identifier: "still here"}},
 		},
 		{
 			desc: "Applies matching excludes",
 			product: &Product{
-				Seekers: []*seeker.Seeker{
+				Seekers: []*op.Op{
 					{Identifier: "goodbye"},
 				},
 				Excludes: []string{"goodbye"},
 			},
-			expect: []*seeker.Seeker{},
+			expect: []*op.Op{},
 		},
 		{
 			desc: "Does not apply non-matching excludes",
 			product: &Product{
-				Seekers:  []*seeker.Seeker{{Identifier: "goodbye"}},
+				Seekers:  []*op.Op{{Identifier: "goodbye"}},
 				Excludes: []string{"hello"},
 			},
-			expect: []*seeker.Seeker{{Identifier: "goodbye"}},
+			expect: []*op.Op{{Identifier: "goodbye"}},
 		},
 		{
 			desc: "Applies matching Selects",
 			product: &Product{
-				Seekers: []*seeker.Seeker{
+				Seekers: []*op.Op{
 					{Identifier: "goodbye"},
 					{Identifier: "hello"},
 				},
 				Selects: []string{"hello"},
 			},
-			expect: []*seeker.Seeker{{Identifier: "hello"}},
+			expect: []*op.Op{{Identifier: "hello"}},
 		},
 		{
 			desc: "Ignores excludes when Selects are present, and ignores order",
 			product: &Product{
-				Seekers: []*seeker.Seeker{
+				Seekers: []*op.Op{
 					{Identifier: "select3"},
 					{Identifier: "select1"},
 					{Identifier: "goodbye"},
@@ -94,7 +94,7 @@ func TestFilters(t *testing.T) {
 				Excludes: []string{"select2", "select3"},
 				Selects:  []string{"select2", "select1", "select3"},
 			},
-			expect: []*seeker.Seeker{
+			expect: []*op.Op{
 				{Identifier: "select3"},
 				{Identifier: "select1"},
 				{Identifier: "select2"},
@@ -120,7 +120,7 @@ func TestFilterErrors(t *testing.T) {
 		{
 			desc: "Select returns error when pattern is malformed",
 			product: &Product{
-				Seekers: []*seeker.Seeker{{Identifier: "ignoreme"}},
+				Seekers: []*op.Op{{Identifier: "ignoreme"}},
 				Selects: []string{"mal[formed"},
 			},
 			expect: "filter error: 'syntax error in pattern'",
@@ -128,7 +128,7 @@ func TestFilterErrors(t *testing.T) {
 		{
 			desc: "Exclude returns error when pattern is malformed",
 			product: &Product{
-				Seekers:  []*seeker.Seeker{{Identifier: "ignoreme"}},
+				Seekers:  []*op.Op{{Identifier: "ignoreme"}},
 				Excludes: []string{"mal[formed"},
 			},
 			expect: "filter error: 'syntax error in pattern'",
