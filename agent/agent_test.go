@@ -151,7 +151,7 @@ func TestAgent_RecordManifest(t *testing.T) {
 		p := make(map[string]*product.Product)
 		p[testProduct] = product.NewHost(hclog.Default(), pCfg)
 		a.products = p
-		assert.NotEmptyf(t, a.products[testProduct].Ops, "test setup failure, no ops available")
+		assert.NotEmptyf(t, a.products[testProduct].Runners, "test setup failure, no ops available")
 
 		// Record and check
 		a.RecordManifest()

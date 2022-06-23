@@ -10,25 +10,52 @@ import (
 var _ op.Runner = EtcHosts{}
 
 type EtcHosts struct {
+	id string
 	os string
 }
 
-func NewEtcHosts() *op.Op {
-	return &op.Op{
-		Identifier: "/etc/hosts",
-		Runner:     EtcHosts{os: runtime.GOOS},
+func NewEtcHosts() *EtcHosts {
+	return &EtcHosts{
+		id: "/etc/hosts",
+		os: runtime.GOOS,
 	}
 }
 
-func (s EtcHosts) Run() (interface{}, op.Status, error) {
+func (r EtcHosts) ID() string {
+	return r.id
+}
+
+func (r EtcHosts) Run() op.Op {
 	// Not compatible with windows
-	if s.os == "windows" {
+	if r.os == "windows" {
 		// TODO(mkcp): This should be op.Status("skip") once we implement it
-		return nil, op.Success, fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", s.os)
+		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.os)
+		return op.Op{
+			Identifier: r.id,
+			Result:     nil,
+			Error:      err,
+			ErrString:  err.Error(),
+			Status:     op.Success,
+			Params:     map[string]string{"host": r.os},
+		}
 	}
-	res, _, err := op.NewSheller("cat /etc/hosts").Runner.Run()
-	if err != nil {
-		return res, op.Fail, err
+	res := op.NewSheller("cat /etc/hosts").Run()
+	if res.Error != nil {
+		return op.Op{
+			Identifier: r.id,
+			Result:     nil,
+			ErrString:  res.Error.Error(),
+			Error:      res.Error,
+			Status:     op.Fail,
+			Params:     map[string]string{"host": r.os},
+		}
 	}
-	return res, op.Success, nil
+	return op.Op{
+		Identifier: r.id,
+		Result:     nil,
+		ErrString:  "",
+		Error:      nil,
+		Status:     "",
+		Params:     nil,
+	}
 }

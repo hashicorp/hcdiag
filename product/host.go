@@ -12,10 +12,10 @@ import (
 // NewHost takes a product config and creates a Product containing all of the host's ops.
 func NewHost(logger hclog.Logger, cfg Config) *Product {
 	return &Product{
-		l:      logger.Named("product"),
-		Name:   Host,
-		Ops:    HostOps(cfg.OS),
-		Config: cfg,
+		l:       logger.Named("product"),
+		Name:    Host,
+		Runners: HostOps(cfg.OS),
+		Config:  cfg,
 	}
 }
 

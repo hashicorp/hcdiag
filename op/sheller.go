@@ -9,40 +9,71 @@ import (
 
 // Sheller runs shell commands in a real unix shell.
 type Sheller struct {
-	Command string `json:"command"`
-	Shell   string `json:"shell"`
+	id      string
+	command string
+	shell   string
 }
 
 // NewSheller provides a Op for running shell commands.
-func NewSheller(command string) *Op {
-	return &Op{
-		Identifier: command,
-		Runner:     &Sheller{Command: command},
+func NewSheller(command string) *Sheller {
+	return &Sheller{
+		id:      command,
+		command: command,
+	}
+}
+
+func (s *Sheller) ID() string {
+	return s.id
+}
+
+func (s *Sheller) params() map[string]string {
+	return map[string]string{
+		"command": s.command,
+		"shell":   s.shell,
 	}
 }
 
 // Run ensures a shell exists and optimistically executes the given Command string
-func (s *Sheller) Run() (interface{}, Status, error) {
+func (s *Sheller) Run() Op {
 	// Read the shell from the environment
 	shell, err := util.GetShell()
 	if err != nil {
-		return nil, Fail, err
+		return Op{
+			Identifier: s.id,
+			Error:      err,
+			ErrString:  err.Error(),
+			Status:     Fail,
+			Params:     nil,
+		}
 	}
-	s.Shell = shell
+	s.shell = shell
 
 	// Run the command
-	args := []string{"-c", s.Command}
-	bts, err := exec.Command(s.Shell, args...).CombinedOutput()
+	args := []string{"-c", s.command}
+	bts, err := exec.Command(s.shell, args...).CombinedOutput()
 	if err != nil {
 		// Return the stdout result even on failure
 		// TODO(mkcp): This is a good place to switch on exec.Command errors and provide better guidance.
-		return string(bts), Unknown, ShellExecError{
-			command: s.Command,
+		err1 := ShellExecError{
+			command: s.command,
 			err:     err,
+		}
+		return Op{
+			Identifier: s.id,
+			Result:     string(bts),
+			Error:      err1,
+			ErrString:  err1.Error(),
+			Status:     Unknown,
+			Params:     s.params(),
 		}
 	}
 
-	return string(bts), Success, nil
+	return Op{
+		Identifier: s.id,
+		Result:     string(bts),
+		Status:     Success,
+		Params:     s.params(),
+	}
 }
 
 type ShellExecError struct {

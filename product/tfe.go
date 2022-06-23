@@ -18,10 +18,10 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
-		l:      logger.Named("product"),
-		Name:   TFE,
-		Ops:    ops,
-		Config: cfg,
+		l:       logger.Named("product"),
+		Name:    TFE,
+		Runners: ops,
+		Config:  cfg,
 	}, nil
 }
 

@@ -7,28 +7,49 @@ import (
 	"strings"
 )
 
+var _ Runner = Commander{}
+
 // Commander runs shell commands.
 type Commander struct {
-	Command string `json:"command"`
+	command string
 	format  string
 }
 
 // NewCommander provides a Op for running shell commands.
-func NewCommander(command string, format string) *Op {
-	return &Op{
-		Identifier: command,
-		Runner: Commander{
-			Command: command,
-			format:  format,
-		},
+func NewCommander(command string, format string) *Commander {
+	return &Commander{
+		command: command,
+		format:  format,
+	}
+}
+
+func (c Commander) ID() string {
+	return c.command
+}
+
+func (c Commander) params() map[string]string {
+	return map[string]string{
+		"command": c.command,
+		"format":  c.format,
+	}
+}
+
+func (c Commander) genOp(result interface{}, status Status, err error) Op {
+	return Op{
+		Identifier: c.ID(),
+		Result:     result,
+		Error:      err,
+		ErrString:  err.Error(),
+		Status:     status,
+		Params:     c.params(),
 	}
 }
 
 // Run executes the Command
-func (c Commander) Run() (interface{}, Status, error) {
+func (c Commander) Run() Op {
 	var result interface{}
 
-	bits := strings.Split(c.Command, " ")
+	bits := strings.Split(c.command, " ")
 	cmd := bits[0]
 	args := bits[1:]
 
@@ -37,7 +58,8 @@ func (c Commander) Run() (interface{}, Status, error) {
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
-		return string(bts), Unknown, CommandExecError{command: c.Command, format: c.format, err: err}
+		err1 := CommandExecError{command: c.command, format: c.format, err: err}
+		return c.genOp(string(bts), Unknown, err1)
 	}
 
 	// Parse result
@@ -49,14 +71,14 @@ func (c Commander) Run() (interface{}, Status, error) {
 	case c.format == "json":
 		if err := json.Unmarshal(bts, &result); err != nil {
 			// Return the command's response even if we can't parse it as json
-			return string(bts), Unknown, UnmarshalError{command: c.Command, err: err}
+			return c.genOp(string(bts), Unknown, UnmarshalError{command: c.command, err: err})
 		}
 
 	default:
-		return result, Fail, FormatUnknownError{command: c.Command, format: c.format}
+		return c.genOp(result, Fail, FormatUnknownError{command: c.command, format: c.format})
 	}
 
-	return result, Success, nil
+	return c.genOp(result, Success, nil)
 }
 
 type CommandExecError struct {

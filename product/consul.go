@@ -28,10 +28,10 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 	return &Product{
-		l:      logger.Named("product"),
-		Name:   Consul,
-		Ops:    ops,
-		Config: cfg,
+		l:       logger.Named("product"),
+		Name:    Consul,
+		Runners: ops,
+		Config:  cfg,
 	}, nil
 }
 

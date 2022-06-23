@@ -93,7 +93,7 @@ func (a *Agent) Run() []error {
 	}
 
 	// Create products
-	a.l.Debug("Gathering Products' Ops")
+	a.l.Debug("Gathering Products' Runners")
 	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
@@ -188,9 +188,9 @@ func (a *Agent) DryRun() []error {
 
 	a.l.Info("Showing diagnostics that would be gathered")
 	for _, p := range a.products {
-		set := p.Ops
-		for _, s := range set {
-			a.l.Info("would run", "product", p.Name, "op", s.Identifier)
+		set := p.Runners
+		for _, r := range set {
+			a.l.Info("would run", "product", p.Name, "op", r.ID())
 		}
 	}
 	a.l.Info("Would write output", "dest", a.Config.Destination)
@@ -267,8 +267,8 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		s := op.NewCopier(f, dest, a.Config.Since, a.Config.Until)
-		if _, err = s.Run(); err != nil {
+		r := op.NewCopier(f, dest, a.Config.Since, a.Config.Until)
+		if _, err = r.Run(); err != nil {
 			return err
 		}
 	}
@@ -293,7 +293,7 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := op.StatusCounts(product.Ops)
+		statuses, err := op.StatusCounts(product.Runners)
 		if err != nil {
 			a.l.Error("Error rendering op statuses", "product", product, "error", err)
 		}
@@ -322,7 +322,7 @@ func (a *Agent) RunProducts() error {
 // RecordManifest writes additional data to the agent to serialize into manifest.json
 func (a *Agent) RecordManifest() {
 	for name, p := range a.products {
-		for _, s := range p.Ops {
+		for _, s := range p.Runner {
 			m := ManifestOp{
 				ID:     s.Identifier,
 				Error:  s.ErrString,
@@ -436,11 +436,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if consul != nil {
-			customOps, err := customOps(consul, a.tmpDir)
+			customRunners, err := customRunners(consul, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newConsul.Ops = append(newConsul.Ops, customOps...)
+			newConsul.Runners = append(newConsul.Runners, customRunners...)
 			newConsul.Excludes = consul.Excludes
 			newConsul.Selects = consul.Selects
 		}
@@ -453,11 +453,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if nomad != nil {
-			customOps, err := customOps(nomad, a.tmpDir)
+			customRunners, err := customRunners(nomad, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newNomad.Ops = append(newNomad.Ops, customOps...)
+			newNomad.Runners = append(newNomad.Runners, customRunners...)
 			newNomad.Excludes = nomad.Excludes
 			newNomad.Selects = nomad.Selects
 		}
@@ -469,11 +469,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if tfe != nil {
-			customOps, err := customOps(tfe, a.tmpDir)
+			customRunners, err := customRunners(tfe, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newTFE.Ops = append(newTFE.Ops, customOps...)
+			newTFE.Runners = append(newTFE.Runners, customRunners...)
 			newTFE.Excludes = tfe.Excludes
 			newTFE.Selects = tfe.Selects
 		}
@@ -485,11 +485,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if vault != nil {
-			customOps, err := customOps(vault, a.tmpDir)
+			customRunners, err := customRunners(vault, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newVault.Ops = append(newVault.Ops, customOps...)
+			newVault.Runners = append(newVault.Runners, customRunners...)
 			newVault.Excludes = vault.Excludes
 			newVault.Selects = vault.Selects
 		}
@@ -498,11 +498,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	newHost := product.NewHost(a.l, cfg)
 	if a.Config.Host != nil {
-		customOps, err := customHostOps(a.Config.Host, a.tmpDir)
+		customRunners, err := customHostRunners(a.Config.Host, a.tmpDir)
 		if err != nil {
 			return nil, err
 		}
-		newHost.Ops = append(newHost.Ops, customOps...)
+		newHost.Runners = append(newHost.Runners, customRunners...)
 		newHost.Excludes = a.Config.Host.Excludes
 		newHost.Selects = a.Config.Host.Selects
 	}
