@@ -1,0 +1,47 @@
+{{- if .NotesByType.security }}
+SECURITY FIXES:
+
+{{range .NotesByType.security | sort -}}
+* {{ template "note" . }}
+{{ end -}}
+{{- end -}}
+
+{{- if .NotesByType.breaking }}
+BREAKING CHANGES:
+
+{{range .NotesByType.breaking | sort -}}
+* {{ template "note" . }}
+{{ end -}}
+{{- end -}}
+
+{{- if .NotesByType.feature -}}
+FEATURES:
+
+{{range .NotesByType.feature | sort -}}
+* {{ template "note" . }}
+{{ end -}}
+{{- end -}}
+
+{{- if .NotesByType.improvement }}
+IMPROVEMENTS:
+
+{{range .NotesByType.improvement | sort -}}
+* {{ template "note" . }}
+{{ end -}}
+{{- end -}}
+
+{{- if .NotesByType.deprecation }}
+DEPRECATIONS:
+
+{{range .NotesByType.deprecation | sort -}}
+* {{ template "note" . }}
+{{ end -}}
+{{- end -}}
+
+{{- if .NotesByType.bug }}
+BUG FIXES:
+
+{{range .NotesByType.bug | sort -}}
+* {{ template "note" . }}
+{{ end -}}
+{{- end -}}
