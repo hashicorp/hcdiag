@@ -6,27 +6,27 @@ import (
 	s "github.com/hashicorp/hcdiag/op"
 )
 
-// NewTFE takes a product config and creates a Product containing all of TFE's seekers.
+// NewTFE takes a product config and creates a Product containing all of TFE's ops.
 func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	api, err := client.NewTFEAPI()
 	if err != nil {
 		return nil, err
 	}
 
-	seekers, err := TFESeekers(cfg, api)
+	ops, err := TFEOps(cfg, api)
 	if err != nil {
 		return nil, err
 	}
 	return &Product{
-		l:       logger.Named("product"),
-		Name:    TFE,
-		Seekers: seekers,
-		Config:  cfg,
+		l:      logger.Named("product"),
+		Name:   TFE,
+		Ops:    ops,
+		Config: cfg,
 	}, nil
 }
 
-// TFESeekers seek information about Terraform Enterprise/Cloud.
-func TFESeekers(cfg Config, api *client.APIClient) ([]*s.Op, error) {
+// TFEOps seek information about Terraform Enterprise/Cloud.
+func TFEOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
 	return []*s.Op{
 		s.NewCommander("replicatedctl support-bundle", "string"),
 

@@ -17,28 +17,28 @@ const (
 	VaultAgentCheck  = "vault status"
 )
 
-// NewVault takes a product config and creates a Product containing all of Vault's seekers.
+// NewVault takes a product config and creates a Product containing all of Vault's ops.
 func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 	api, err := client.NewVaultAPI()
 	if err != nil {
 		return nil, err
 	}
 
-	seekers, err := VaultSeekers(cfg, api)
+	ops, err := VaultOps(cfg, api)
 	if err != nil {
 		return nil, err
 	}
 	return &Product{
-		l:       logger.Named("product"),
-		Name:    Vault,
-		Seekers: seekers,
-		Config:  cfg,
+		l:      logger.Named("product"),
+		Name:   Vault,
+		Ops:    ops,
+		Config: cfg,
 	}, nil
 }
 
-// VaultSeekers seek information about Vault.
-func VaultSeekers(cfg Config, api *client.APIClient) ([]*s.Op, error) {
-	seekers := []*s.Op{
+// VaultOps generates a list of ops to inspect Vault.
+func VaultOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
+	ops := []*s.Op{
 		s.NewCommander("vault version", "string"),
 		s.NewCommander("vault status -format=json", "json"),
 		s.NewCommander("vault read sys/health -format=json", "json"),
@@ -54,8 +54,8 @@ func VaultSeekers(cfg Config, api *client.APIClient) ([]*s.Op, error) {
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/vault")
 		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		seekers = append([]*s.Op{logCopier}, seekers...)
+		ops = append([]*s.Op{logCopier}, ops...)
 	}
 
-	return seekers, nil
+	return ops, nil
 }

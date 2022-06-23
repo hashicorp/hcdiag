@@ -106,10 +106,10 @@ type Flags struct {
 	Vault       bool
 	AllProducts bool
 
-	// Since provides a time range for seekers to work from
+	// Since provides a time range for ops to work from
 	Since time.Duration
 
-	// IncludeSince provides a time range for seekers to work from
+	// IncludeSince provides a time range for ops to work from
 	IncludeSince time.Duration
 
 	// Includes

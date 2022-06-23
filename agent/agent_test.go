@@ -143,7 +143,7 @@ func TestRunProducts(t *testing.T) {
 }
 
 func TestAgent_RecordManifest(t *testing.T) {
-	t.Run("adds to MetadataSeekers when seekers exist", func(t *testing.T) {
+	t.Run("adds to ManifestOps when ops exist", func(t *testing.T) {
 		// Setup
 		testProduct := "host"
 		a := NewAgent(Config{}, hclog.Default())
@@ -151,11 +151,11 @@ func TestAgent_RecordManifest(t *testing.T) {
 		p := make(map[string]*product.Product)
 		p[testProduct] = product.NewHost(hclog.Default(), pCfg)
 		a.products = p
-		assert.NotEmptyf(t, a.products[testProduct].Seekers, "test setup failure, no seekers available")
+		assert.NotEmptyf(t, a.products[testProduct].Ops, "test setup failure, no ops available")
 
 		// Record and check
 		a.RecordManifest()
-		assert.NotEmptyf(t, a.ManifestSeekers, "no seekers metadata added to manifest")
+		assert.NotEmptyf(t, a.ManifestOps, "no ops metadata added to manifest")
 	})
 }
 
@@ -245,14 +245,14 @@ func TestParseHCL(t *testing.T) {
 		},
 		{
 			name: "Host with no attributes is valid",
-			path: "../tests/resources/config/host_no_seekers.hcl",
+			path: "../tests/resources/config/host_no_ops.hcl",
 			expect: Config{
 				Host: &HostConfig{},
 			},
 		},
 		{
 			name: "Host with one of each op is valid",
-			path: "../tests/resources/config/host_each_seeker.hcl",
+			path: "../tests/resources/config/host_each_op.hcl",
 			expect: Config{
 				Host: &HostConfig{
 					Commands: []CommandConfig{
@@ -272,7 +272,7 @@ func TestParseHCL(t *testing.T) {
 		},
 		{
 			name: "Host with multiple of a op type is valid",
-			path: "../tests/resources/config/multi_seekers.hcl",
+			path: "../tests/resources/config/multi_ops.hcl",
 			expect: Config{
 				Host: &HostConfig{
 					Commands: []CommandConfig{
@@ -372,7 +372,7 @@ func TestAgent_WriteSummary(t *testing.T) {
 		},
 		{
 			name: "Test with Products",
-			agent: &Agent{ManifestSeekers: map[string][]ManifestSeeker{
+			agent: &Agent{ManifestOps: map[string][]ManifestOp{
 				"consul": {
 					{
 						Status: op.Success,

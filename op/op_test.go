@@ -52,13 +52,13 @@ func TestExclude(t *testing.T) {
 	testTable := []struct {
 		desc     string
 		matchers []string
-		seekers  []*Op
+		ops      []*Op
 		expect   int
 	}{
 		{
 			desc:     "Can exclude none",
 			matchers: []string{"hello"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "nope"},
 				{Identifier: "nah"},
 				{Identifier: "sry"},
@@ -68,13 +68,13 @@ func TestExclude(t *testing.T) {
 		{
 			desc:     "Can exclude one",
 			matchers: []string{"hi"},
-			seekers:  []*Op{{Identifier: "hi"}},
+			ops:      []*Op{{Identifier: "hi"}},
 			expect:   0,
 		},
 		{
 			desc:     "Can exclude two",
 			matchers: []string{"hi", "sup"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "hi"},
 				{Identifier: "sup"},
 			},
@@ -83,7 +83,7 @@ func TestExclude(t *testing.T) {
 		{
 			desc:     "Can exclude many and and ignore one",
 			matchers: []string{"exclude1", "exclude2", "exclude3"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "exclude1"},
 				{Identifier: "exclude2"},
 				{Identifier: "exclude3"},
@@ -94,7 +94,7 @@ func TestExclude(t *testing.T) {
 		{
 			desc:     "Can exclude glob *",
 			matchers: []string{"exclude*"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "exclude1"},
 				{Identifier: "exclude2"},
 				{Identifier: "keep"},
@@ -104,7 +104,7 @@ func TestExclude(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		res, err := Exclude(tc.matchers, tc.seekers)
+		res, err := Exclude(tc.matchers, tc.ops)
 		assert.Nil(t, err)
 		assert.Len(t, res, tc.expect, tc.desc)
 	}
@@ -114,13 +114,13 @@ func TestSelect(t *testing.T) {
 	testTable := []struct {
 		desc     string
 		matchers []string
-		seekers  []*Op
+		ops      []*Op
 		expect   int
 	}{
 		{
 			desc:     "Can select none",
 			matchers: []string{"hello"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "nope"},
 				{Identifier: "nah"},
 				{Identifier: "sry"},
@@ -130,7 +130,7 @@ func TestSelect(t *testing.T) {
 		{
 			desc:     "Can select one",
 			matchers: []string{"match"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "nope"},
 				{Identifier: "nah"},
 				{Identifier: "sry"},
@@ -140,7 +140,7 @@ func TestSelect(t *testing.T) {
 		{
 			desc:     "Can select two",
 			matchers: []string{"match1", "match2"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "nope"},
 				{Identifier: "nah"},
 				{Identifier: "sry"},
@@ -152,7 +152,7 @@ func TestSelect(t *testing.T) {
 		{
 			desc:     "Can select many regardless of order",
 			matchers: []string{"select1", "select2", "select3"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "skip1"},
 				{Identifier: "select2"},
 				{Identifier: "skip2"},
@@ -165,7 +165,7 @@ func TestSelect(t *testing.T) {
 		{
 			desc:     "Can select glob *",
 			matchers: []string{"select*"},
-			seekers: []*Op{
+			ops: []*Op{
 				{Identifier: "skip1"},
 				{Identifier: "select2"},
 				{Identifier: "skip2"},
@@ -178,20 +178,20 @@ func TestSelect(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		res, err := Select(tc.matchers, tc.seekers)
+		res, err := Select(tc.matchers, tc.ops)
 		assert.Nil(t, err)
 		assert.Len(t, res, tc.expect, tc.desc)
 	}
 }
 func Test_StatusCounts(t *testing.T) {
 	testTable := []struct {
-		desc    string
-		seekers []*Op
-		expect  map[Status]int
+		desc   string
+		ops    []*Op
+		expect map[Status]int
 	}{
 		{
 			desc: "Statuses sums statuses",
-			seekers: []*Op{
+			ops: []*Op{
 				{Status: Success},
 				{Status: Unknown},
 				{Status: Success},
@@ -206,7 +206,7 @@ func Test_StatusCounts(t *testing.T) {
 		},
 		{
 			desc: "returns an error if a op doesn't have a status",
-			seekers: []*Op{
+			ops: []*Op{
 				{Status: Unknown},
 				{Status: Success},
 				{Status: ""},
@@ -219,7 +219,7 @@ func Test_StatusCounts(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		statuses, err := StatusCounts(tc.seekers)
+		statuses, err := StatusCounts(tc.ops)
 		assert.Equal(t, tc.expect, statuses)
 		if tc.expect == nil {
 			assert.Error(t, err)

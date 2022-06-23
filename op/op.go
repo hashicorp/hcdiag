@@ -48,21 +48,21 @@ func (s *Op) Run() (interface{}, error) {
 	return result, err
 }
 
-// Exclude takes a slice of matcher strings and a slice of seekers. If any of the op identifiers match the exclude
+// Exclude takes a slice of matcher strings and a slice of ops. If any of the op identifiers match the exclude
 // according to filepath.Match() then it will not be present in the returned op slice.
 // NOTE(mkcp): This is precisely identical to Select() except we flip the match check. Maybe we can perform both rounds
-//  of filtering in one pass one rather than iterating over all the seekers several times. Not likely to be a huge speed
+//  of filtering in one pass one rather than iterating over all the ops several times. Not likely to be a huge speed
 //  increase though... we're not even remotely bottlenecked on op filtering.
-func Exclude(excludes []string, seekers []*Op) ([]*Op, error) {
-	newSeekers := make([]*Op, 0)
-	for _, s := range seekers {
+func Exclude(excludes []string, ops []*Op) ([]*Op, error) {
+	newOps := make([]*Op, 0)
+	for _, s := range ops {
 		// Set our match flag if we get a hit for any of the matchers on this op
 		var match bool
 		var err error
 		for _, matcher := range excludes {
 			match, err = filepath.Match(matcher, s.Identifier)
 			if err != nil {
-				return newSeekers, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
+				return newOps, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
 			}
 			if match {
 				break
@@ -71,24 +71,24 @@ func Exclude(excludes []string, seekers []*Op) ([]*Op, error) {
 
 		// Add the op back to our set if we have not matched an exclude
 		if !match {
-			newSeekers = append(newSeekers, s)
+			newOps = append(newOps, s)
 		}
 	}
-	return newSeekers, nil
+	return newOps, nil
 }
 
-// Select takes a slice of matcher strings and a slice of seekers. The only seekers returned will be those
+// Select takes a slice of matcher strings and a slice of ops. The only ops returned will be those
 // matching the given select strings according to filepath.Match()
-func Select(selects []string, seekers []*Op) ([]*Op, error) {
-	newSeekers := make([]*Op, 0)
-	for _, s := range seekers {
+func Select(selects []string, ops []*Op) ([]*Op, error) {
+	newOps := make([]*Op, 0)
+	for _, op := range ops {
 		// Set our match flag if we get a hit for any of the matchers on this op
 		var match bool
 		var err error
 		for _, matcher := range selects {
-			match, err = filepath.Match(matcher, s.Identifier)
+			match, err = filepath.Match(matcher, op.Identifier)
 			if err != nil {
-				return newSeekers, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
+				return newOps, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
 			}
 			if match {
 				break
@@ -97,20 +97,20 @@ func Select(selects []string, seekers []*Op) ([]*Op, error) {
 
 		// Only include the op if we've matched it
 		if match {
-			newSeekers = append(newSeekers, s)
+			newOps = append(newOps, op)
 		}
 	}
-	return newSeekers, nil
+	return newOps, nil
 }
 
 // StatusCounts takes a slice of op references and returns a map containing sums of each Status
-func StatusCounts(seekers []*Op) (map[Status]int, error) {
+func StatusCounts(ops []*Op) (map[Status]int, error) {
 	statuses := make(map[Status]int)
-	for _, s := range seekers {
-		if s.Status == "" {
-			return nil, fmt.Errorf("unable to build Statuses map, op not run: op=%s", s.Identifier)
+	for _, op := range ops {
+		if op.Status == "" {
+			return nil, fmt.Errorf("unable to build Statuses map, op not run: op=%s", op.Identifier)
 		}
-		statuses[s.Status]++
+		statuses[op.Status]++
 	}
 	return statuses, nil
 }

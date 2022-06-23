@@ -34,17 +34,17 @@ type Config struct {
 type Product struct {
 	l        hclog.Logger
 	Name     string
-	Seekers  []*op.Op
+	Ops      []*op.Op
 	Excludes []string
 	Selects  []string
 	Config   Config
 }
 
-// Run iterates over the list of seekers in a product and stores each op into a map.
+// Run iterates over the list of ops in a product and stores each op into a map.
 func (p *Product) Run() map[string]op.Op {
-	p.l.Info("Running seekers for", "product", p.Name)
+	p.l.Info("Running operations for", "product", p.Name)
 	results := make(map[string]op.Op)
-	for _, s := range p.Seekers {
+	for _, s := range p.Ops {
 		p.l.Info("running operation", "product", p.Name, "op", s.Identifier)
 		result, err := s.Run()
 		// NOTE(mkcp): There's nothing stopping Run() from being called multiple times, so we'll copy the op off the product once it's done.
@@ -62,21 +62,21 @@ func (p *Product) Run() map[string]op.Op {
 	return results
 }
 
-// Filter applies our slices of exclude and select op.Identifier matchers to the set of the product's seekers
+// Filter applies our slices of exclude and select op.Identifier matchers to the set of the product's ops
 func (p *Product) Filter() error {
-	if p.Seekers == nil {
-		p.Seekers = []*op.Op{}
+	if p.Ops == nil {
+		p.Ops = []*op.Op{}
 	}
 	var err error
 	// The presence of Selects takes precedence over Excludes
 	if p.Selects != nil && 0 < len(p.Selects) {
-		p.Seekers, err = op.Select(p.Selects, p.Seekers)
+		p.Ops, err = op.Select(p.Selects, p.Ops)
 		// Skip any Excludes
 		return err
 	}
 	// No Selects, we can apply Excludes
 	if p.Excludes != nil {
-		p.Seekers, err = op.Exclude(p.Excludes, p.Seekers)
+		p.Ops, err = op.Exclude(p.Excludes, p.Ops)
 	}
 	return err
 }
@@ -94,10 +94,10 @@ func CommanderHealthCheck(client, agent string) error {
 	return nil
 }
 
-func CountSeekers(products map[string]*Product) int {
+func CountOps(products map[string]*Product) int {
 	var count int
 	for _, product := range products {
-		count += len(product.Seekers)
+		count += len(product.Ops)
 	}
 	return count
 }

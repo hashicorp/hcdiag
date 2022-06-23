@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/hcdiag/util"
 )
 
-// Agent holds our set of seekers to be executed and their results.
+// Agent holds our set of ops to be executed and their results.
 type Agent struct {
 	l           hclog.Logger
 	products    map[string]*product.Product
@@ -34,25 +34,24 @@ type Agent struct {
 	Start       time.Time       `json:"started_at"`
 	End         time.Time       `json:"ended_at"`
 	Duration    string          `json:"duration"`
-	NumSeekers  int             `json:"num_seekers"`
+	NumOps      int             `json:"num_ops"`
 	Config      Config          `json:"configuration"`
 	Version     version.Version `json:"version"`
-	// ManifestSeekers holds a slice of seekers with a subset of normal seekers' fields so we can safely render them in
-	// `manifest.json`
-	ManifestSeekers map[string][]ManifestSeeker `json:"seekers"`
+	// ManifestOps holds a slice of ops with a subset of fields so we can safely render them in `manifest.json`
+	ManifestOps map[string][]ManifestOp `json:"ops"`
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
 	return &Agent{
-		l:               logger,
-		results:         make(map[string]map[string]op.Op),
-		Config:          config,
-		ManifestSeekers: make(map[string][]ManifestSeeker),
-		Version:         version.GetVersion(),
+		l:           logger,
+		results:     make(map[string]map[string]op.Op),
+		Config:      config,
+		ManifestOps: make(map[string][]ManifestOp),
+		Version:     version.GetVersion(),
 	}
 }
 
-// Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
+// Run manages the Agent's lifecycle. We create our temp directory, copy files, run their ops, write the results,
 // and finally cleanup after ourselves. We collect any errors up and return them to the caller, only returning when done
 // or if the error warrants ending the run early.
 func (a *Agent) Run() []error {
@@ -94,7 +93,7 @@ func (a *Agent) Run() []error {
 	}
 
 	// Create products
-	a.l.Debug("Gathering Products' Seekers")
+	a.l.Debug("Gathering Products' Ops")
 	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
@@ -102,7 +101,7 @@ func (a *Agent) Run() []error {
 		return errs
 	}
 
-	// Filter the seekers on each product
+	// Filter the ops on each product
 	a.l.Debug("Applying Exclude and Select filters to products")
 	for _, prod := range p {
 		if errProductFilter := prod.Filter(); errProductFilter != nil {
@@ -115,8 +114,8 @@ func (a *Agent) Run() []error {
 	// Store products
 	a.products = p
 
-	// Sum up all seekers from products
-	a.NumSeekers = product.CountSeekers(a.products)
+	// Sum up all ops from products
+	a.NumOps = product.CountOps(a.products)
 
 	// Run products
 	a.l.Info("Gathering diagnostics")
@@ -142,7 +141,7 @@ func (a *Agent) Run() []error {
 		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
 	}
 
-	a.l.Info("Writing summary of products and seekers to standard output")
+	a.l.Info("Writing summary of products and ops to standard output")
 	if errSummary := a.WriteSummary(os.Stdout); errSummary != nil {
 		errs = append(errs, errSummary)
 		a.l.Error("Failed to write summary report following run", "error", errSummary)
@@ -168,12 +167,12 @@ func (a *Agent) DryRun() []error {
 		a.l.Error("Product failed healthcheck. Ensure setup steps are complete (see https://github.com/hashicorp/hcdiag for prerequisites)", "error", errProductChecks)
 	}
 
-	// Create products and their seekers
-	a.l.Info("Gathering seekers for each product")
+	// Create products and their ops
+	a.l.Info("Gathering operations for each product")
 	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
-		a.l.Error("Failed gathering seekers for products", "error", errProductSetup)
+		a.l.Error("Failed gathering ops for products", "error", errProductSetup)
 		return errs
 	}
 	a.l.Info("Filtering op lists")
@@ -189,7 +188,7 @@ func (a *Agent) DryRun() []error {
 
 	a.l.Info("Showing diagnostics that would be gathered")
 	for _, p := range a.products {
-		set := p.Seekers
+		set := p.Ops
 		for _, s := range set {
 			a.l.Info("would run", "product", p.Name, "op", s.Identifier)
 		}
@@ -294,7 +293,7 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := op.StatusCounts(product.Seekers)
+		statuses, err := op.StatusCounts(product.Ops)
 		if err != nil {
 			a.l.Error("Error rendering op statuses", "product", product, "error", err)
 		}
@@ -323,13 +322,13 @@ func (a *Agent) RunProducts() error {
 // RecordManifest writes additional data to the agent to serialize into manifest.json
 func (a *Agent) RecordManifest() {
 	for name, p := range a.products {
-		for _, s := range p.Seekers {
-			m := ManifestSeeker{
+		for _, s := range p.Ops {
+			m := ManifestOp{
 				ID:     s.Identifier,
 				Error:  s.ErrString,
 				Status: s.Status,
 			}
-			a.ManifestSeekers[name] = append(a.ManifestSeekers[name], m)
+			a.ManifestOps[name] = append(a.ManifestOps[name], m)
 		}
 	}
 }
@@ -441,7 +440,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			if err != nil {
 				return nil, err
 			}
-			newConsul.Seekers = append(newConsul.Seekers, customSeekers...)
+			newConsul.Ops = append(newConsul.Ops, customSeekers...)
 			newConsul.Excludes = consul.Excludes
 			newConsul.Selects = consul.Selects
 		}
@@ -458,7 +457,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			if err != nil {
 				return nil, err
 			}
-			newNomad.Seekers = append(newNomad.Seekers, customSeekers...)
+			newNomad.Ops = append(newNomad.Ops, customSeekers...)
 			newNomad.Excludes = nomad.Excludes
 			newNomad.Selects = nomad.Selects
 		}
@@ -474,7 +473,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			if err != nil {
 				return nil, err
 			}
-			newTFE.Seekers = append(newTFE.Seekers, customSeekers...)
+			newTFE.Ops = append(newTFE.Ops, customSeekers...)
 			newTFE.Excludes = tfe.Excludes
 			newTFE.Selects = tfe.Selects
 		}
@@ -490,7 +489,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			if err != nil {
 				return nil, err
 			}
-			newVault.Seekers = append(newVault.Seekers, customSeekers...)
+			newVault.Ops = append(newVault.Ops, customSeekers...)
 			newVault.Excludes = vault.Excludes
 			newVault.Selects = vault.Selects
 		}
@@ -503,7 +502,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		if err != nil {
 			return nil, err
 		}
-		newHost.Seekers = append(newHost.Seekers, customSeekers...)
+		newHost.Ops = append(newHost.Ops, customSeekers...)
 		newHost.Excludes = a.Config.Host.Excludes
 		newHost.Selects = a.Config.Host.Selects
 	}
@@ -524,7 +523,7 @@ func ParseHCL(path string) (Config, error) {
 }
 
 // WriteSummary writes a summary report that includes the products and op statuses present in the agent's
-// ManifestSeekers. The intended use case is to write to output at the end of the Agent's Run.
+// ManifestOps. The intended use case is to write to output at the end of the Agent's Run.
 func (a *Agent) WriteSummary(writer io.Writer) error {
 	t := tabwriter.NewWriter(writer, 0, 0, 2, ' ', 0)
 	headers := []string{
@@ -541,16 +540,16 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 	}
 
 	// For deterministic output, we sort the products in alphabetical order. Otherwise, ranging over the map
-	// a.ManifestSeekers directly, we wouldn't know for certain which order the keys - and therefore the rows - would be in.
+	// a.ManifestOps directly, we wouldn't know for certain which order the keys - and therefore the rows - would be in.
 	var products []string
-	for k := range a.ManifestSeekers {
+	for k := range a.ManifestOps {
 		products = append(products, k)
 	}
 	sort.Strings(products)
 
 	for _, prod := range products {
 		var success, fail, unknown int
-		seekers := a.ManifestSeekers[prod]
+		seekers := a.ManifestOps[prod]
 
 		for _, s := range seekers {
 			switch s.Status {
