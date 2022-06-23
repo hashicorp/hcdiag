@@ -63,7 +63,10 @@ jobs:
             echo "Found invalid type (enhancement) in changelog - did you mean improvement?"
             exit 1
           elif grep -q ':changes$' "$changelog_files"; then
-            echo "Found invalid type (changes) in changelog - did you mean change?"
+            echo "Found invalid type (changes) in changelog - did you mean breaking?"
+            exit 1
+          elif grep -q ':change$' "$changelog_files"; then
+            echo "Found invalid type (change) in changelog - did you mean breaking?"
             exit 1
           elif grep -q ':bugs$' "$changelog_files"; then
             echo "Found invalid type (bugs) in changelog - did you mean bug?"

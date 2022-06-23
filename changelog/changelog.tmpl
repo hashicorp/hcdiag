@@ -6,10 +6,10 @@ SECURITY FIXES:
 {{ end -}}
 {{- end -}}
 
-{{- if .NotesByType.change }}
+{{- if .NotesByType.breaking }}
 BREAKING CHANGES:
 
-{{range .NotesByType.change | sort -}}
+{{range .NotesByType.breaking | sort -}}
 * {{ template "note" . }}
 {{ end -}}
 {{- end -}}
