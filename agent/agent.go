@@ -276,7 +276,7 @@ func (a *Agent) CopyIncludes() (err error) {
 	return nil
 }
 
-// RunProducts executes all seekers for this run.
+// RunProducts executes all ops for this run.
 // TODO(mkcp): We can avoid locking and waiting on results if all results are generated async. Then they can get streamed
 //  back to the dispatcher and merged into either a sync.Map or a purpose-built results map with insert(), read(), and merge().
 func (a *Agent) RunProducts() error {
@@ -436,11 +436,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if consul != nil {
-			customSeekers, err := customSeekers(consul, a.tmpDir)
+			customOps, err := customOps(consul, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newConsul.Ops = append(newConsul.Ops, customSeekers...)
+			newConsul.Ops = append(newConsul.Ops, customOps...)
 			newConsul.Excludes = consul.Excludes
 			newConsul.Selects = consul.Selects
 		}
@@ -453,11 +453,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if nomad != nil {
-			customSeekers, err := customSeekers(nomad, a.tmpDir)
+			customOps, err := customOps(nomad, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newNomad.Ops = append(newNomad.Ops, customSeekers...)
+			newNomad.Ops = append(newNomad.Ops, customOps...)
 			newNomad.Excludes = nomad.Excludes
 			newNomad.Selects = nomad.Selects
 		}
@@ -469,11 +469,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if tfe != nil {
-			customSeekers, err := customSeekers(tfe, a.tmpDir)
+			customOps, err := customOps(tfe, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newTFE.Ops = append(newTFE.Ops, customSeekers...)
+			newTFE.Ops = append(newTFE.Ops, customOps...)
 			newTFE.Excludes = tfe.Excludes
 			newTFE.Selects = tfe.Selects
 		}
@@ -485,11 +485,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if vault != nil {
-			customSeekers, err := customSeekers(vault, a.tmpDir)
+			customOps, err := customOps(vault, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newVault.Ops = append(newVault.Ops, customSeekers...)
+			newVault.Ops = append(newVault.Ops, customOps...)
 			newVault.Excludes = vault.Excludes
 			newVault.Selects = vault.Selects
 		}
@@ -498,11 +498,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	newHost := product.NewHost(a.l, cfg)
 	if a.Config.Host != nil {
-		customSeekers, err := customHostSeekers(a.Config.Host, a.tmpDir)
+		customOps, err := customHostOps(a.Config.Host, a.tmpDir)
 		if err != nil {
 			return nil, err
 		}
-		newHost.Ops = append(newHost.Ops, customSeekers...)
+		newHost.Ops = append(newHost.Ops, customOps...)
 		newHost.Excludes = a.Config.Host.Excludes
 		newHost.Selects = a.Config.Host.Selects
 	}
@@ -549,10 +549,10 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 
 	for _, prod := range products {
 		var success, fail, unknown int
-		seekers := a.ManifestOps[prod]
+		ops := a.ManifestOps[prod]
 
-		for _, s := range seekers {
-			switch s.Status {
+		for _, o := range ops {
+			switch o.Status {
 			case op.Success:
 				success++
 			case op.Fail:
@@ -567,7 +567,7 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 			strconv.Itoa(success),
 			strconv.Itoa(fail),
 			strconv.Itoa(unknown),
-			strconv.Itoa(len(seekers))))
+			strconv.Itoa(len(ops))))
 		if err != nil {
 			return err
 		}
@@ -597,22 +597,22 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// TODO(mkcp): This duplicates much of customSeekers and can certainly be improved.
-func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*op.Op, error) {
-	seekers := make([]*op.Op, 0)
+// TODO(mkcp): This duplicates much of customOps and can certainly be improved.
+func customHostOps(cfg *HostConfig, tmpDir string) ([]*op.Op, error) {
+	ops := make([]*op.Op, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
 		cmder := op.NewCommander(c.Run, c.Format)
-		seekers = append(seekers, cmder)
+		ops = append(ops, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
 		sheller := op.NewSheller(c.Run)
-		seekers = append(seekers, sheller)
+		ops = append(ops, sheller)
 	}
 
 	for _, g := range cfg.GETs {
-		seekers = append(seekers, host.NewGetter(g.Path))
+		ops = append(ops, host.NewGetter(g.Path))
 	}
 
 	// Build copiers
@@ -631,24 +631,24 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*op.Op, error) {
 		}
 
 		copier := op.NewCopier(c.Path, dest, from, time.Time{})
-		seekers = append(seekers, copier)
+		ops = append(ops, copier)
 	}
 
-	return seekers, nil
+	return ops, nil
 }
 
-// TODO(mkcp): Products, not the agent, should handle their own custom seekers when they're created.
-func customSeekers(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
-	seekers := make([]*op.Op, 0)
+// TODO(mkcp): Products, not the agent, should handle their own custom ops when they're created.
+func customOps(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
+	ops := make([]*op.Op, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
 		cmder := op.NewCommander(c.Run, c.Format)
-		seekers = append(seekers, cmder)
+		ops = append(ops, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
 		sheller := op.NewSheller(c.Run)
-		seekers = append(seekers, sheller)
+		ops = append(ops, sheller)
 	}
 
 	// Build HTTPers
@@ -669,7 +669,7 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
 	}
 	for _, g := range cfg.GETs {
 		httper := op.NewHTTPer(c, g.Path)
-		seekers = append(seekers, httper)
+		ops = append(ops, httper)
 	}
 
 	// Build copiers
@@ -687,8 +687,8 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
 			from = time.Now().Add(-since)
 		}
 		copier := op.NewCopier(c.Path, dest, from, time.Time{})
-		seekers = append(seekers, copier)
+		ops = append(ops, copier)
 	}
 
-	return seekers, nil
+	return ops, nil
 }

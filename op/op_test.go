@@ -20,7 +20,7 @@ func (r MockRunner) Run() (interface{}, Status, error) {
 	return mockResult, testStatus, errFake
 }
 
-func TestSeekerRun(t *testing.T) {
+func TestOp_Run(t *testing.T) {
 	r := MockRunner{}
 	s := Op{Identifier: "mock", Runner: r}
 
