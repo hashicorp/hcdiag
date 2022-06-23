@@ -1,21 +1,15 @@
 {{- if .NotesByType.security }}
 SECURITY FIXES:
 
-The following items patch security concerns from previous versions.
-
-{{range .NotesByType.security -}}
+{{range .NotesByType.security | sort -}}
 * {{ template "note" . }}
 {{ end -}}
 {{- end -}}
 
 {{- if .NotesByType.change }}
-CHANGES:
+BREAKING CHANGES:
 
-The following items alter the behavior of the product in a way that could cause it to no longer work using
-previous configuration options. If you are coming from an earlier version of the product, please pay special
-attention to these to ensure you understand how these changes might impact you.
-
-{{range .NotesByType.change -}}
+{{range .NotesByType.change | sort -}}
 * {{ template "note" . }}
 {{ end -}}
 {{- end -}}
@@ -23,9 +17,7 @@ attention to these to ensure you understand how these changes might impact you.
 {{- if .NotesByType.feature -}}
 FEATURES:
 
-The following items represent brand-new capabilities or major changes added to the product.
-
-{{range .NotesByType.feature -}}
+{{range .NotesByType.feature | sort -}}
 * {{ template "note" . }}
 {{ end -}}
 {{- end -}}
@@ -33,9 +25,7 @@ The following items represent brand-new capabilities or major changes added to t
 {{- if .NotesByType.improvement }}
 IMPROVEMENTS:
 
-The following items represent improvements to existing capabilities or the addition of small capabilities of the product.
-
-{{range .NotesByType.improvement -}}
+{{range .NotesByType.improvement | sort -}}
 * {{ template "note" . }}
 {{ end -}}
 {{- end -}}
@@ -43,10 +33,7 @@ The following items represent improvements to existing capabilities or the addit
 {{- if .NotesByType.deprecation }}
 DEPRECATIONS:
 
-The following items have been marked for deprecation in a future version of the product. If you rely on any of these,
-please plan to change your usage of the product accordingly.
-
-{{range .NotesByType.deprecation -}}
+{{range .NotesByType.deprecation | sort -}}
 * {{ template "note" . }}
 {{ end -}}
 {{- end -}}
@@ -54,9 +41,7 @@ please plan to change your usage of the product accordingly.
 {{- if .NotesByType.bug }}
 BUG FIXES:
 
-The following items fix bugs or unexpected behavior from earlier versions of the product.
-
-{{range .NotesByType.bug -}}
+{{range .NotesByType.bug | sort -}}
 * {{ template "note" . }}
 {{ end -}}
 {{- end -}}
