@@ -11,10 +11,12 @@ type Config struct {
 	OS          string    `json:"operating_system"`
 	Serial      bool      `json:"serial"`
 	Dryrun      bool      `json:"dry_run"`
+	Boundary    bool      `json:"boundary_enabled"`
 	Consul      bool      `json:"consul_enabled"`
 	Nomad       bool      `json:"nomad_enabled"`
 	TFE         bool      `json:"terraform_ent_enabled"`
 	Vault       bool      `json:"vault_enabled"`
+	Waypoint    bool      `json:"waypoint_enabled"`
 	Since       time.Time `json:"since"`
 	Until       time.Time `json:"until"`
 	Includes    []string  `json:"includes"`

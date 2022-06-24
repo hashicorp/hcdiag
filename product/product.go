@@ -9,11 +9,13 @@ import (
 )
 
 const (
-	Consul = "consul"
-	Host   = "host"
-	Nomad  = "nomad"
-	TFE    = "terraform-ent"
-	Vault  = "vault"
+	Boundary = "boundary"
+	Consul   = "consul"
+	Host     = "host"
+	Nomad    = "nomad"
+	TFE      = "terraform-ent"
+	Vault    = "vault"
+	Waypoint = "waypoint"
 )
 
 const (
