@@ -9,7 +9,6 @@ import (
 
 // Sheller runs shell commands in a real unix shell.
 type Sheller struct {
-	id      string
 	command string
 	shell   string
 }
