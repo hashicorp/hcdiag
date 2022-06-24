@@ -21,12 +21,12 @@ const (
 
 // Op seeks information via its Runner then stores the results.
 type Op struct {
-	Identifier string            `json:"-"`
-	Result     interface{}       `json:"result"`
-	ErrString  string            `json:"error"` // this simplifies json marshaling
-	Error      error             `json:"-"`
-	Status     Status            `json:"status"`
-	Params     map[string]string `json:"params"`
+	Identifier string                 `json:"-"`
+	Result     interface{}            `json:"result"`
+	ErrString  string                 `json:"error"` // this simplifies json marshaling
+	Error      error                  `json:"-"`
+	Status     Status                 `json:"status"`
+	Params     map[string]interface{} `json:"params"`
 }
 
 // Runner runs things to get information.
@@ -91,7 +91,7 @@ func Select(selects []string, runners []Runner) ([]Runner, error) {
 }
 
 // StatusCounts takes a slice of op references and returns a map containing sums of each Status
-func StatusCounts(ops []*Op) (map[Status]int, error) {
+func StatusCounts(ops []Op) (map[Status]int, error) {
 	statuses := make(map[Status]int)
 	for _, op := range ops {
 		if op.Status == "" {

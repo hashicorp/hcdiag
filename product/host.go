@@ -14,23 +14,23 @@ func NewHost(logger hclog.Logger, cfg Config) *Product {
 	return &Product{
 		l:       logger.Named("product"),
 		Name:    Host,
-		Runners: HostOps(cfg.OS),
+		Runners: HostRunners(cfg.OS),
 		Config:  cfg,
 	}
 }
 
-// HostOps checks the operating system and passes it into the operations, returning a list of ops to run.
-func HostOps(os string) []*op.Op {
+// HostRunners checks the operating system and passes it into the operations, returning a list of ops to run.
+func HostRunners(os string) []op.Runner {
 	if os == "auto" {
 		os = runtime.GOOS
 	}
-	return []*op.Op{
+	return []op.Runner{
 		host.NewOS(os),
 		host.NewDisk(),
-		host.NewInfo(),
-		host.NewMemory(),
-		host.NewProcess(),
-		host.NewNetwork(),
+		host.Info{},
+		host.Memory{},
+		host.Process{},
+		host.Network{},
 		host.NewEtcHosts(),
 		host.NewIPTables(),
 		host.NewProcFile(os),

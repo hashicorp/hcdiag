@@ -251,3 +251,11 @@ func EnsureDirectory(dir string) error {
 
 	return nil
 }
+
+// RunnerParams converts a struct to a map[string]interface{}
+func RunnerParams(r interface{}) map[string]interface{} {
+	var inInterface map[string]interface{}
+	inrec, _ := json.Marshal(&r)
+	_ = json.Unmarshal(inrec, &inInterface)
+	return inInterface
+}

@@ -267,9 +267,9 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		r := op.NewCopier(f, dest, a.Config.Since, a.Config.Until)
-		if _, err = r.Run(); err != nil {
-			return err
+		o := op.NewCopier(f, dest, a.Config.Since, a.Config.Until).Run()
+		if o.Error != nil {
+			return o.Error
 		}
 	}
 
@@ -293,7 +293,7 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := op.StatusCounts(product.Runners)
+		statuses, err := op.StatusCounts(result)
 		if err != nil {
 			a.l.Error("Error rendering op statuses", "product", product, "error", err)
 		}
@@ -321,12 +321,12 @@ func (a *Agent) RunProducts() error {
 
 // RecordManifest writes additional data to the agent to serialize into manifest.json
 func (a *Agent) RecordManifest() {
-	for name, p := range a.products {
-		for _, s := range p.Runner {
+	for name, ops := range a.results {
+		for _, o := range ops {
 			m := ManifestOp{
-				ID:     s.Identifier,
-				Error:  s.ErrString,
-				Status: s.Status,
+				ID:     o.Identifier,
+				Error:  o.ErrString,
+				Status: o.Status,
 			}
 			a.ManifestOps[name] = append(a.ManifestOps[name], m)
 		}
@@ -598,21 +598,21 @@ func formatReportLine(cells ...string) string {
 }
 
 // TODO(mkcp): This duplicates much of customOps and can certainly be improved.
-func customHostOps(cfg *HostConfig, tmpDir string) ([]*op.Op, error) {
-	ops := make([]*op.Op, 0)
+func customHostRunners(cfg *HostConfig, tmpDir string) ([]op.Runner, error) {
+	runners := make([]op.Runner, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
 		cmder := op.NewCommander(c.Run, c.Format)
-		ops = append(ops, cmder)
+		runners = append(runners, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
 		sheller := op.NewSheller(c.Run)
-		ops = append(ops, sheller)
+		runners = append(runners, sheller)
 	}
 
 	for _, g := range cfg.GETs {
-		ops = append(ops, host.NewGetter(g.Path))
+		runners = append(runners, host.NewGetter(g.Path))
 	}
 
 	// Build copiers
@@ -631,24 +631,24 @@ func customHostOps(cfg *HostConfig, tmpDir string) ([]*op.Op, error) {
 		}
 
 		copier := op.NewCopier(c.Path, dest, from, time.Time{})
-		ops = append(ops, copier)
+		runners = append(runners, copier)
 	}
 
-	return ops, nil
+	return runners, nil
 }
 
 // TODO(mkcp): Products, not the agent, should handle their own custom ops when they're created.
-func customOps(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
-	ops := make([]*op.Op, 0)
+func customRunners(cfg *ProductConfig, tmpDir string) ([]op.Runner, error) {
+	runners := make([]op.Runner, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
 		cmder := op.NewCommander(c.Run, c.Format)
-		ops = append(ops, cmder)
+		runners = append(runners, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
 		sheller := op.NewSheller(c.Run)
-		ops = append(ops, sheller)
+		runners = append(runners, sheller)
 	}
 
 	// Build HTTPers
@@ -669,7 +669,7 @@ func customOps(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
 	}
 	for _, g := range cfg.GETs {
 		httper := op.NewHTTPer(c, g.Path)
-		ops = append(ops, httper)
+		runners = append(runners, httper)
 	}
 
 	// Build copiers
@@ -687,8 +687,8 @@ func customOps(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
 			from = time.Now().Add(-since)
 		}
 		copier := op.NewCopier(c.Path, dest, from, time.Time{})
-		ops = append(ops, copier)
+		runners = append(runners, copier)
 	}
 
-	return ops, nil
+	return runners, nil
 }

@@ -3,6 +3,8 @@ package host
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcdiag/util"
+
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -10,29 +12,41 @@ var _ op.Runner = FSTab{}
 
 type FSTab struct {
 	os      string
-	sheller *op.Op
+	sheller op.Runner
 }
 
-func NewFSTab(os string) *op.Op {
-	return &op.Op{
-		Identifier: "/etc/fstab",
-		Runner: FSTab{
-			os:      os,
-			sheller: op.NewSheller("cat /etc/fstab"),
-		},
+func NewFSTab(os string) *FSTab {
+	return &FSTab{
+		os:      os,
+		sheller: op.NewSheller("cat /etc/fstab"),
 	}
 }
 
-func (s FSTab) Run() (interface{}, op.Status, error) {
+func (r FSTab) ID() string {
+	return "/etc/fstab"
+}
+
+func (r FSTab) Run() op.Op {
 	// Only Linux is supported currently; Windows is unsupported, and Darwin doesn't use /etc/fstab by default.
-	if s.os != "linux" {
+	if r.os != "linux" {
 		// TODO(nwchandler): This should be op.Status("skip") once we implement it
-		return nil, op.Success, fmt.Errorf("FSTab.Run() not available on os, os=%s", s.os)
+		return r.op(nil, op.Success, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.os))
 	}
-	res, _, err := s.sheller.Runner.Run()
-	if err != nil {
-		return res, op.Fail, err
+	o := r.sheller.Run()
+	if o.Error != nil {
+		return r.op(o.Result, op.Fail, o.Error)
 	}
 
-	return res, op.Success, nil
+	return r.op(o.Result, op.Success, nil)
+}
+
+func (r FSTab) op(result interface{}, status op.Status, err error) op.Op {
+	return op.Op{
+		Identifier: r.ID(),
+		Result:     result,
+		Error:      err,
+		ErrString:  err.Error(),
+		Status:     status,
+		Params:     util.RunnerParams(r),
+	}
 }

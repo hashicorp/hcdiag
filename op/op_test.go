@@ -58,7 +58,6 @@ func TestRunner_Run(t *testing.T) {
 	}
 }
 
-// FIXME(mkcp): This needs to be recreated with Runners
 func TestExclude(t *testing.T) {
 	testTable := []struct {
 		desc     string
@@ -123,7 +122,6 @@ func TestExclude(t *testing.T) {
 	}
 }
 
-// FIXME(mkcp): This needs to be recreated with Runners
 func TestSelect(t *testing.T) {
 	testTable := []struct {
 		desc     string
@@ -201,12 +199,12 @@ func TestSelect(t *testing.T) {
 func Test_StatusCounts(t *testing.T) {
 	testTable := []struct {
 		desc   string
-		ops    []*Op
+		ops    []Op
 		expect map[Status]int
 	}{
 		{
 			desc: "Statuses sums statuses",
-			ops: []*Op{
+			ops: []Op{
 				{Status: Success},
 				{Status: Unknown},
 				{Status: Success},
@@ -221,7 +219,7 @@ func Test_StatusCounts(t *testing.T) {
 		},
 		{
 			desc: "returns an error if a op doesn't have a status",
-			ops: []*Op{
+			ops: []Op{
 				{Status: Unknown},
 				{Status: Success},
 				{Status: ""},

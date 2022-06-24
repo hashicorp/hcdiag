@@ -8,22 +8,28 @@ import (
 
 var _ op.Runner = Info{}
 
-func NewInfo() *op.Op {
-	return &op.Op{
-		Identifier: "info",
-		Runner:     Info{},
-	}
-}
-
 type Info struct{}
 
-func (i Info) Run() (interface{}, op.Status, error) {
+func (i Info) ID() string {
+	return "info"
+}
+
+func (i Info) Run() op.Op {
 	// third party
 	hostInfo, err := host.Info()
 	if err != nil {
 		hclog.L().Trace("op/host.Info.Run()", "error", err)
-		return hostInfo, op.Fail, err
+		return i.op(hostInfo, op.Fail, err)
 	}
 
-	return hostInfo, op.Success, nil
+	return i.op(hostInfo, op.Success, nil)
+}
+func (i Info) op(result interface{}, status op.Status, err error) op.Op {
+	return op.Op{
+		Identifier: i.ID(),
+		Result:     result,
+		Error:      err,
+		ErrString:  err.Error(),
+		Status:     status,
+	}
 }

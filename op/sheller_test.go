@@ -21,11 +21,9 @@ func TestSheller(t *testing.T) {
 	// features pipe "|" and file redirection ">"
 	c := NewSheller("echo hiii | grep hi > cooltestfile")
 	defer os.Remove("cooltestfile")
-	out, err := c.Run()
-	sheller := c.Runner.(*Sheller)
-	assert.Equal(t, sheller.Shell, "/bin/sh")
-	assert.Equal(t, "", out)
-	assert.NoError(t, err)
+	o := c.Run()
+	assert.Equal(t, "", o.Result)
+	assert.NoError(t, o.Error)
 
 	bts, err := ioutil.ReadFile("cooltestfile")
 	assert.Equal(t, "hiii\n", string(bts))

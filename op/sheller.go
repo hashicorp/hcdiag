@@ -17,16 +17,15 @@ type Sheller struct {
 // NewSheller provides a Op for running shell commands.
 func NewSheller(command string) *Sheller {
 	return &Sheller{
-		id:      command,
 		command: command,
 	}
 }
 
-func (s *Sheller) ID() string {
-	return s.id
+func (s Sheller) ID() string {
+	return s.command
 }
 
-func (s *Sheller) params() map[string]string {
+func (s Sheller) params() map[string]string {
 	return map[string]string{
 		"command": s.command,
 		"shell":   s.shell,
@@ -34,16 +33,16 @@ func (s *Sheller) params() map[string]string {
 }
 
 // Run ensures a shell exists and optimistically executes the given Command string
-func (s *Sheller) Run() Op {
+func (s Sheller) Run() Op {
 	// Read the shell from the environment
 	shell, err := util.GetShell()
 	if err != nil {
 		return Op{
-			Identifier: s.id,
+			Identifier: s.ID(),
 			Error:      err,
 			ErrString:  err.Error(),
 			Status:     Fail,
-			Params:     nil,
+			Params:     util.RunnerParams(s),
 		}
 	}
 	s.shell = shell
@@ -64,7 +63,7 @@ func (s *Sheller) Run() Op {
 			Error:      err1,
 			ErrString:  err1.Error(),
 			Status:     Unknown,
-			Params:     s.params(),
+			Params:     util.RunnerParams(s),
 		}
 	}
 
@@ -72,7 +71,7 @@ func (s *Sheller) Run() Op {
 		Identifier: s.id,
 		Result:     string(bts),
 		Status:     Success,
-		Params:     s.params(),
+		Params:     util.RunnerParams(s),
 	}
 }
 

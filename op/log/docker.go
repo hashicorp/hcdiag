@@ -4,20 +4,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/hcdiag/util"
+
 	"github.com/hashicorp/hcdiag/op"
 )
 
 var _ op.Runner = Docker{}
 
 // NewDocker returns a op with an identifier and fully configured docker runner
-func NewDocker(container, destDir string, since time.Time) *op.Op {
-	return &op.Op{
-		Identifier: "log/docker " + container,
-		Runner: &Docker{
-			Container: container,
-			DestDir:   destDir,
-			Since:     since,
-		},
+func NewDocker(container, destDir string, since time.Time) *Docker {
+	return &Docker{
+		Container: container,
+		DestDir:   destDir,
+		Since:     since,
 	}
 }
 
@@ -31,31 +30,46 @@ type Docker struct {
 	Since time.Time
 }
 
+func (d Docker) ID() string {
+	return "log/docker " + d.Container
+}
+
 // Run executes the runner
-func (d Docker) Run() (interface{}, op.Status, error) {
+func (d Docker) Run() op.Op {
 	// Check that docker exists
-	checkResult, _, err := op.NewSheller("docker version").Runner.Run()
-	if err != nil {
-		return checkResult, op.Fail, DockerNotFoundError{
+	o := op.NewSheller("docker version").Run()
+	if o.Error != nil {
+		return d.op(o.Result, op.Fail, DockerNotFoundError{
 			container: d.Container,
-			err:       err,
-		}
+			err:       o.Error,
+		})
 	}
 
 	// Retrieve logs
 	cmd := DockerLogCmd(d.Container, d.DestDir, d.Since)
-	logResult, status, err := op.NewSheller(cmd).Runner.Run()
+	o = op.NewSheller(cmd).Run()
 	// NOTE(mkcp): If the container does not exist, docker will exit non-zero and it'll surface as a ShellExecError.
 	//  The result actionably states that the container wasn't found. In the future we may want to scrub the result
 	//  and only return an actionable error message
-	if err != nil {
-		return logResult, status, err
+	if o.Error != nil {
+		return d.op(o.Result, o.Status, o.Error)
 	}
-	if logResult == "" {
-		return logResult, op.Unknown, DockerNoLogsError{container: d.Container}
+	if o.Result == "" {
+		return d.op(o.Result, op.Unknown, DockerNoLogsError{container: d.Container})
 	}
 
-	return logResult, op.Success, nil
+	return d.op(o.Result, op.Success, nil)
+}
+
+func (d Docker) op(result interface{}, status op.Status, err error) op.Op {
+	return op.Op{
+		Identifier: d.ID(),
+		Result:     result,
+		Error:      err,
+		ErrString:  err.Error(),
+		Status:     status,
+		Params:     util.RunnerParams(d),
+	}
 }
 
 func DockerLogCmd(container, destDir string, since time.Time) string {

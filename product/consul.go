@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
+	"github.com/hashicorp/hcdiag/op"
 	s "github.com/hashicorp/hcdiag/op"
 	logs "github.com/hashicorp/hcdiag/op/log"
 )
@@ -36,18 +37,18 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // ConsulOps generates a slice of ops to inspect consul
-func ConsulOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
-	ops := []*s.Op{
-		s.NewCommander("consul version", "string"),
-		s.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+func ConsulOps(cfg Config, api *client.APIClient) ([]s.Runner, error) {
+	runners := []op.Runner{
+		op.NewCommander("consul version", "string"),
+		op.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
-		s.NewHTTPer(api, "/v1/agent/self"),
-		s.NewHTTPer(api, "/v1/agent/metrics"),
-		s.NewHTTPer(api, "/v1/catalog/datacenters"),
-		s.NewHTTPer(api, "/v1/catalog/services"),
-		s.NewHTTPer(api, "/v1/namespace"),
-		s.NewHTTPer(api, "/v1/status/leader"),
-		s.NewHTTPer(api, "/v1/status/peers"),
+		op.NewHTTPer(api, "/v1/agent/self"),
+		op.NewHTTPer(api, "/v1/agent/metrics"),
+		op.NewHTTPer(api, "/v1/catalog/datacenters"),
+		op.NewHTTPer(api, "/v1/catalog/services"),
+		op.NewHTTPer(api, "/v1/namespace"),
+		op.NewHTTPer(api, "/v1/status/leader"),
+		op.NewHTTPer(api, "/v1/status/peers"),
 
 		logs.NewDocker("consul", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -56,9 +57,9 @@ func ConsulOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/consul")
-		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		ops = append([]*s.Op{logCopier}, ops...)
+		logCopier := op.NewCopier(logPath, dest, cfg.Since, cfg.Until)
+		runners = append([]op.Runner{logCopier}, runners...)
 	}
 
-	return ops, nil
+	return runners, nil
 }

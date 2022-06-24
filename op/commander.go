@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/hashicorp/hcdiag/util"
 )
 
 var _ Runner = Commander{}
@@ -41,7 +43,7 @@ func (c Commander) genOp(result interface{}, status Status, err error) Op {
 		Error:      err,
 		ErrString:  err.Error(),
 		Status:     status,
-		Params:     c.params(),
+		Params:     util.RunnerParams(c),
 	}
 }
 

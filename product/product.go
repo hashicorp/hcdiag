@@ -54,8 +54,8 @@ func (p *Product) Run() map[string]op.Op {
 		if o.Error != nil {
 			p.l.Warn("result",
 				"op", r.ID(),
-				"result", fmt.Sprintf("%s", result),
-				"error", err,
+				"result", fmt.Sprintf("%s", o.Result),
+				"error", o.Error,
 			)
 		}
 	}
@@ -65,7 +65,7 @@ func (p *Product) Run() map[string]op.Op {
 // Filter applies our slices of exclude and select op.Identifier matchers to the set of the product's ops
 func (p *Product) Filter() error {
 	if p.Runners == nil {
-		p.Runners = []*op.Op{}
+		p.Runners = []op.Runner{}
 	}
 	var err error
 	// The presence of Selects takes precedence over Excludes
@@ -83,13 +83,13 @@ func (p *Product) Filter() error {
 
 // CommanderHealthCheck employs the CLI to check if the client and then the agent are available.
 func CommanderHealthCheck(client, agent string) error {
-	isClientAvailable := op.NewCommander(client, "string")
-	if result, err := isClientAvailable.Run(); err != nil {
-		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, result, err)
+	checkClient := op.NewCommander(client, "string").Run()
+	if checkClient.Error != nil {
+		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, checkClient.Result, checkClient.Error)
 	}
-	isAgentAvailable := op.NewCommander(agent, "string")
-	if result, err := isAgentAvailable.Run(); err != nil {
-		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, result, err)
+	checkAgent := op.NewCommander(agent, "string").Run()
+	if checkAgent.Error != nil {
+		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, checkAgent.Result, checkAgent.Error)
 	}
 	return nil
 }
