@@ -27,13 +27,6 @@ func (c Commander) ID() string {
 	return c.command
 }
 
-func (c Commander) params() map[string]string {
-	return map[string]string{
-		"command": c.command,
-		"format":  c.format,
-	}
-}
-
 // Run executes the Command
 func (c Commander) Run() Op {
 	var result interface{}

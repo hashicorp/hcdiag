@@ -25,13 +25,6 @@ func (s Sheller) ID() string {
 	return s.command
 }
 
-func (s Sheller) params() map[string]string {
-	return map[string]string{
-		"command": s.command,
-		"shell":   s.shell,
-	}
-}
-
 // Run ensures a shell exists and optimistically executes the given Command string
 func (s Sheller) Run() Op {
 	// Read the shell from the environment
