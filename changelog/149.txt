@@ -1,0 +1,3 @@
+```release-note:improvement
+op: store Runners on Products and change Runners interface to return an Op
+`
