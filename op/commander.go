@@ -57,7 +57,7 @@ func (c Commander) Run() Op {
 		}
 
 	default:
-		return New(c, result, Fail, FormatUnknownError{command: c.command, format: c.format})
+		return New(c, result, Fail, FormatUnknownError(c))
 	}
 
 	return New(c, result, Success, nil)
