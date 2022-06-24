@@ -1,4 +1,4 @@
-package seeker
+package op
 
 import (
 	"github.com/hashicorp/hcdiag/client"
@@ -10,8 +10,8 @@ type HTTPer struct {
 	Client *client.APIClient `json:"client"`
 }
 
-func NewHTTPer(client *client.APIClient, path string) *Seeker {
-	return &Seeker{
+func NewHTTPer(client *client.APIClient, path string) *Op {
+	return &Op{
 		Identifier: "GET" + " " + path,
 		Runner: HTTPer{
 			Client: client,

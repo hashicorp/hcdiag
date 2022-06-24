@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
-	s "github.com/hashicorp/hcdiag/seeker"
-	logs "github.com/hashicorp/hcdiag/seeker/log"
+	s "github.com/hashicorp/hcdiag/op"
+	logs "github.com/hashicorp/hcdiag/op/log"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 	NomadDebugInterval = 30 * time.Second
 )
 
-// NewNomad takes a product config and creates a Product with all of Nomad's default seekers
+// NewNomad takes a product config and creates a Product with all of Nomad's default ops
 func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	api, err := client.NewNomadAPI()
 	if err != nil {
@@ -36,22 +36,22 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	if DefaultInterval == cfg.DebugInterval {
 		cfg.DebugInterval = NomadDebugInterval
 	}
-	seekers, err := NomadSeekers(cfg, api)
+	ops, err := NomadOps(cfg, api)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Product{
-		l:       logger.Named("product"),
-		Name:    Nomad,
-		Seekers: seekers,
-		Config:  cfg,
+		l:      logger.Named("product"),
+		Name:   Nomad,
+		Ops:    ops,
+		Config: cfg,
 	}, nil
 }
 
-// NomadSeekers seek information about Nomad.
-func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
-	seekers := []*s.Seeker{
+// NomadOps seek information about Nomad.
+func NomadOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
+	ops := []*s.Op{
 		s.NewCommander("nomad version", "string"),
 		s.NewCommander("nomad node status -self -json", "json"),
 		s.NewCommander("nomad agent-info -json", "json"),
@@ -69,8 +69,8 @@ func NomadSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs", "nomad")
 		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		seekers = append([]*s.Seeker{logCopier}, seekers...)
+		ops = append([]*s.Op{logCopier}, ops...)
 	}
 
-	return seekers, nil
+	return ops, nil
 }

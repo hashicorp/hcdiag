@@ -12,47 +12,46 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/hashicorp/hcdiag/seeker/host"
+	"github.com/hashicorp/hcdiag/op/host"
 
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/version"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/product"
-	"github.com/hashicorp/hcdiag/seeker"
 	"github.com/hashicorp/hcdiag/util"
 )
 
-// Agent holds our set of seekers to be executed and their results.
+// Agent holds our set of ops to be executed and their results.
 type Agent struct {
 	l           hclog.Logger
 	products    map[string]*product.Product
-	results     map[string]map[string]seeker.Seeker
+	results     map[string]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
 	Start       time.Time       `json:"started_at"`
 	End         time.Time       `json:"ended_at"`
 	Duration    string          `json:"duration"`
-	NumSeekers  int             `json:"num_seekers"`
+	NumOps      int             `json:"num_ops"`
 	Config      Config          `json:"configuration"`
 	Version     version.Version `json:"version"`
-	// ManifestSeekers holds a slice of seekers with a subset of normal seekers' fields so we can safely render them in
-	// `manifest.json`
-	ManifestSeekers map[string][]ManifestSeeker `json:"seekers"`
+	// ManifestOps holds a slice of ops with a subset of fields so we can safely render them in `manifest.json`
+	ManifestOps map[string][]ManifestOp `json:"ops"`
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
 	return &Agent{
-		l:               logger,
-		results:         make(map[string]map[string]seeker.Seeker),
-		Config:          config,
-		ManifestSeekers: make(map[string][]ManifestSeeker),
-		Version:         version.GetVersion(),
+		l:           logger,
+		results:     make(map[string]map[string]op.Op),
+		Config:      config,
+		ManifestOps: make(map[string][]ManifestOp),
+		Version:     version.GetVersion(),
 	}
 }
 
-// Run manages the Agent's lifecycle. We create our temp directory, copy files, run their seekers, write the results,
+// Run manages the Agent's lifecycle. We create our temp directory, copy files, run their ops, write the results,
 // and finally cleanup after ourselves. We collect any errors up and return them to the caller, only returning when done
 // or if the error warrants ending the run early.
 func (a *Agent) Run() []error {
@@ -94,7 +93,7 @@ func (a *Agent) Run() []error {
 	}
 
 	// Create products
-	a.l.Debug("Gathering Products' Seekers")
+	a.l.Debug("Gathering Products' Ops")
 	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
@@ -102,7 +101,7 @@ func (a *Agent) Run() []error {
 		return errs
 	}
 
-	// Filter the seekers on each product
+	// Filter the ops on each product
 	a.l.Debug("Applying Exclude and Select filters to products")
 	for _, prod := range p {
 		if errProductFilter := prod.Filter(); errProductFilter != nil {
@@ -115,8 +114,8 @@ func (a *Agent) Run() []error {
 	// Store products
 	a.products = p
 
-	// Sum up all seekers from products
-	a.NumSeekers = product.CountSeekers(a.products)
+	// Sum up all ops from products
+	a.NumOps = product.CountOps(a.products)
 
 	// Run products
 	a.l.Info("Gathering diagnostics")
@@ -126,7 +125,7 @@ func (a *Agent) Run() []error {
 	}
 
 	// Record metadata
-	// Build seeker metadata
+	// Build op metadata
 	a.l.Info("Recording manifest")
 	a.RecordManifest()
 
@@ -142,7 +141,7 @@ func (a *Agent) Run() []error {
 		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
 	}
 
-	a.l.Info("Writing summary of products and seekers to standard output")
+	a.l.Info("Writing summary of products and ops to standard output")
 	if errSummary := a.WriteSummary(os.Stdout); errSummary != nil {
 		errs = append(errs, errSummary)
 		a.l.Error("Failed to write summary report following run", "error", errSummary)
@@ -156,7 +155,7 @@ func (a *Agent) DryRun() []error {
 
 	a.l.Info("Starting dry run")
 
-	// glob "*" here is to support copy/paste of seeker identifiers
+	// glob "*" here is to support copy/paste of op identifiers
 	// from -dryrun output into select/exclude filters
 	a.tmpDir = "*"
 	a.l.Info("Would copy included files", "includes", a.Config.Includes)
@@ -168,15 +167,15 @@ func (a *Agent) DryRun() []error {
 		a.l.Error("Product failed healthcheck. Ensure setup steps are complete (see https://github.com/hashicorp/hcdiag for prerequisites)", "error", errProductChecks)
 	}
 
-	// Create products and their seekers
-	a.l.Info("Gathering seekers for each product")
+	// Create products and their ops
+	a.l.Info("Gathering operations for each product")
 	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
-		a.l.Error("Failed gathering seekers for products", "error", errProductSetup)
+		a.l.Error("Failed gathering ops for products", "error", errProductSetup)
 		return errs
 	}
-	a.l.Info("Filtering seeker lists")
+	a.l.Info("Filtering op lists")
 	for _, prod := range p {
 		if errProductFilter := prod.Filter(); errProductFilter != nil {
 			a.l.Error("Failed to filter Products", "error", errProductFilter)
@@ -189,9 +188,9 @@ func (a *Agent) DryRun() []error {
 
 	a.l.Info("Showing diagnostics that would be gathered")
 	for _, p := range a.products {
-		set := p.Seekers
+		set := p.Ops
 		for _, s := range set {
-			a.l.Info("would run", "product", p.Name, "seeker", s.Identifier)
+			a.l.Info("would run", "product", p.Name, "op", s.Identifier)
 		}
 	}
 	a.l.Info("Would write output", "dest", a.Config.Destination)
@@ -268,7 +267,7 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		s := seeker.NewCopier(f, dest, a.Config.Since, a.Config.Until)
+		s := op.NewCopier(f, dest, a.Config.Since, a.Config.Until)
 		if _, err = s.Run(); err != nil {
 			return err
 		}
@@ -277,7 +276,7 @@ func (a *Agent) CopyIncludes() (err error) {
 	return nil
 }
 
-// RunProducts executes all seekers for this run.
+// RunProducts executes all ops for this run.
 // TODO(mkcp): We can avoid locking and waiting on results if all results are generated async. Then they can get streamed
 //  back to the dispatcher and merged into either a sync.Map or a purpose-built results map with insert(), read(), and merge().
 func (a *Agent) RunProducts() error {
@@ -294,9 +293,9 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := seeker.StatusCounts(product.Seekers)
+		statuses, err := op.StatusCounts(product.Ops)
 		if err != nil {
-			a.l.Error("Error rendering seeker statuses", "product", product, "error", err)
+			a.l.Error("Error rendering op statuses", "product", product, "error", err)
 		}
 
 		a.l.Info("Product done", "product", name, "statuses", statuses)
@@ -323,13 +322,13 @@ func (a *Agent) RunProducts() error {
 // RecordManifest writes additional data to the agent to serialize into manifest.json
 func (a *Agent) RecordManifest() {
 	for name, p := range a.products {
-		for _, s := range p.Seekers {
-			m := ManifestSeeker{
+		for _, s := range p.Ops {
+			m := ManifestOp{
 				ID:     s.Identifier,
 				Error:  s.ErrString,
 				Status: s.Status,
 			}
-			a.ManifestSeekers[name] = append(a.ManifestSeekers[name], m)
+			a.ManifestOps[name] = append(a.ManifestOps[name], m)
 		}
 	}
 }
@@ -437,11 +436,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if consul != nil {
-			customSeekers, err := customSeekers(consul, a.tmpDir)
+			customOps, err := customOps(consul, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newConsul.Seekers = append(newConsul.Seekers, customSeekers...)
+			newConsul.Ops = append(newConsul.Ops, customOps...)
 			newConsul.Excludes = consul.Excludes
 			newConsul.Selects = consul.Selects
 		}
@@ -454,11 +453,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if nomad != nil {
-			customSeekers, err := customSeekers(nomad, a.tmpDir)
+			customOps, err := customOps(nomad, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newNomad.Seekers = append(newNomad.Seekers, customSeekers...)
+			newNomad.Ops = append(newNomad.Ops, customOps...)
 			newNomad.Excludes = nomad.Excludes
 			newNomad.Selects = nomad.Selects
 		}
@@ -470,11 +469,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if tfe != nil {
-			customSeekers, err := customSeekers(tfe, a.tmpDir)
+			customOps, err := customOps(tfe, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newTFE.Seekers = append(newTFE.Seekers, customSeekers...)
+			newTFE.Ops = append(newTFE.Ops, customOps...)
 			newTFE.Excludes = tfe.Excludes
 			newTFE.Selects = tfe.Selects
 		}
@@ -486,11 +485,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if vault != nil {
-			customSeekers, err := customSeekers(vault, a.tmpDir)
+			customOps, err := customOps(vault, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newVault.Seekers = append(newVault.Seekers, customSeekers...)
+			newVault.Ops = append(newVault.Ops, customOps...)
 			newVault.Excludes = vault.Excludes
 			newVault.Selects = vault.Selects
 		}
@@ -499,11 +498,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	newHost := product.NewHost(a.l, cfg)
 	if a.Config.Host != nil {
-		customSeekers, err := customHostSeekers(a.Config.Host, a.tmpDir)
+		customOps, err := customHostOps(a.Config.Host, a.tmpDir)
 		if err != nil {
 			return nil, err
 		}
-		newHost.Seekers = append(newHost.Seekers, customSeekers...)
+		newHost.Ops = append(newHost.Ops, customOps...)
 		newHost.Excludes = a.Config.Host.Excludes
 		newHost.Selects = a.Config.Host.Selects
 	}
@@ -523,15 +522,15 @@ func ParseHCL(path string) (Config, error) {
 	return config, nil
 }
 
-// WriteSummary writes a summary report that includes the products and seeker statuses present in the agent's
-// ManifestSeekers. The intended use case is to write to output at the end of the Agent's Run.
+// WriteSummary writes a summary report that includes the products and op statuses present in the agent's
+// ManifestOps. The intended use case is to write to output at the end of the Agent's Run.
 func (a *Agent) WriteSummary(writer io.Writer) error {
 	t := tabwriter.NewWriter(writer, 0, 0, 2, ' ', 0)
 	headers := []string{
 		"product",
-		string(seeker.Success),
-		string(seeker.Fail),
-		string(seeker.Unknown),
+		string(op.Success),
+		string(op.Fail),
+		string(op.Unknown),
 		"total",
 	}
 
@@ -541,22 +540,22 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 	}
 
 	// For deterministic output, we sort the products in alphabetical order. Otherwise, ranging over the map
-	// a.ManifestSeekers directly, we wouldn't know for certain which order the keys - and therefore the rows - would be in.
+	// a.ManifestOps directly, we wouldn't know for certain which order the keys - and therefore the rows - would be in.
 	var products []string
-	for k := range a.ManifestSeekers {
+	for k := range a.ManifestOps {
 		products = append(products, k)
 	}
 	sort.Strings(products)
 
 	for _, prod := range products {
 		var success, fail, unknown int
-		seekers := a.ManifestSeekers[prod]
+		ops := a.ManifestOps[prod]
 
-		for _, s := range seekers {
-			switch s.Status {
-			case seeker.Success:
+		for _, o := range ops {
+			switch o.Status {
+			case op.Success:
 				success++
-			case seeker.Fail:
+			case op.Fail:
 				fail++
 			default:
 				unknown++
@@ -568,7 +567,7 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 			strconv.Itoa(success),
 			strconv.Itoa(fail),
 			strconv.Itoa(unknown),
-			strconv.Itoa(len(seekers))))
+			strconv.Itoa(len(ops))))
 		if err != nil {
 			return err
 		}
@@ -598,22 +597,22 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// TODO(mkcp): This duplicates much of customSeekers and can certainly be improved.
-func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error) {
-	seekers := make([]*seeker.Seeker, 0)
+// TODO(mkcp): This duplicates much of customOps and can certainly be improved.
+func customHostOps(cfg *HostConfig, tmpDir string) ([]*op.Op, error) {
+	ops := make([]*op.Op, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
-		cmder := seeker.NewCommander(c.Run, c.Format)
-		seekers = append(seekers, cmder)
+		cmder := op.NewCommander(c.Run, c.Format)
+		ops = append(ops, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
-		sheller := seeker.NewSheller(c.Run)
-		seekers = append(seekers, sheller)
+		sheller := op.NewSheller(c.Run)
+		ops = append(ops, sheller)
 	}
 
 	for _, g := range cfg.GETs {
-		seekers = append(seekers, host.NewGetter(g.Path))
+		ops = append(ops, host.NewGetter(g.Path))
 	}
 
 	// Build copiers
@@ -631,25 +630,25 @@ func customHostSeekers(cfg *HostConfig, tmpDir string) ([]*seeker.Seeker, error)
 			from = time.Now().Add(-since)
 		}
 
-		copier := seeker.NewCopier(c.Path, dest, from, time.Time{})
-		seekers = append(seekers, copier)
+		copier := op.NewCopier(c.Path, dest, from, time.Time{})
+		ops = append(ops, copier)
 	}
 
-	return seekers, nil
+	return ops, nil
 }
 
-// TODO(mkcp): Products, not the agent, should handle their own custom seekers when they're created.
-func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) {
-	seekers := make([]*seeker.Seeker, 0)
+// TODO(mkcp): Products, not the agent, should handle their own custom ops when they're created.
+func customOps(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
+	ops := make([]*op.Op, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
-		cmder := seeker.NewCommander(c.Run, c.Format)
-		seekers = append(seekers, cmder)
+		cmder := op.NewCommander(c.Run, c.Format)
+		ops = append(ops, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
-		sheller := seeker.NewSheller(c.Run)
-		seekers = append(seekers, sheller)
+		sheller := op.NewSheller(c.Run)
+		ops = append(ops, sheller)
 	}
 
 	// Build HTTPers
@@ -669,8 +668,8 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 		return nil, err
 	}
 	for _, g := range cfg.GETs {
-		httper := seeker.NewHTTPer(c, g.Path)
-		seekers = append(seekers, httper)
+		httper := op.NewHTTPer(c, g.Path)
+		ops = append(ops, httper)
 	}
 
 	// Build copiers
@@ -687,9 +686,9 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 			// Get the timestamp which marks the start of our duration
 			from = time.Now().Add(-since)
 		}
-		copier := seeker.NewCopier(c.Path, dest, from, time.Time{})
-		seekers = append(seekers, copier)
+		copier := op.NewCopier(c.Path, dest, from, time.Time{})
+		ops = append(ops, copier)
 	}
 
-	return seekers, nil
+	return ops, nil
 }

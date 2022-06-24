@@ -4,26 +4,26 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/hcdiag/seeker"
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/stretchr/testify/assert"
 )
 
 type mockShellRunner struct {
 	result interface{}
-	status seeker.Status
+	status op.Status
 	err    error
 }
 
-func (m mockShellRunner) Run() (interface{}, seeker.Status, error) {
+func (m mockShellRunner) Run() (interface{}, op.Status, error) {
 	return m.result, m.status, m.err
 }
 
-var _ seeker.Runner = mockShellRunner{}
+var _ op.Runner = mockShellRunner{}
 
 func TestFSTab_Run(t *testing.T) {
 	type response struct {
 		result    interface{}
-		status    seeker.Status
+		status    op.Status
 		expectErr bool
 	}
 
@@ -38,7 +38,7 @@ func TestFSTab_Run(t *testing.T) {
 				os: "windows",
 			},
 			expected: response{
-				status:    seeker.Success,
+				status:    op.Success,
 				expectErr: true,
 			},
 		},
@@ -48,7 +48,7 @@ func TestFSTab_Run(t *testing.T) {
 				os: "darwin",
 			},
 			expected: response{
-				status:    seeker.Success,
+				status:    op.Success,
 				expectErr: true,
 			},
 		},
@@ -56,17 +56,17 @@ func TestFSTab_Run(t *testing.T) {
 			name: "Test Successful Run",
 			fstab: FSTab{
 				os: "linux",
-				sheller: &seeker.Seeker{
+				sheller: &op.Op{
 					Runner: mockShellRunner{
 						result: "contents",
-						status: seeker.Success,
+						status: op.Success,
 						err:    nil,
 					},
 				},
 			},
 			expected: response{
 				result:    "contents",
-				status:    seeker.Success,
+				status:    op.Success,
 				expectErr: false,
 			},
 		},
@@ -74,17 +74,17 @@ func TestFSTab_Run(t *testing.T) {
 			name: "Test Unsuccessful Run",
 			fstab: FSTab{
 				os: "linux",
-				sheller: &seeker.Seeker{
+				sheller: &op.Op{
 					Runner: mockShellRunner{
 						result: nil,
-						status: seeker.Unknown,
+						status: op.Unknown,
 						err:    fmt.Errorf("an error"),
 					},
 				},
 			},
 			expected: response{
 				result:    nil,
-				status:    seeker.Fail,
+				status:    op.Fail,
 				expectErr: true,
 			},
 		},

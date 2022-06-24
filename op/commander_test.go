@@ -1,4 +1,4 @@
-package seeker
+package op
 
 import (
 	"reflect"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewCommander(t *testing.T) {
-	expect := Seeker{
+	expect := Op{
 		Identifier: "echo hello",
 		Runner: Commander{
 			Command: "echo hello",
