@@ -94,7 +94,8 @@ func CommanderHealthCheck(client, agent string) error {
 	return nil
 }
 
-func CountOps(products map[string]*Product) int {
+// CountRunners takes a map of product references and returns a count of all the runners
+func CountRunners(products map[string]*Product) int {
 	var count int
 	for _, product := range products {
 		count += len(product.Runners)

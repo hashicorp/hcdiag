@@ -24,9 +24,11 @@ func NewProcFile(os string) *ProcFile {
 		},
 	}
 }
+
 func (p ProcFile) ID() string {
 	return "/proc/ files"
 }
+
 func (p ProcFile) Run() op.Op {
 	if p.os != "linux" {
 		// TODO(mkcp): Replace status with op.Skip when we implement it

@@ -10,15 +10,14 @@ import (
 )
 
 func TestNewCommander(t *testing.T) {
+	testCmd := "echo hello"
+	testFmt := "string"
 	expect := &Commander{
-		command: "echo hello",
-		format:  "string",
+		command: testCmd,
+		format:  testFmt,
 	}
-	actual := NewCommander("echo hello", "string")
-	// TODO: proper comparison, my IDE doesn't like this: "avoid using reflect.DeepEqual with errors"
-	if !reflect.DeepEqual(&expect, actual) {
-		t.Errorf("expected (%#v) does not match actual (%#v)", expect, actual)
-	}
+	actual := NewCommander(testCmd, testFmt)
+	assert.Equal(t, expect, actual)
 }
 
 func TestCommander_Run(t *testing.T) {

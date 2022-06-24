@@ -114,8 +114,8 @@ func (a *Agent) Run() []error {
 	// Store products
 	a.products = p
 
-	// Sum up all ops from products
-	a.NumOps = product.CountOps(a.products)
+	// Sum up all runners from products
+	a.NumOps = product.CountRunners(a.products)
 
 	// Run products
 	a.l.Info("Gathering diagnostics")

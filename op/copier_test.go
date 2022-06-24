@@ -1,9 +1,10 @@
 package op
 
 import (
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewCopier(t *testing.T) {
@@ -19,8 +20,5 @@ func TestNewCopier(t *testing.T) {
 		Until:     until,
 	}
 	copier := NewCopier(src, dest, since, until)
-
-	if !reflect.DeepEqual(&expect, copier) {
-		t.Errorf("unexpected copier field, expected=%#v, actual=%#v", expect, copier)
-	}
+	assert.Equal(t, expect, copier)
 }
