@@ -19,16 +19,8 @@ func (i Info) Run() op.Op {
 	hostInfo, err := host.Info()
 	if err != nil {
 		hclog.L().Trace("op/host.Info.Run()", "error", err)
-		return i.op(hostInfo, op.Fail, err)
+		return op.New(i, hostInfo, op.Fail, err)
 	}
 
-	return i.op(hostInfo, op.Success, nil)
-}
-func (i Info) op(result interface{}, status op.Status, err error) op.Op {
-	return op.Op{
-		Identifier: i.ID(),
-		Result:     result,
-		Error:      err,
-		Status:     status,
-	}
+	return op.New(i, hostInfo, op.Success, nil)
 }

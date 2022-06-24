@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/hashicorp/hcdiag/util"
-
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -33,26 +31,15 @@ func (r IPTables) ID() string {
 func (r IPTables) Run() op.Op {
 	if runtime.GOOS != "linux" {
 		// TODO(mkcp): use skip status once available
-		return r.op(nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS))
+		return op.New(r, nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS))
 	}
 	result := make(map[string]string)
 	for _, c := range r.commands {
 		o := op.NewCommander(c, "string").Run()
 		result[c] = o.Result.(string)
 		if o.Error != nil {
-			return r.op(result, op.Fail, o.Error)
+			return op.New(r, result, op.Fail, o.Error)
 		}
 	}
-	return r.op(result, op.Success, nil)
-}
-
-// TODO(mkcp): This pattern can be migrated to in op.NewOp(op.Runner, result, status, err) op.Op
-func (r IPTables) op(result interface{}, status op.Status, err error) op.Op {
-	return op.Op{
-		Identifier: r.ID(),
-		Result:     result,
-		Error:      err,
-		Status:     status,
-		Params:     util.RunnerParams(r),
-	}
+	return op.New(r, result, op.Success, nil)
 }

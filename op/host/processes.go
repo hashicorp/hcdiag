@@ -18,7 +18,7 @@ func (p Process) Run() op.Op {
 	processes, err := ps.Processes()
 	if err != nil {
 		hclog.L().Trace("op/host.Process.Run()", "error", err)
-		return p.op(processes, op.Fail, err)
+		return op.New(p, processes, op.Fail, err)
 	}
 
 	processInfo := make([]string, 0)
@@ -27,14 +27,5 @@ func (p Process) Run() op.Op {
 		processInfo = append(processInfo, process.Executable())
 	}
 
-	return p.op(processInfo, op.Success, nil)
-}
-
-func (p Process) op(result interface{}, status op.Status, err error) op.Op {
-	return op.Op{
-		Identifier: p.ID(),
-		Result:     result,
-		Error:      err,
-		Status:     status,
-	}
+	return op.New(p, processInfo, op.Success, nil)
 }

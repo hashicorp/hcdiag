@@ -41,7 +41,7 @@ func (c Copier) Run() Op {
 	// Ensure destination directory exists
 	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
-		return c.op(nil, Fail, MakeDirError{
+		return New(c, nil, Fail, MakeDirError{
 			path: c.DestDir,
 			err:  err,
 		})
@@ -50,7 +50,7 @@ func (c Copier) Run() Op {
 	// Find all the files
 	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
-		return c.op(nil, Fail, FindFilesError{
+		return New(c, nil, Fail, FindFilesError{
 			path: c.SourceDir,
 			err:  err,
 		})
@@ -60,7 +60,7 @@ func (c Copier) Run() Op {
 	for _, s := range files {
 		err = util.CopyDir(c.DestDir, s)
 		if err != nil {
-			return c.op(nil, Fail, CopyFilesError{
+			return New(c, nil, Fail, CopyFilesError{
 				dest:  c.DestDir,
 				files: files,
 				err:   err,
@@ -68,17 +68,7 @@ func (c Copier) Run() Op {
 		}
 	}
 
-	return c.op(files, Success, nil)
-}
-
-func (c Copier) op(result interface{}, status Status, err error) Op {
-	return Op{
-		Identifier: c.ID(),
-		Result:     result,
-		Error:      err,
-		Status:     status,
-		Params:     util.RunnerParams(c),
-	}
+	return New(c, files, Success, nil)
 }
 
 type MakeDirError struct {

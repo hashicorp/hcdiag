@@ -37,12 +37,7 @@ func (s Sheller) Run() Op {
 	// Read the shell from the environment
 	shell, err := util.GetShell()
 	if err != nil {
-		return Op{
-			Identifier: s.ID(),
-			Error:      err,
-			Status:     Fail,
-			Params:     util.RunnerParams(s),
-		}
+		return New(s, nil, Fail, err)
 	}
 	s.shell = shell
 
@@ -56,22 +51,10 @@ func (s Sheller) Run() Op {
 			command: s.command,
 			err:     err,
 		}
-		return Op{
-			Identifier: s.id,
-			Result:     string(bts),
-			Error:      err1,
-			ErrString:  err1.Error(),
-			Status:     Unknown,
-			Params:     util.RunnerParams(s),
-		}
+		return New(s, string(bts), Unknown, err1)
 	}
 
-	return Op{
-		Identifier: s.id,
-		Result:     string(bts),
-		Status:     Success,
-		Params:     util.RunnerParams(s),
-	}
+	return New(s, string(bts), Success, nil)
 }
 
 type ShellExecError struct {

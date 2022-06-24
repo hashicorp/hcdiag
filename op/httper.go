@@ -2,7 +2,6 @@ package op
 
 import (
 	"github.com/hashicorp/hcdiag/client"
-	"github.com/hashicorp/hcdiag/util"
 )
 
 // HTTPer hits APIs.
@@ -26,17 +25,7 @@ func (h HTTPer) ID() string {
 func (h HTTPer) Run() Op {
 	result, err := h.Client.Get(h.Path)
 	if err != nil {
-		return h.op(result, Unknown, err)
+		return New(h, result, Unknown, err)
 	}
-	return h.op(result, Success, nil)
-}
-
-func (h HTTPer) op(result interface{}, status Status, err error) Op {
-	return Op{
-		Identifier: h.ID(),
-		Result:     result,
-		Error:      err,
-		Status:     status,
-		Params:     util.RunnerParams(h),
-	}
+	return New(h, result, Success, nil)
 }

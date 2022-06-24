@@ -3,8 +3,6 @@ package host
 import (
 	"strings"
 
-	"github.com/hashicorp/hcdiag/util"
-
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -27,11 +25,6 @@ func (g Get) Run() op.Op {
 	// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
 	format := "string"
 	o := op.NewCommander(cmd, format).Run()
-	return op.Op{
-		Identifier: g.ID(),
-		Result:     o.Result,
-		Error:      o.Error,
-		Status:     o.Status,
-		Params:     util.RunnerParams(g),
-	}
+	return op.New(g, o.Result, o.Status, o.Error)
+
 }

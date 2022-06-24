@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-
-	"github.com/hashicorp/hcdiag/util"
 )
 
 var _ Runner = Commander{}
@@ -36,16 +34,6 @@ func (c Commander) params() map[string]string {
 	}
 }
 
-func (c Commander) op(result interface{}, status Status, err error) Op {
-	return Op{
-		Identifier: c.ID(),
-		Result:     result,
-		Error:      err,
-		Status:     status,
-		Params:     util.RunnerParams(c),
-	}
-}
-
 // Run executes the Command
 func (c Commander) Run() Op {
 	var result interface{}
@@ -60,7 +48,7 @@ func (c Commander) Run() Op {
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err1 := CommandExecError{command: c.command, format: c.format, err: err}
-		return c.op(string(bts), Unknown, err1)
+		return New(c, string(bts), Unknown, err1)
 	}
 
 	// Parse result
@@ -72,14 +60,14 @@ func (c Commander) Run() Op {
 	case c.format == "json":
 		if err := json.Unmarshal(bts, &result); err != nil {
 			// Return the command's response even if we can't parse it as json
-			return c.op(string(bts), Unknown, UnmarshalError{command: c.command, err: err})
+			return New(c, string(bts), Unknown, UnmarshalError{command: c.command, err: err})
 		}
 
 	default:
-		return c.op(result, Fail, FormatUnknownError{command: c.command, format: c.format})
+		return New(c, result, Fail, FormatUnknownError{command: c.command, format: c.format})
 	}
 
-	return c.op(result, Success, nil)
+	return New(c, result, Success, nil)
 }
 
 type CommandExecError struct {

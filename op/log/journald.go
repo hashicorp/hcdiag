@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/hcdiag/util"
-
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/go-hclog"
@@ -45,7 +43,7 @@ func (j Journald) Run() op.Op {
 	o := op.NewCommander(cmd, "string").Run()
 	if o.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.service, "output", o.Result, "error", o.Error)
-		return j.op(o.Result, op.Fail, JournaldServiceNotEnabled{
+		return op.New(j, o.Result, op.Fail, JournaldServiceNotEnabled{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),
@@ -58,7 +56,7 @@ func (j Journald) Run() op.Op {
 	o = op.NewSheller(cmd).Run()
 	// permissions error detected
 	if o.Error == nil {
-		return j.op(o.Result, op.Fail, JournaldPermissionError{
+		return op.New(j, o.Result, op.Fail, JournaldPermissionError{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),
@@ -70,17 +68,7 @@ func (j Journald) Run() op.Op {
 	s := op.NewSheller(cmd)
 	o = s.Run()
 
-	return j.op(o.Result, o.Status, o.Error)
-}
-
-func (j Journald) op(result interface{}, status op.Status, err error) op.Op {
-	return op.Op{
-		Identifier: j.ID(),
-		Result:     result,
-		Error:      err,
-		Status:     status,
-		Params:     util.RunnerParams(j),
-	}
+	return op.New(j, o.Result, o.Status, o.Error)
 }
 
 // LogsCmd arranges the params into a runnable command string.

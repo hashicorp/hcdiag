@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/hashicorp/hcdiag/util"
-
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -30,21 +28,11 @@ func (r EtcHosts) Run() op.Op {
 	if r.os == "windows" {
 		// TODO(mkcp): This should be op.Status("skip") once we implement it
 		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.os)
-		return r.op(nil, op.Success, err)
+		return op.New(r, nil, op.Success, err)
 	}
 	s := op.NewSheller("cat /etc/hosts").Run()
 	if s.Error != nil {
-		return r.op(s.Result, op.Fail, s.Error)
+		return op.New(r, s.Result, op.Fail, s.Error)
 	}
-	return r.op(s.Result, op.Success, nil)
-}
-
-func (r EtcHosts) op(result interface{}, status op.Status, err error) op.Op {
-	return op.Op{
-		Identifier: r.ID(),
-		Result:     result,
-		Error:      err,
-		Status:     status,
-		Params:     util.RunnerParams(r),
-	}
+	return op.New(r, s.Result, op.Success, nil)
 }

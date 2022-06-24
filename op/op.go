@@ -3,6 +3,8 @@ package op
 import (
 	"fmt"
 	"path/filepath"
+
+	"github.com/hashicorp/hcdiag/util"
 )
 
 // Status describes the result of a Runner's Run
@@ -27,6 +29,23 @@ type Op struct {
 	Error      error                  `json:"-"`
 	Status     Status                 `json:"status"`
 	Params     map[string]interface{} `json:"params"`
+}
+
+// New takes a runner its results, serializing it into an immutable Op struct.
+func New(runner Runner, result interface{}, status Status, err error) Op {
+	// We store the error directly to make JSON serialization easier
+	var message string
+	if err != nil {
+		message = err.Error()
+	}
+	return Op{
+		Identifier: runner.ID(),
+		Result:     result,
+		Error:      err,
+		ErrString:  message,
+		Status:     status,
+		Params:     util.RunnerParams(runner),
+	}
 }
 
 // Runner runs things to get information.
