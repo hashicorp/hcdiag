@@ -407,10 +407,12 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	// TODO(mkcp): Products.Config and agent ProductConfig is hella confusing and should be refactored
 	// NOTE(mkcp): product.Config is a config struct with common params between product. while ProductConfig are the
 	//  product-specific values we take in from HCL. Very confusing and needs work!
-	var consul, nomad, tfe, vault *ProductConfig
+	var boundary, consul, nomad, tfe, vault, waypoint *ProductConfig
 
 	for _, p := range a.Config.Products {
 		switch p.Name {
+		case product.Boundary:
+			boundary = p
 		case product.Consul:
 			consul = p
 		case product.Nomad:
@@ -419,6 +421,8 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			tfe = p
 		case product.Vault:
 			vault = p
+		case product.Waypoint:
+			waypoint = p
 		}
 	}
 
@@ -431,6 +435,23 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 		DebugInterval: a.Config.DebugInterval,
 	}
 	p := make(map[string]*product.Product)
+	if a.Config.Boundary {
+		newBoundary, err := product.NewBoundary(a.l, cfg)
+		if err != nil {
+			return nil, err
+		}
+		if boundary != nil {
+			customSeekers, err := customSeekers(boundary, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			newBoundary.Seekers = append(newBoundary.Seekers, customSeekers...)
+			newBoundary.Excludes = boundary.Excludes
+			newBoundary.Selects = boundary.Selects
+		}
+		p[product.Boundary] = newBoundary
+
+	}
 	if a.Config.Consul {
 		newConsul, err := product.NewConsul(a.l, cfg)
 		if err != nil {
@@ -495,6 +516,22 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			newVault.Selects = vault.Selects
 		}
 		p[product.Vault] = newVault
+	}
+	if a.Config.Waypoint {
+		newWaypoint, err := product.NewWaypoint(a.l, cfg)
+		if err != nil {
+			return nil, err
+		}
+		if vault != nil {
+			customSeekers, err := customSeekers(waypoint, a.tmpDir)
+			if err != nil {
+				return nil, err
+			}
+			newWaypoint.Seekers = append(newWaypoint.Seekers, customSeekers...)
+			newWaypoint.Excludes = vault.Excludes
+			newWaypoint.Selects = vault.Selects
+		}
+		p[product.Vault] = newWaypoint
 	}
 
 	newHost := product.NewHost(a.l, cfg)
@@ -656,6 +693,8 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 	var c *client.APIClient
 	var err error
 	switch cfg.Name {
+	case product.Boundary:
+		c, err = client.NewBoundaryAPI()
 	case product.Consul:
 		c, err = client.NewConsulAPI()
 	case product.Nomad:
@@ -664,6 +703,8 @@ func customSeekers(cfg *ProductConfig, tmpDir string) ([]*seeker.Seeker, error) 
 		c, err = client.NewTFEAPI()
 	case product.Vault:
 		c, err = client.NewVaultAPI()
+	case product.Waypoint:
+		c, err = client.NewWaypointAPI()
 	}
 	if err != nil {
 		return nil, err

@@ -45,7 +45,8 @@ func VaultSeekers(cfg Config, api *client.APIClient) ([]*s.Seeker, error) {
 		s.NewCommander("vault read sys/seal-status -format=json", "json"),
 		s.NewCommander("vault read sys/host-info -format=json", "json"),
 		s.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
-
+		// https://www.vaultproject.io/api-docs/system/internal-counters#client-count
+		s.NewHTTPer(api, "/v1/sys/internal/counters/activity"),
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until),
 	}
