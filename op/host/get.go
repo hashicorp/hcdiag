@@ -31,7 +31,6 @@ func (g Get) Run() op.Op {
 		Identifier: g.ID(),
 		Result:     o.Result,
 		Error:      o.Error,
-		ErrString:  o.Error.Error(),
 		Status:     o.Status,
 		Params:     util.RunnerParams(g),
 	}

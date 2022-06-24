@@ -66,7 +66,6 @@ func (d Docker) op(result interface{}, status op.Status, err error) op.Op {
 		Identifier: d.ID(),
 		Result:     result,
 		Error:      err,
-		ErrString:  err.Error(),
 		Status:     status,
 		Params:     util.RunnerParams(d),
 	}

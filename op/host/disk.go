@@ -30,7 +30,6 @@ func (d Disk) Run() op.Op {
 		return op.Op{
 			Identifier: d.ID(),
 			Result:     diskInfo,
-			ErrString:  err1.Error(),
 			Error:      err1,
 			Status:     op.Unknown,
 		}

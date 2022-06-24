@@ -75,7 +75,6 @@ func (c Copier) op(result interface{}, status Status, err error) Op {
 	return Op{
 		Identifier: c.ID(),
 		Result:     result,
-		ErrString:  err.Error(),
 		Error:      err,
 		Status:     status,
 		Params:     util.RunnerParams(c),

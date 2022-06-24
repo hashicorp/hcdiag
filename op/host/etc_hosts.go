@@ -44,7 +44,6 @@ func (r EtcHosts) op(result interface{}, status op.Status, err error) op.Op {
 		Identifier: r.ID(),
 		Result:     result,
 		Error:      err,
-		ErrString:  err.Error(),
 		Status:     status,
 		Params:     util.RunnerParams(r),
 	}

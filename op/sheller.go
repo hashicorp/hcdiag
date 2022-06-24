@@ -40,7 +40,6 @@ func (s Sheller) Run() Op {
 		return Op{
 			Identifier: s.ID(),
 			Error:      err,
-			ErrString:  err.Error(),
 			Status:     Fail,
 			Params:     util.RunnerParams(s),
 		}

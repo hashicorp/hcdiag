@@ -7,97 +7,106 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var _ op.Runner = mockRunner{}
+
+type mockRunner struct {
+	id string
+}
+
+func (m mockRunner) ID() string { return m.id }
+func (m mockRunner) Run() op.Op { return op.Op{} }
+
 func TestFilters(t *testing.T) {
 	testTable := []struct {
 		desc    string
 		product *Product
-		expect  []*op.Op
+		expect  []op.Runner
 	}{
 		{
 			desc: "Handles empty ops and empty filters",
 			product: &Product{
-				Runners: []*op.Op{},
+				Runners: []op.Runner{},
 			},
-			expect: []*op.Op{},
+			expect: []op.Runner{},
 		},
 		{
 			desc: "Handles empty ops with non-empty filters",
 			product: &Product{
-				Runners:  []*op.Op{},
+				Runners:  []op.Runner{},
 				Excludes: []string{"hello"},
 			},
-			expect: []*op.Op{},
+			expect: []op.Runner{},
 		},
 		{
 			desc: "Handles nil filters",
 			product: &Product{
-				Runners: []*op.Op{{Identifier: "still here"}},
+				Runners: []op.Runner{mockRunner{id: "still here"}},
 			},
-			expect: []*op.Op{{Identifier: "still here"}},
+			expect: []op.Runner{mockRunner{id: "still here"}},
 		},
 		{
-			desc: "Handles nil ops",
+			desc: "Handles nil runners",
 			product: &Product{
 				Excludes: []string{"nope"},
 			},
-			expect: []*op.Op{},
+			expect: []op.Runner{},
 		},
 		{
 			desc: "Handles empty filters",
 			product: &Product{
-				Runners: []*op.Op{
-					{Identifier: "still here"},
+				Runners: []op.Runner{
+					mockRunner{id: "still here"},
 				},
 				Excludes: []string{},
 				Selects:  []string{},
 			},
-			expect: []*op.Op{{Identifier: "still here"}},
+			expect: []op.Runner{mockRunner{id: "still here"}},
 		},
 		{
 			desc: "Applies matching excludes",
 			product: &Product{
-				Runners: []*op.Op{
-					{Identifier: "goodbye"},
+				Runners: []op.Runner{
+					mockRunner{id: "goodbye"},
 				},
 				Excludes: []string{"goodbye"},
 			},
-			expect: []*op.Op{},
+			expect: []op.Runner{},
 		},
 		{
 			desc: "Does not apply non-matching excludes",
 			product: &Product{
-				Runners:  []*op.Op{{Identifier: "goodbye"}},
+				Runners:  []op.Runner{mockRunner{id: "goodbye"}},
 				Excludes: []string{"hello"},
 			},
-			expect: []*op.Op{{Identifier: "goodbye"}},
+			expect: []op.Runner{mockRunner{id: "goodbye"}},
 		},
 		{
 			desc: "Applies matching Selects",
 			product: &Product{
-				Runners: []*op.Op{
-					{Identifier: "goodbye"},
-					{Identifier: "hello"},
+				Runners: []op.Runner{
+					mockRunner{id: "goodbye"},
+					mockRunner{id: "hello"},
 				},
 				Selects: []string{"hello"},
 			},
-			expect: []*op.Op{{Identifier: "hello"}},
+			expect: []op.Runner{mockRunner{id: "hello"}},
 		},
 		{
 			desc: "Ignores excludes when Selects are present, and ignores order",
 			product: &Product{
-				Runners: []*op.Op{
-					{Identifier: "select3"},
-					{Identifier: "select1"},
-					{Identifier: "goodbye"},
-					{Identifier: "select2"},
+				Runners: []op.Runner{
+					mockRunner{id: "select3"},
+					mockRunner{id: "select1"},
+					mockRunner{id: "goodbye"},
+					mockRunner{id: "select2"},
 				},
 				Excludes: []string{"select2", "select3"},
 				Selects:  []string{"select2", "select1", "select3"},
 			},
-			expect: []*op.Op{
-				{Identifier: "select3"},
-				{Identifier: "select1"},
-				{Identifier: "select2"},
+			expect: []op.Runner{
+				mockRunner{id: "select3"},
+				mockRunner{id: "select1"},
+				mockRunner{id: "select2"},
 			},
 		},
 	}
@@ -120,7 +129,7 @@ func TestFilterErrors(t *testing.T) {
 		{
 			desc: "Select returns error when pattern is malformed",
 			product: &Product{
-				Runners: []*op.Op{{Identifier: "ignoreme"}},
+				Runners: []op.Runner{mockRunner{id: "ignoreme"}},
 				Selects: []string{"mal[formed"},
 			},
 			expect: "filter error: 'syntax error in pattern'",
@@ -128,7 +137,7 @@ func TestFilterErrors(t *testing.T) {
 		{
 			desc: "Exclude returns error when pattern is malformed",
 			product: &Product{
-				Runners:  []*op.Op{{Identifier: "ignoreme"}},
+				Runners:  []op.Runner{mockRunner{id: "ignoreme"}},
 				Excludes: []string{"mal[formed"},
 			},
 			expect: "filter error: 'syntax error in pattern'",

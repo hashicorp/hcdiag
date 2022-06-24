@@ -35,7 +35,6 @@ func (p Process) op(result interface{}, status op.Status, err error) op.Op {
 		Identifier: p.ID(),
 		Result:     result,
 		Error:      err,
-		ErrString:  err.Error(),
 		Status:     status,
 	}
 }

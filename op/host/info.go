@@ -29,7 +29,6 @@ func (i Info) op(result interface{}, status op.Status, err error) op.Op {
 		Identifier: i.ID(),
 		Result:     result,
 		Error:      err,
-		ErrString:  err.Error(),
 		Status:     status,
 	}
 }

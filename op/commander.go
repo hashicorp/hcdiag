@@ -36,12 +36,11 @@ func (c Commander) params() map[string]string {
 	}
 }
 
-func (c Commander) genOp(result interface{}, status Status, err error) Op {
+func (c Commander) op(result interface{}, status Status, err error) Op {
 	return Op{
 		Identifier: c.ID(),
 		Result:     result,
 		Error:      err,
-		ErrString:  err.Error(),
 		Status:     status,
 		Params:     util.RunnerParams(c),
 	}
@@ -61,7 +60,7 @@ func (c Commander) Run() Op {
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err1 := CommandExecError{command: c.command, format: c.format, err: err}
-		return c.genOp(string(bts), Unknown, err1)
+		return c.op(string(bts), Unknown, err1)
 	}
 
 	// Parse result
@@ -73,14 +72,14 @@ func (c Commander) Run() Op {
 	case c.format == "json":
 		if err := json.Unmarshal(bts, &result); err != nil {
 			// Return the command's response even if we can't parse it as json
-			return c.genOp(string(bts), Unknown, UnmarshalError{command: c.command, err: err})
+			return c.op(string(bts), Unknown, UnmarshalError{command: c.command, err: err})
 		}
 
 	default:
-		return c.genOp(result, Fail, FormatUnknownError{command: c.command, format: c.format})
+		return c.op(result, Fail, FormatUnknownError{command: c.command, format: c.format})
 	}
 
-	return c.genOp(result, Success, nil)
+	return c.op(result, Success, nil)
 }
 
 type CommandExecError struct {

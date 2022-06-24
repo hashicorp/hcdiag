@@ -199,17 +199,17 @@ func TestSelect(t *testing.T) {
 func Test_StatusCounts(t *testing.T) {
 	testTable := []struct {
 		desc   string
-		ops    []Op
+		ops    map[string]Op
 		expect map[Status]int
 	}{
 		{
 			desc: "Statuses sums statuses",
-			ops: []Op{
-				{Status: Success},
-				{Status: Unknown},
-				{Status: Success},
-				{Status: Fail},
-				{Status: Success},
+			ops: map[string]Op{
+				"1": {Status: Success},
+				"2": {Status: Unknown},
+				"3": {Status: Success},
+				"4": {Status: Fail},
+				"5": {Status: Success},
 			},
 			expect: map[Status]int{
 				Success: 3,
@@ -219,13 +219,13 @@ func Test_StatusCounts(t *testing.T) {
 		},
 		{
 			desc: "returns an error if a op doesn't have a status",
-			ops: []Op{
-				{Status: Unknown},
-				{Status: Success},
-				{Status: ""},
-				{Status: Success},
-				{Status: Fail},
-				{Status: Success},
+			ops: map[string]Op{
+				"1": {Status: Unknown},
+				"2": {Status: Success},
+				"3": {Status: ""},
+				"4": {Status: Success},
+				"5": {Status: Fail},
+				"6": {Status: Success},
 			},
 			expect: nil,
 		},

@@ -91,7 +91,7 @@ func Select(selects []string, runners []Runner) ([]Runner, error) {
 }
 
 // StatusCounts takes a slice of op references and returns a map containing sums of each Status
-func StatusCounts(ops []Op) (map[Status]int, error) {
+func StatusCounts(ops map[string]Op) (map[Status]int, error) {
 	statuses := make(map[Status]int)
 	for _, op := range ops {
 		if op.Status == "" {
