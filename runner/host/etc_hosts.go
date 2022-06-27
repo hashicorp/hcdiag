@@ -12,12 +12,12 @@ import (
 var _ runner.Runner = EtcHosts{}
 
 type EtcHosts struct {
-	os string
+	OS string `json:"os"`
 }
 
 func NewEtcHosts() *EtcHosts {
 	return &EtcHosts{
-		os: runtime.GOOS,
+		OS: runtime.GOOS,
 	}
 }
 
@@ -27,14 +27,14 @@ func (r EtcHosts) ID() string {
 
 func (r EtcHosts) Run() op.Op {
 	// Not compatible with windows
-	if r.os == "windows" {
+	if r.OS == "windows" {
 		// TODO(mkcp): This should be op.Status("skip") once we implement it
-		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.os)
-		return op.New(r, nil, op.Success, err)
+		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.OS)
+		return op.New(r.ID(), nil, op.Success, err, runner.Params(r))
 	}
 	s := runner.NewSheller("cat /etc/hosts").Run()
 	if s.Error != nil {
-		return op.New(r, s.Result, op.Fail, s.Error)
+		return op.New(r.ID(), s.Result, op.Fail, s.Error, runner.Params(r))
 	}
-	return op.New(r, s.Result, op.Success, nil)
+	return op.New(r.ID(), s.Result, op.Success, nil, runner.Params(r))
 }

@@ -15,8 +15,8 @@ func TestNewCommander(t *testing.T) {
 	testCmd := "echo hello"
 	testFmt := "string"
 	expect := &Commander{
-		command: testCmd,
-		format:  testFmt,
+		Command: testCmd,
+		Format:  testFmt,
 	}
 	actual := NewCommander(testCmd, testFmt)
 	assert.Equal(t, expect, actual)

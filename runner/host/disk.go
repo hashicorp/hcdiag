@@ -29,8 +29,8 @@ func (d Disk) Run() op.Op {
 	if err != nil {
 		hclog.L().Trace("runner/host.Disk.Run()", "error", err)
 		err1 := fmt.Errorf("error getting disk information err=%w", err)
-		return op.New(d, diskInfo, op.Unknown, err1)
+		return op.New(d.ID(), diskInfo, op.Unknown, err1, runner.Params(d))
 	}
 
-	return op.New(d, diskInfo, op.Success, nil)
+	return op.New(d.ID(), diskInfo, op.Success, nil, runner.Params(d))
 }

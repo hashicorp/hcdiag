@@ -20,8 +20,8 @@ func (i Info) Run() op.Op {
 	hostInfo, err := host.Info()
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run()", "error", err)
-		return op.New(i, hostInfo, op.Fail, err)
+		return op.New(i.ID(), hostInfo, op.Fail, err, nil)
 	}
 
-	return op.New(i, hostInfo, op.Success, nil)
+	return op.New(i.ID(), hostInfo, op.Success, nil, nil)
 }

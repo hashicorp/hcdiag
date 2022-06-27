@@ -23,11 +23,11 @@ func NewDocker(container, destDir string, since time.Time) *Docker {
 // Docker allows logs to be retrieved for a docker container
 type Docker struct {
 	// Container is the name of the docker container to get logs from
-	Container string
+	Container string `json:"container"`
 	// DestDir is the directory we will write the logs to
-	DestDir string
+	DestDir string `json:"destDir"`
 	// Since marks the beginning of the time range to include logs
-	Since time.Time
+	Since time.Time `json:"since"`
 }
 
 func (d Docker) ID() string {
@@ -39,10 +39,11 @@ func (d Docker) Run() op.Op {
 	// Check that docker exists
 	o := runner.NewSheller("docker version").Run()
 	if o.Error != nil {
-		return op.New(d, o.Result, op.Fail, DockerNotFoundError{
+		return op.New(d.ID(), o.Result, op.Fail, DockerNotFoundError{
 			container: d.Container,
 			err:       o.Error,
-		})
+		},
+			runner.Params(d))
 	}
 
 	// Retrieve logs
@@ -52,13 +53,13 @@ func (d Docker) Run() op.Op {
 	//  The result actionably states that the container wasn't found. In the future we may want to scrub the result
 	//  and only return an actionable error message
 	if o.Error != nil {
-		return op.New(d, o.Result, o.Status, o.Error)
+		return op.New(d.ID(), o.Result, o.Status, o.Error, runner.Params(d))
 	}
 	if o.Result == "" {
-		return op.New(d, o.Result, op.Unknown, DockerNoLogsError{container: d.Container})
+		return op.New(d.ID(), o.Result, op.Unknown, DockerNoLogsError{container: d.Container}, runner.Params(d))
 	}
 
-	return op.New(d, o.Result, op.Success, nil)
+	return op.New(d.ID(), o.Result, op.Success, nil, runner.Params(d))
 }
 
 func DockerLogCmd(container, destDir string, since time.Time) string {

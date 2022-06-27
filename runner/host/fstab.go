@@ -11,14 +11,14 @@ import (
 var _ runner.Runner = FSTab{}
 
 type FSTab struct {
-	os      string
-	sheller runner.Runner
+	OS      string        `json:"os"`
+	Sheller runner.Runner `json:"sheller"`
 }
 
 func NewFSTab(os string) *FSTab {
 	return &FSTab{
-		os:      os,
-		sheller: runner.NewSheller("cat /etc/fstab"),
+		OS:      os,
+		Sheller: runner.NewSheller("cat /etc/fstab"),
 	}
 }
 
@@ -28,14 +28,14 @@ func (r FSTab) ID() string {
 
 func (r FSTab) Run() op.Op {
 	// Only Linux is supported currently; Windows is unsupported, and Darwin doesn't use /etc/fstab by default.
-	if r.os != "linux" {
+	if r.OS != "linux" {
 		// TODO(nwchandler): This should be op.Status("skip") once we implement it
-		return op.New(r, nil, op.Success, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.os))
+		return op.New(r.ID(), nil, op.Success, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.OS), runner.Params(r))
 	}
-	o := r.sheller.Run()
+	o := r.Sheller.Run()
 	if o.Error != nil {
-		return op.New(r, o.Result, op.Fail, o.Error)
+		return op.New(r.ID(), o.Result, op.Fail, o.Error, runner.Params(r))
 	}
 
-	return op.New(r, o.Result, op.Success, nil)
+	return op.New(r.ID(), o.Result, op.Success, nil, runner.Params(r))
 }

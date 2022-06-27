@@ -19,11 +19,12 @@ var (
 )
 
 type MockRunner struct {
-	id string
+	id    string
+	Param bool `json:"param"`
 }
 
 func NewMockRunner(id string) *MockRunner {
-	return &MockRunner{id}
+	return &MockRunner{id: id}
 }
 
 func (r MockRunner) ID() string {
@@ -197,4 +198,12 @@ func TestSelect(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Len(t, res, tc.expect, tc.desc)
 	}
+}
+
+func TestParams(t *testing.T) {
+	r := MockRunner{id: "test", Param: true}
+	key := "param"
+	v := Params(r)
+	assert.Len(t, v, 1)
+	assert.True(t, v[key].(bool))
 }

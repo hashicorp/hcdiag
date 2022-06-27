@@ -20,8 +20,8 @@ func (m Memory) Run() op.Op {
 	memoryInfo, err := mem.VirtualMemory()
 	if err != nil {
 		hclog.L().Trace("runner/host.Memory.Run()", "error", err)
-		return op.New(m, memoryInfo, op.Fail, err)
+		return op.New(m.ID(), memoryInfo, op.Fail, err, nil)
 	}
 
-	return op.New(m, memoryInfo, op.Success, nil)
+	return op.New(m.ID(), memoryInfo, op.Success, nil, nil)
 }

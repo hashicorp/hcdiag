@@ -19,8 +19,8 @@ func (n Network) Run() op.Op {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
 		hclog.L().Trace("runner/host.Network.Run()", "error", err)
-		return op.New(n, nil, op.Fail, err)
+		return op.New(n.ID(), nil, op.Fail, err, nil)
 	}
 
-	return op.New(n, netInterfaces, op.Success, nil)
+	return op.New(n.ID(), netInterfaces, op.Success, nil, nil)
 }

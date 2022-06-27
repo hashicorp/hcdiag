@@ -13,27 +13,27 @@ var _ Runner = Commander{}
 
 // Commander runs shell commands.
 type Commander struct {
-	command string
-	format  string
+	Command string `json:"command"`
+	Format  string `json:"format"`
 }
 
-// NewCommander provides a Op for running shell commands.
+// NewCommander provides a runner for bin commands
 func NewCommander(command string, format string) *Commander {
 	return &Commander{
-		command: command,
-		format:  format,
+		Command: command,
+		Format:  format,
 	}
 }
 
 func (c Commander) ID() string {
-	return c.command
+	return c.Command
 }
 
 // Run executes the Command
 func (c Commander) Run() op.Op {
 	var result interface{}
 
-	bits := strings.Split(c.command, " ")
+	bits := strings.Split(c.Command, " ")
 	cmd := bits[0]
 	args := bits[1:]
 
@@ -42,27 +42,36 @@ func (c Commander) Run() op.Op {
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
-		err1 := CommandExecError{command: c.command, format: c.format, err: err}
-		return op.New(c, string(bts), op.Unknown, err1)
+		err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
+		return op.New(c.ID(), string(bts), op.Unknown, err1, Params(c))
 	}
 
 	// Parse result
 	// TODO(mkcp): This can be detected rather than branching on user input
 	switch {
-	case c.format == "string":
+	case c.Format == "string":
 		result = strings.TrimSuffix(string(bts), "\n")
 
-	case c.format == "json":
+	case c.Format == "json":
 		if err := json.Unmarshal(bts, &result); err != nil {
 			// Return the command's response even if we can't parse it as json
-			return op.New(c, string(bts), op.Unknown, UnmarshalError{command: c.command, err: err})
+			return op.New(c.ID(), string(bts), op.Unknown,
+				UnmarshalError{
+					command: c.Command,
+					err:     err,
+				},
+				Params(c))
 		}
 
 	default:
-		return op.New(c, result, op.Fail, FormatUnknownError(c))
+		return op.New(c.ID(), result, op.Fail, FormatUnknownError{
+			command: c.Command,
+			format:  c.Format,
+		},
+			Params(c))
 	}
 
-	return op.New(c, result, op.Success, nil)
+	return op.New(c.ID(), result, op.Success, nil, Params(c))
 }
 
 type CommandExecError struct {

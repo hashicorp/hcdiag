@@ -45,7 +45,7 @@ func TestFSTab_Run(t *testing.T) {
 		{
 			name: "Test Windows Does Not Run",
 			fstab: FSTab{
-				os: "windows",
+				OS: "windows",
 			},
 			expected: response{
 				status:    op.Success,
@@ -55,7 +55,7 @@ func TestFSTab_Run(t *testing.T) {
 		{
 			name: "Test Darwin Does Not Run",
 			fstab: FSTab{
-				os: "darwin",
+				OS: "darwin",
 			},
 			expected: response{
 				status:    op.Success,
@@ -65,8 +65,8 @@ func TestFSTab_Run(t *testing.T) {
 		{
 			name: "Test Successful Run",
 			fstab: FSTab{
-				os: "linux",
-				sheller: &mockShellRunner{
+				OS: "linux",
+				Sheller: &mockShellRunner{
 					result: "contents",
 					status: op.Success,
 					err:    nil,
@@ -81,8 +81,8 @@ func TestFSTab_Run(t *testing.T) {
 		{
 			name: "Test Unsuccessful Run",
 			fstab: FSTab{
-				os: "linux",
-				sheller: &mockShellRunner{
+				OS: "linux",
+				Sheller: &mockShellRunner{
 					result: nil,
 					status: op.Unknown,
 					err:    fmt.Errorf("an error"),
@@ -118,14 +118,14 @@ func TestNewFSTab(t *testing.T) {
 		{
 			name:     "Test Linux",
 			os:       "linux",
-			expected: FSTab{os: "linux"},
+			expected: FSTab{OS: "linux"},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			fstab := NewFSTab(tc.os)
-			assert.Equal(t, tc.expected.os, fstab.os)
+			assert.Equal(t, tc.expected.OS, fstab.OS)
 		})
 	}
 }

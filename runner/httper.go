@@ -26,7 +26,7 @@ func (h HTTPer) ID() string {
 func (h HTTPer) Run() op.Op {
 	result, err := h.Client.Get(h.Path)
 	if err != nil {
-		return op.New(h, result, op.Unknown, err)
+		return op.New(h.ID(), result, op.Unknown, err, Params(h))
 	}
-	return op.New(h, result, op.Success, nil)
+	return op.New(h.ID(), result, op.Success, nil, Params(h))
 }

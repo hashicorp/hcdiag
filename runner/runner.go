@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -66,4 +67,12 @@ func Select(selects []string, runners []Runner) ([]Runner, error) {
 		}
 	}
 	return newRunners, nil
+}
+
+// Params takes a Runner and returns a map of its public fields
+func Params(r Runner) map[string]interface{} {
+	var inInterface map[string]interface{}
+	inrec, _ := json.Marshal(&r)
+	_ = json.Unmarshal(inrec, &inInterface)
+	return inInterface
 }
