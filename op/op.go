@@ -25,7 +25,7 @@ type Op struct {
 	ErrString  string                 `json:"error"` // this simplifies json marshaling
 	Error      error                  `json:"-"`
 	Status     Status                 `json:"status"`
-	Params     map[string]interface{} `json:"params"`
+	Params     map[string]interface{} `json:"params,omitempty"`
 }
 
 // New takes a runner its results, serializing it into an immutable Op struct.
