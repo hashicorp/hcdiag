@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 )
 
 const (
@@ -34,26 +34,26 @@ type Config struct {
 type Product struct {
 	l        hclog.Logger
 	Name     string
-	Runners  []op.Runner
+	Runners  []runner.Runner
 	Excludes []string
 	Selects  []string
 	Config   Config
 }
 
-// Run iterates over the list of ops in a product and stores each op into a map.
-func (p *Product) Run() map[string]op.Op {
+// Run iterates over the list of ops in a product and stores each runner into a map.
+func (p *Product) Run() map[string]runner.Op {
 	p.l.Info("Running operations for", "product", p.Name)
-	results := make(map[string]op.Op)
+	results := make(map[string]runner.Op)
 	for _, r := range p.Runners {
-		p.l.Info("running operation", "product", p.Name, "op", r.ID())
+		p.l.Info("running operation", "product", p.Name, "runner", r.ID())
 		o := r.Run()
-		// NOTE(mkcp): There's nothing stopping Run() from being called multiple times, so we'll copy the op off the product once it's done.
-		// TODO(mkcp): It would be nice if we got an immutable op result type back from op runs instead.
+		// NOTE(mkcp): There's nothing stopping Run() from being called multiple times, so we'll copy the runner off the product once it's done.
+		// TODO(mkcp): It would be nice if we got an immutable runner result type back from runner runs instead.
 		results[r.ID()] = o
-		// Note op errors to users and keep going.
+		// Note runner errors to users and keep going.
 		if o.Error != nil {
 			p.l.Warn("result",
-				"op", r.ID(),
+				"runner", r.ID(),
 				"result", fmt.Sprintf("%s", o.Result),
 				"error", o.Error,
 			)
@@ -62,32 +62,32 @@ func (p *Product) Run() map[string]op.Op {
 	return results
 }
 
-// Filter applies our slices of exclude and select op.Identifier matchers to the set of the product's ops
+// Filter applies our slices of exclude and select runner.Identifier matchers to the set of the product's ops
 func (p *Product) Filter() error {
 	if p.Runners == nil {
-		p.Runners = []op.Runner{}
+		p.Runners = []runner.Runner{}
 	}
 	var err error
 	// The presence of Selects takes precedence over Excludes
 	if p.Selects != nil && 0 < len(p.Selects) {
-		p.Runners, err = op.Select(p.Selects, p.Runners)
+		p.Runners, err = runner.Select(p.Selects, p.Runners)
 		// Skip any Excludes
 		return err
 	}
 	// No Selects, we can apply Excludes
 	if p.Excludes != nil {
-		p.Runners, err = op.Exclude(p.Excludes, p.Runners)
+		p.Runners, err = runner.Exclude(p.Excludes, p.Runners)
 	}
 	return err
 }
 
 // CommanderHealthCheck employs the CLI to check if the client and then the agent are available.
 func CommanderHealthCheck(client, agent string) error {
-	checkClient := op.NewCommander(client, "string").Run()
+	checkClient := runner.NewCommander(client, "string").Run()
 	if checkClient.Error != nil {
 		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, checkClient.Result, checkClient.Error)
 	}
-	checkAgent := op.NewCommander(agent, "string").Run()
+	checkAgent := runner.NewCommander(agent, "string").Run()
 	if checkAgent.Error != nil {
 		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, checkAgent.Result, checkAgent.Error)
 	}

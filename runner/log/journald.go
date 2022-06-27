@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 
 	"github.com/hashicorp/go-hclog"
 )
 
-var _ op.Runner = Journald{}
+var _ runner.Runner = Journald{}
 
 // JournaldTimeLayout custom go time layouts must match the reference time Jan 2 15:04:05 2006 MST
 const JournaldTimeLayout = "2006-01-02 15:04:05"
@@ -37,13 +37,13 @@ func (j Journald) ID() string {
 
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
-func (j Journald) Run() op.Op {
+func (j Journald) Run() runner.Op {
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.service)
-	o := op.NewCommander(cmd, "string").Run()
+	o := runner.NewCommander(cmd, "string").Run()
 	if o.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.service, "output", o.Result, "error", o.Error)
-		return op.New(j, o.Result, op.Fail, JournaldServiceNotEnabled{
+		return runner.New(j, o.Result, runner.Fail, JournaldServiceNotEnabled{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),
@@ -53,10 +53,10 @@ func (j Journald) Run() op.Op {
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.service)
-	o = op.NewSheller(cmd).Run()
+	o = runner.NewSheller(cmd).Run()
 	// permissions error detected
 	if o.Error == nil {
-		return op.New(j, o.Result, op.Fail, JournaldPermissionError{
+		return runner.New(j, o.Result, runner.Fail, JournaldPermissionError{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),
@@ -65,10 +65,10 @@ func (j Journald) Run() op.Op {
 	}
 
 	cmd = j.LogsCmd()
-	s := op.NewSheller(cmd)
+	s := runner.NewSheller(cmd)
 	o = s.Run()
 
-	return op.New(j, o.Result, o.Status, o.Error)
+	return runner.New(j, o.Result, o.Status, o.Error)
 }
 
 // LogsCmd arranges the params into a runnable command string.

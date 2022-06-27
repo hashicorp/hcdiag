@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/product"
+	"github.com/hashicorp/hcdiag/runner"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -146,7 +146,7 @@ func TestAgent_RecordManifest(t *testing.T) {
 	t.Run("adds to ManifestOps when ops exist", func(t *testing.T) {
 		// Setup
 		testProduct := "host"
-		testResults := map[string]op.Op{
+		testResults := map[string]runner.Op{
 			"": {},
 		}
 		a := NewAgent(Config{}, hclog.Default())
@@ -375,24 +375,24 @@ func TestAgent_WriteSummary(t *testing.T) {
 			agent: &Agent{ManifestOps: map[string][]ManifestOp{
 				"consul": {
 					{
-						Status: op.Success,
+						Status: runner.Success,
 					},
 					{
-						Status: op.Success,
+						Status: runner.Success,
 					},
 					{
-						Status: op.Fail,
+						Status: runner.Fail,
 					},
 					{
-						Status: op.Unknown,
+						Status: runner.Unknown,
 					},
 				},
 				"nomad": {
 					{
-						Status: op.Fail,
+						Status: runner.Fail,
 					},
 					{
-						Status: op.Unknown,
+						Status: runner.Unknown,
 					},
 				},
 			}},

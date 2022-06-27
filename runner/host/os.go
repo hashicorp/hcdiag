@@ -1,10 +1,10 @@
 package host
 
 import (
-	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 )
 
-var _ op.Runner = OS{}
+var _ runner.Runner = OS{}
 
 func NewOS(os string) *OS {
 	osCmd := "uname -v"
@@ -28,9 +28,9 @@ type OS struct {
 }
 
 // Run calls the given OS utility to get information on the operating system
-func (o OS) Run() op.Op {
-	// NOTE(mkcp): This op can be made consistent between multiple operating systems if we parse the output of
+func (o OS) Run() runner.Op {
+	// NOTE(mkcp): This runner can be made consistent between multiple operating systems if we parse the output of
 	//   systeminfo to match uname's scope of concerns.
-	c := op.NewCommander(o.command, "string").Run()
-	return op.New(o, c.Result, c.Status, c.Error)
+	c := runner.NewCommander(o.command, "string").Run()
+	return runner.New(o, c.Result, c.Status, c.Error)
 }

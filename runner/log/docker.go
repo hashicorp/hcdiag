@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 )
 
-var _ op.Runner = Docker{}
+var _ runner.Runner = Docker{}
 
-// NewDocker returns a op with an identifier and fully configured docker runner
+// NewDocker returns a runner with an identifier and fully configured docker runner
 func NewDocker(container, destDir string, since time.Time) *Docker {
 	return &Docker{
 		Container: container,
@@ -33,11 +33,11 @@ func (d Docker) ID() string {
 }
 
 // Run executes the runner
-func (d Docker) Run() op.Op {
+func (d Docker) Run() runner.Op {
 	// Check that docker exists
-	o := op.NewSheller("docker version").Run()
+	o := runner.NewSheller("docker version").Run()
 	if o.Error != nil {
-		return op.New(d, o.Result, op.Fail, DockerNotFoundError{
+		return runner.New(d, o.Result, runner.Fail, DockerNotFoundError{
 			container: d.Container,
 			err:       o.Error,
 		})
@@ -45,18 +45,18 @@ func (d Docker) Run() op.Op {
 
 	// Retrieve logs
 	cmd := DockerLogCmd(d.Container, d.DestDir, d.Since)
-	o = op.NewSheller(cmd).Run()
+	o = runner.NewSheller(cmd).Run()
 	// NOTE(mkcp): If the container does not exist, docker will exit non-zero and it'll surface as a ShellExecError.
 	//  The result actionably states that the container wasn't found. In the future we may want to scrub the result
 	//  and only return an actionable error message
 	if o.Error != nil {
-		return op.New(d, o.Result, o.Status, o.Error)
+		return runner.New(d, o.Result, o.Status, o.Error)
 	}
 	if o.Result == "" {
-		return op.New(d, o.Result, op.Unknown, DockerNoLogsError{container: d.Container})
+		return runner.New(d, o.Result, runner.Unknown, DockerNoLogsError{container: d.Container})
 	}
 
-	return op.New(d, o.Result, op.Success, nil)
+	return runner.New(d, o.Result, runner.Success, nil)
 }
 
 func DockerLogCmd(container, destDir string, since time.Time) string {

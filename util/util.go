@@ -136,7 +136,7 @@ func JSONToFile(JSON []byte, outFile string) error {
 }
 
 // SplitFilepath takes a full path string and turns it into directory and file parts.
-// In particular, it's useful for passing into op.NewCopier()
+// In particular, it's useful for passing into runner.NewCopier()
 func SplitFilepath(path string) (dir string, file string) {
 	dir, file = filepath.Split(path)
 	// this enables a path like "somedir" (which filepath.Split() would call the "file")

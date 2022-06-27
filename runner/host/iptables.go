@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 )
 
-var _ op.Runner = IPTables{}
+var _ runner.Runner = IPTables{}
 
 type IPTables struct {
 	commands []string
 }
 
-// NewIPTables returns a op configured to run several iptables commands
+// NewIPTables returns a runner configured to run several iptables commands
 func NewIPTables() *IPTables {
 	return &IPTables{
 		commands: []string{
@@ -28,18 +28,18 @@ func (r IPTables) ID() string {
 	return "iptables"
 }
 
-func (r IPTables) Run() op.Op {
+func (r IPTables) Run() runner.Op {
 	if runtime.GOOS != "linux" {
 		// TODO(mkcp): use skip status once available
-		return op.New(r, nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS))
+		return runner.New(r, nil, runner.Success, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS))
 	}
 	result := make(map[string]string)
 	for _, c := range r.commands {
-		o := op.NewCommander(c, "string").Run()
+		o := runner.NewCommander(c, "string").Run()
 		result[c] = o.Result.(string)
 		if o.Error != nil {
-			return op.New(r, result, op.Fail, o.Error)
+			return runner.New(r, result, runner.Fail, o.Error)
 		}
 	}
-	return op.New(r, result, op.Success, nil)
+	return runner.New(r, result, runner.Success, nil)
 }

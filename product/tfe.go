@@ -3,7 +3,7 @@ package product
 import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
-	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 )
 
 // NewTFE takes a product config and creates a Product containing all of TFE's ops.
@@ -27,18 +27,18 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 
 // FIXME(mkcp): doccment
 // TFERunners...
-func TFERunners(cfg Config, api *client.APIClient) ([]op.Runner, error) {
-	return []op.Runner{
-		op.NewCommander("replicatedctl support-bundle", "string"),
+func TFERunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
+	return []runner.Runner{
+		runner.NewCommander("replicatedctl support-bundle", "string"),
 
-		op.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until),
+		runner.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until),
 
-		op.NewHTTPer(api, "/api/v2/admin/customization-settings"),
-		op.NewHTTPer(api, "/api/v2/admin/general-settings"),
-		op.NewHTTPer(api, "/api/v2/admin/organizations"),
-		op.NewHTTPer(api, "/api/v2/admin/terraform-versions"),
-		op.NewHTTPer(api, "/api/v2/admin/twilio-settings"),
+		runner.NewHTTPer(api, "/api/v2/admin/customization-settings"),
+		runner.NewHTTPer(api, "/api/v2/admin/general-settings"),
+		runner.NewHTTPer(api, "/api/v2/admin/organizations"),
+		runner.NewHTTPer(api, "/api/v2/admin/terraform-versions"),
+		runner.NewHTTPer(api, "/api/v2/admin/twilio-settings"),
 		// page size 1 because we only actually care about total workspace count in the `meta` field
-		op.NewHTTPer(api, "/api/v2/admin/workspaces?page[size]=1"),
+		runner.NewHTTPer(api, "/api/v2/admin/workspaces?page[size]=1"),
 	}, nil
 }

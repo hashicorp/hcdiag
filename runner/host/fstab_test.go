@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 	"github.com/stretchr/testify/assert"
 )
 
 type mockShellRunner struct {
 	result interface{}
-	status op.Status
+	status runner.Status
 	err    error
 }
 
-func (m mockShellRunner) Run() op.Op {
-	return op.Op{
+func (m mockShellRunner) Run() runner.Op {
+	return runner.Op{
 		Result: m.result,
 		Status: m.status,
 		Error:  m.err,
@@ -26,12 +26,12 @@ func (m mockShellRunner) ID() string {
 	return ""
 }
 
-var _ op.Runner = mockShellRunner{}
+var _ runner.Runner = mockShellRunner{}
 
 func TestFSTab_Run(t *testing.T) {
 	type response struct {
 		result    interface{}
-		status    op.Status
+		status    runner.Status
 		expectErr bool
 	}
 
@@ -46,7 +46,7 @@ func TestFSTab_Run(t *testing.T) {
 				os: "windows",
 			},
 			expected: response{
-				status:    op.Success,
+				status:    runner.Success,
 				expectErr: true,
 			},
 		},
@@ -56,7 +56,7 @@ func TestFSTab_Run(t *testing.T) {
 				os: "darwin",
 			},
 			expected: response{
-				status:    op.Success,
+				status:    runner.Success,
 				expectErr: true,
 			},
 		},
@@ -66,13 +66,13 @@ func TestFSTab_Run(t *testing.T) {
 				os: "linux",
 				sheller: &mockShellRunner{
 					result: "contents",
-					status: op.Success,
+					status: runner.Success,
 					err:    nil,
 				},
 			},
 			expected: response{
 				result:    "contents",
-				status:    op.Success,
+				status:    runner.Success,
 				expectErr: false,
 			},
 		},
@@ -82,13 +82,13 @@ func TestFSTab_Run(t *testing.T) {
 				os: "linux",
 				sheller: &mockShellRunner{
 					result: nil,
-					status: op.Unknown,
+					status: runner.Unknown,
 					err:    fmt.Errorf("an error"),
 				},
 			},
 			expected: response{
 				result:    nil,
-				status:    op.Fail,
+				status:    runner.Fail,
 				expectErr: true,
 			},
 		},

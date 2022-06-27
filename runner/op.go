@@ -1,4 +1,4 @@
-package op
+package runner
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ type Status string
 const (
 	// Success means all systems green
 	Success Status = "success"
-	// Fail means that we detected a known error and can conclusively say that the op did not complete.
+	// Fail means that we detected a known error and can conclusively say that the runner did not complete.
 	Fail Status = "fail"
 	// Unknown means that we detected an error and the result is indeterminate (e.g. some side effect like disk or
 	//   network may or may not have completed) or we don't recognize the error. If we don't recognize the error that's
@@ -54,15 +54,15 @@ type Runner interface {
 	Run() Op
 }
 
-// Exclude takes a slice of matcher strings and a slice of ops. If any of the op identifiers match the exclude
-// according to filepath.Match() then it will not be present in the returned op slice.
+// Exclude takes a slice of matcher strings and a slice of ops. If any of the runner identifiers match the exclude
+// according to filepath.Match() then it will not be present in the returned runner slice.
 // NOTE(mkcp): This is precisely identical to Select() except we flip the match check. Maybe we can perform both rounds
 //  of filtering in one pass one rather than iterating over all the ops several times. Not likely to be a huge speed
-//  increase though... we're not even remotely bottlenecked on op filtering.
+//  increase though... we're not even remotely bottlenecked on runner filtering.
 func Exclude(excludes []string, runners []Runner) ([]Runner, error) {
 	newRunners := make([]Runner, 0)
 	for _, r := range runners {
-		// Set our match flag if we get a hit for any of the matchers on this op
+		// Set our match flag if we get a hit for any of the matchers on this runner
 		var match bool
 		var err error
 		for _, matcher := range excludes {
@@ -75,7 +75,7 @@ func Exclude(excludes []string, runners []Runner) ([]Runner, error) {
 			}
 		}
 
-		// Add the op back to our set if we have not matched an exclude
+		// Add the runner back to our set if we have not matched an exclude
 		if !match {
 			newRunners = append(newRunners, r)
 		}
@@ -88,7 +88,7 @@ func Exclude(excludes []string, runners []Runner) ([]Runner, error) {
 func Select(selects []string, runners []Runner) ([]Runner, error) {
 	newRunners := make([]Runner, 0)
 	for _, r := range runners {
-		// Set our match flag if we get a hit for any of the matchers on this op
+		// Set our match flag if we get a hit for any of the matchers on this runner
 		var match bool
 		var err error
 		for _, matcher := range selects {
