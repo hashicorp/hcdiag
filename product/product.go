@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/runner"
 )
@@ -41,9 +43,9 @@ type Product struct {
 }
 
 // Run iterates over the list of ops in a product and stores each runner into a map.
-func (p *Product) Run() map[string]runner.Op {
+func (p *Product) Run() map[string]op.Op {
 	p.l.Info("Running operations for", "product", p.Name)
-	results := make(map[string]runner.Op)
+	results := make(map[string]op.Op)
 	for _, r := range p.Runners {
 		p.l.Info("running operation", "product", p.Name, "runner", r.ID())
 		o := r.Run()

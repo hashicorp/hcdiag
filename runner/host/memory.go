@@ -2,6 +2,7 @@ package host
 
 import (
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/runner"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -15,12 +16,12 @@ func (m Memory) ID() string {
 }
 
 // Run calls out to mem.VirtualMemory
-func (m Memory) Run() runner.Op {
+func (m Memory) Run() op.Op {
 	memoryInfo, err := mem.VirtualMemory()
 	if err != nil {
 		hclog.L().Trace("runner/host.Memory.Run()", "error", err)
-		return runner.New(m, memoryInfo, runner.Fail, err)
+		return op.New(m, memoryInfo, op.Fail, err)
 	}
 
-	return runner.New(m, memoryInfo, runner.Success, nil)
+	return op.New(m, memoryInfo, op.Success, nil)
 }

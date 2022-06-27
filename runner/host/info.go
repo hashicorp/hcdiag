@@ -2,6 +2,7 @@ package host
 
 import (
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/runner"
 	"github.com/shirou/gopsutil/v3/host"
 )
@@ -14,13 +15,13 @@ func (i Info) ID() string {
 	return "info"
 }
 
-func (i Info) Run() runner.Op {
+func (i Info) Run() op.Op {
 	// third party
 	hostInfo, err := host.Info()
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run()", "error", err)
-		return runner.New(i, hostInfo, runner.Fail, err)
+		return op.New(i, hostInfo, op.Fail, err)
 	}
 
-	return runner.New(i, hostInfo, runner.Success, nil)
+	return op.New(i, hostInfo, op.Success, nil)
 }

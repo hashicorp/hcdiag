@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/hcdiag/runner"
 
 	"github.com/hashicorp/go-hclog"
@@ -37,13 +39,13 @@ func (j Journald) ID() string {
 
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
-func (j Journald) Run() runner.Op {
+func (j Journald) Run() op.Op {
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.service)
 	o := runner.NewCommander(cmd, "string").Run()
 	if o.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.service, "output", o.Result, "error", o.Error)
-		return runner.New(j, o.Result, runner.Fail, JournaldServiceNotEnabled{
+		return op.New(j, o.Result, op.Fail, JournaldServiceNotEnabled{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),
@@ -56,7 +58,7 @@ func (j Journald) Run() runner.Op {
 	o = runner.NewSheller(cmd).Run()
 	// permissions error detected
 	if o.Error == nil {
-		return runner.New(j, o.Result, runner.Fail, JournaldPermissionError{
+		return op.New(j, o.Result, op.Fail, JournaldPermissionError{
 			service: j.service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),
@@ -68,7 +70,7 @@ func (j Journald) Run() runner.Op {
 	s := runner.NewSheller(cmd)
 	o = s.Run()
 
-	return runner.New(j, o.Result, o.Status, o.Error)
+	return op.New(j, o.Result, o.Status, o.Error)
 }
 
 // LogsCmd arranges the params into a runnable command string.

@@ -3,6 +3,8 @@ package host
 import (
 	"strings"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/hcdiag/runner"
 )
 
@@ -20,11 +22,11 @@ func (g Get) ID() string {
 	return "GET" + " " + g.path
 }
 
-func (g Get) Run() runner.Op {
+func (g Get) Run() op.Op {
 	cmd := strings.Join([]string{"curl -s", g.path}, " ")
 	// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
 	format := "string"
 	o := runner.NewCommander(cmd, format).Run()
-	return runner.New(g, o.Result, o.Status, o.Error)
+	return op.New(g, o.Result, o.Status, o.Error)
 
 }

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/hcdiag/util"
 )
 
@@ -37,11 +39,11 @@ func (c Copier) ID() string {
 }
 
 // Run satisfies the Runner interface and copies the filtered source files to the destination.
-func (c Copier) Run() Op {
+func (c Copier) Run() op.Op {
 	// Ensure destination directory exists
 	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
-		return New(c, nil, Fail, MakeDirError{
+		return op.New(c, nil, op.Fail, MakeDirError{
 			path: c.DestDir,
 			err:  err,
 		})
@@ -50,7 +52,7 @@ func (c Copier) Run() Op {
 	// Find all the files
 	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
-		return New(c, nil, Fail, FindFilesError{
+		return op.New(c, nil, op.Fail, FindFilesError{
 			path: c.SourceDir,
 			err:  err,
 		})
@@ -60,7 +62,7 @@ func (c Copier) Run() Op {
 	for _, s := range files {
 		err = util.CopyDir(c.DestDir, s)
 		if err != nil {
-			return New(c, nil, Fail, CopyFilesError{
+			return op.New(c, nil, op.Fail, CopyFilesError{
 				dest:  c.DestDir,
 				files: files,
 				err:   err,
@@ -68,7 +70,7 @@ func (c Copier) Run() Op {
 		}
 	}
 
-	return New(c, files, Success, nil)
+	return op.New(c, files, op.Success, nil)
 }
 
 type MakeDirError struct {

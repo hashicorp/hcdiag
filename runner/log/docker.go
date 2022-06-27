@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/hcdiag/runner"
 )
 
@@ -33,11 +35,11 @@ func (d Docker) ID() string {
 }
 
 // Run executes the runner
-func (d Docker) Run() runner.Op {
+func (d Docker) Run() op.Op {
 	// Check that docker exists
 	o := runner.NewSheller("docker version").Run()
 	if o.Error != nil {
-		return runner.New(d, o.Result, runner.Fail, DockerNotFoundError{
+		return op.New(d, o.Result, op.Fail, DockerNotFoundError{
 			container: d.Container,
 			err:       o.Error,
 		})
@@ -50,13 +52,13 @@ func (d Docker) Run() runner.Op {
 	//  The result actionably states that the container wasn't found. In the future we may want to scrub the result
 	//  and only return an actionable error message
 	if o.Error != nil {
-		return runner.New(d, o.Result, o.Status, o.Error)
+		return op.New(d, o.Result, o.Status, o.Error)
 	}
 	if o.Result == "" {
-		return runner.New(d, o.Result, runner.Unknown, DockerNoLogsError{container: d.Container})
+		return op.New(d, o.Result, op.Unknown, DockerNoLogsError{container: d.Container})
 	}
 
-	return runner.New(d, o.Result, runner.Success, nil)
+	return op.New(d, o.Result, op.Success, nil)
 }
 
 func DockerLogCmd(container, destDir string, since time.Time) string {

@@ -3,6 +3,8 @@ package product
 import (
 	"testing"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/hcdiag/runner"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,8 +15,8 @@ type mockRunner struct {
 	id string
 }
 
-func (m mockRunner) ID() string     { return m.id }
-func (m mockRunner) Run() runner.Op { return runner.Op{} }
+func (m mockRunner) ID() string { return m.id }
+func (m mockRunner) Run() op.Op { return op.Op{} }
 
 func TestFilters(t *testing.T) {
 	testTable := []struct {

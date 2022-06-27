@@ -1,6 +1,7 @@
 package host
 
 import (
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/runner"
 )
 
@@ -28,9 +29,9 @@ type OS struct {
 }
 
 // Run calls the given OS utility to get information on the operating system
-func (o OS) Run() runner.Op {
+func (o OS) Run() op.Op {
 	// NOTE(mkcp): This runner can be made consistent between multiple operating systems if we parse the output of
 	//   systeminfo to match uname's scope of concerns.
 	c := runner.NewCommander(o.command, "string").Run()
-	return runner.New(o, c.Result, c.Status, c.Error)
+	return op.New(o, c.Result, c.Status, c.Error)
 }

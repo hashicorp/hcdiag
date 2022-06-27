@@ -12,6 +12,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/hcdiag/runner/host"
 
 	"github.com/hashicorp/hcdiag/client"
@@ -28,7 +30,7 @@ import (
 type Agent struct {
 	l           hclog.Logger
 	products    map[string]*product.Product
-	results     map[string]map[string]runner.Op
+	results     map[string]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
 	Start       time.Time       `json:"started_at"`
@@ -44,7 +46,7 @@ type Agent struct {
 func NewAgent(config Config, logger hclog.Logger) *Agent {
 	return &Agent{
 		l:           logger,
-		results:     make(map[string]map[string]runner.Op),
+		results:     make(map[string]map[string]op.Op),
 		Config:      config,
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
@@ -293,7 +295,7 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := runner.StatusCounts(result)
+		statuses, err := op.StatusCounts(result)
 		if err != nil {
 			a.l.Error("Error rendering op statuses", "product", product, "error", err)
 		}
@@ -528,9 +530,9 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 	t := tabwriter.NewWriter(writer, 0, 0, 2, ' ', 0)
 	headers := []string{
 		"product",
-		string(runner.Success),
-		string(runner.Fail),
-		string(runner.Unknown),
+		string(op.Success),
+		string(op.Fail),
+		string(op.Unknown),
 		"total",
 	}
 
@@ -553,9 +555,9 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 
 		for _, o := range ops {
 			switch o.Status {
-			case runner.Success:
+			case op.Success:
 				success++
-			case runner.Fail:
+			case op.Fail:
 				fail++
 			default:
 				unknown++

@@ -3,6 +3,8 @@ package host
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/hcdiag/runner"
 )
 
@@ -29,18 +31,18 @@ func (p ProcFile) ID() string {
 	return "/proc/ files"
 }
 
-func (p ProcFile) Run() runner.Op {
+func (p ProcFile) Run() op.Op {
 	if p.os != "linux" {
 		// TODO(mkcp): Replace status with op.Skip when we implement it
-		return runner.New(p, nil, runner.Success, fmt.Errorf("os not linux, skipping, os=%s", p.os))
+		return op.New(p, nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", p.os))
 	}
 	m := make(map[string]interface{})
 	for _, c := range p.commands {
 		sheller := runner.NewSheller(c).Run()
 		m[c] = sheller.Result
 		if sheller.Error != nil {
-			return runner.New(p, m, runner.Fail, sheller.Error)
+			return op.New(p, m, op.Fail, sheller.Error)
 		}
 	}
-	return runner.New(p, m, runner.Success, nil)
+	return op.New(p, m, op.Success, nil)
 }

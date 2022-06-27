@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/hashicorp/hcdiag/op"
+
 	"github.com/hashicorp/hcdiag/util"
 )
 
@@ -25,11 +27,11 @@ func (s Sheller) ID() string {
 }
 
 // Run ensures a shell exists and optimistically executes the given Command string
-func (s Sheller) Run() Op {
+func (s Sheller) Run() op.Op {
 	// Read the shell from the environment
 	shell, err := util.GetShell()
 	if err != nil {
-		return New(s, nil, Fail, err)
+		return op.New(s, nil, op.Fail, err)
 	}
 	s.shell = shell
 
@@ -43,10 +45,10 @@ func (s Sheller) Run() Op {
 			command: s.command,
 			err:     err,
 		}
-		return New(s, string(bts), Unknown, err1)
+		return op.New(s, string(bts), op.Unknown, err1)
 	}
 
-	return New(s, string(bts), Success, nil)
+	return op.New(s, string(bts), op.Success, nil)
 }
 
 type ShellExecError struct {

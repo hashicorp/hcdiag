@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/hashicorp/hcdiag/op"
 )
 
 var _ Runner = Commander{}
@@ -28,7 +30,7 @@ func (c Commander) ID() string {
 }
 
 // Run executes the Command
-func (c Commander) Run() Op {
+func (c Commander) Run() op.Op {
 	var result interface{}
 
 	bits := strings.Split(c.command, " ")
@@ -41,7 +43,7 @@ func (c Commander) Run() Op {
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err1 := CommandExecError{command: c.command, format: c.format, err: err}
-		return New(c, string(bts), Unknown, err1)
+		return op.New(c, string(bts), op.Unknown, err1)
 	}
 
 	// Parse result
@@ -53,14 +55,14 @@ func (c Commander) Run() Op {
 	case c.format == "json":
 		if err := json.Unmarshal(bts, &result); err != nil {
 			// Return the command's response even if we can't parse it as json
-			return New(c, string(bts), Unknown, UnmarshalError{command: c.command, err: err})
+			return op.New(c, string(bts), op.Unknown, UnmarshalError{command: c.command, err: err})
 		}
 
 	default:
-		return New(c, result, Fail, FormatUnknownError(c))
+		return op.New(c, result, op.Fail, FormatUnknownError(c))
 	}
 
-	return New(c, result, Success, nil)
+	return op.New(c, result, op.Success, nil)
 }
 
 type CommandExecError struct {
