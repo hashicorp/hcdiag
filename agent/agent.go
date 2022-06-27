@@ -597,7 +597,7 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// TODO(mkcp): This duplicates much of customOps and can certainly be improved.
+// TODO(mkcp): This duplicates much of customRunners and can certainly be improved.
 func customHostRunners(cfg *HostConfig, tmpDir string) ([]op.Runner, error) {
 	runners := make([]op.Runner, 0)
 	// Build Commanders
