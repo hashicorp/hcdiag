@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/runner"
-	s "github.com/hashicorp/hcdiag/runner"
 	logs "github.com/hashicorp/hcdiag/runner/log"
 )
 
@@ -37,7 +36,7 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // ConsulOps generates a slice of ops to inspect consul
-func ConsulOps(cfg Config, api *client.APIClient) ([]s.Runner, error) {
+func ConsulOps(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
 		runner.NewCommander("consul version", "string"),
 		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),

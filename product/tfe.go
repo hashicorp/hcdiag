@@ -25,8 +25,7 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	}, nil
 }
 
-// FIXME(mkcp): doccment
-// TFERunners...
+// TFERunners configures a set of default runners for TFE.
 func TFERunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	return []runner.Runner{
 		runner.NewCommander("replicatedctl support-bundle", "string"),

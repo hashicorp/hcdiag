@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// Status describes the result of a Runner's Run
+// Status describes the result of an operation.
 type Status string
 
 const (

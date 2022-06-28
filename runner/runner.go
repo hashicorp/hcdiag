@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -72,7 +74,10 @@ func Select(selects []string, runners []Runner) ([]Runner, error) {
 // Params takes a Runner and returns a map of its public fields
 func Params(r Runner) map[string]interface{} {
 	var inInterface map[string]interface{}
-	inrec, _ := json.Marshal(&r)
+	inrec, err := json.Marshal(&r)
+	if err != nil {
+		hclog.L().Error("runner.Params failed to serialize params", "runner", r, "error", err)
+	}
 	_ = json.Unmarshal(inrec, &inInterface)
 	return inInterface
 }
