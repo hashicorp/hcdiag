@@ -136,7 +136,7 @@ func JSONToFile(JSON []byte, outFile string) error {
 }
 
 // SplitFilepath takes a full path string and turns it into directory and file parts.
-// In particular, it's useful for passing into op.NewCopier()
+// In particular, it's useful for passing into runner.NewCopier()
 func SplitFilepath(path string) (dir string, file string) {
 	dir, file = filepath.Split(path)
 	// this enables a path like "somedir" (which filepath.Split() would call the "file")
@@ -250,12 +250,4 @@ func EnsureDirectory(dir string) error {
 	}
 
 	return nil
-}
-
-// RunnerParams converts a struct to a map[string]interface{}
-func RunnerParams(r interface{}) map[string]interface{} {
-	var inInterface map[string]interface{}
-	inrec, _ := json.Marshal(&r)
-	_ = json.Unmarshal(inrec, &inInterface)
-	return inInterface
 }

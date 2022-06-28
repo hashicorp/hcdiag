@@ -12,15 +12,17 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/hashicorp/hcdiag/op/host"
+	"github.com/hashicorp/hcdiag/op"
+
+	"github.com/hashicorp/hcdiag/runner/host"
 
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/version"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/product"
+	"github.com/hashicorp/hcdiag/runner"
 	"github.com/hashicorp/hcdiag/util"
 )
 
@@ -155,7 +157,7 @@ func (a *Agent) DryRun() []error {
 
 	a.l.Info("Starting dry run")
 
-	// glob "*" here is to support copy/paste of op identifiers
+	// glob "*" here is to support copy/paste of runner identifiers
 	// from -dryrun output into select/exclude filters
 	a.tmpDir = "*"
 	a.l.Info("Would copy included files", "includes", a.Config.Includes)
@@ -175,7 +177,7 @@ func (a *Agent) DryRun() []error {
 		a.l.Error("Failed gathering ops for products", "error", errProductSetup)
 		return errs
 	}
-	a.l.Info("Filtering op lists")
+	a.l.Info("Filtering runner lists")
 	for _, prod := range p {
 		if errProductFilter := prod.Filter(); errProductFilter != nil {
 			a.l.Error("Failed to filter Products", "error", errProductFilter)
@@ -190,7 +192,7 @@ func (a *Agent) DryRun() []error {
 	for _, p := range a.products {
 		set := p.Runners
 		for _, r := range set {
-			a.l.Info("would run", "product", p.Name, "op", r.ID())
+			a.l.Info("would run", "product", p.Name, "runner", r.ID())
 		}
 	}
 	a.l.Info("Would write output", "dest", a.Config.Destination)
@@ -267,7 +269,7 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		o := op.NewCopier(f, dest, a.Config.Since, a.Config.Until).Run()
+		o := runner.NewCopier(f, dest, a.Config.Since, a.Config.Until).Run()
 		if o.Error != nil {
 			return o.Error
 		}
@@ -597,17 +599,17 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// TODO(mkcp): This duplicates much of customRunners and can certainly be improved.
-func customHostRunners(cfg *HostConfig, tmpDir string) ([]op.Runner, error) {
-	runners := make([]op.Runner, 0)
+// TODO(mkcp): This duplicates much of customOps and can certainly be improved.
+func customHostRunners(cfg *HostConfig, tmpDir string) ([]runner.Runner, error) {
+	runners := make([]runner.Runner, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
-		cmder := op.NewCommander(c.Run, c.Format)
+		cmder := runner.NewCommander(c.Run, c.Format)
 		runners = append(runners, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
-		sheller := op.NewSheller(c.Run)
+		sheller := runner.NewSheller(c.Run)
 		runners = append(runners, sheller)
 	}
 
@@ -630,7 +632,7 @@ func customHostRunners(cfg *HostConfig, tmpDir string) ([]op.Runner, error) {
 			from = time.Now().Add(-since)
 		}
 
-		copier := op.NewCopier(c.Path, dest, from, time.Time{})
+		copier := runner.NewCopier(c.Path, dest, from, time.Time{})
 		runners = append(runners, copier)
 	}
 
@@ -638,16 +640,16 @@ func customHostRunners(cfg *HostConfig, tmpDir string) ([]op.Runner, error) {
 }
 
 // TODO(mkcp): Products, not the agent, should handle their own custom ops when they're created.
-func customRunners(cfg *ProductConfig, tmpDir string) ([]op.Runner, error) {
-	runners := make([]op.Runner, 0)
+func customRunners(cfg *ProductConfig, tmpDir string) ([]runner.Runner, error) {
+	runners := make([]runner.Runner, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
-		cmder := op.NewCommander(c.Run, c.Format)
+		cmder := runner.NewCommander(c.Run, c.Format)
 		runners = append(runners, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
-		sheller := op.NewSheller(c.Run)
+		sheller := runner.NewSheller(c.Run)
 		runners = append(runners, sheller)
 	}
 
@@ -668,7 +670,7 @@ func customRunners(cfg *ProductConfig, tmpDir string) ([]op.Runner, error) {
 		return nil, err
 	}
 	for _, g := range cfg.GETs {
-		httper := op.NewHTTPer(c, g.Path)
+		httper := runner.NewHTTPer(c, g.Path)
 		runners = append(runners, httper)
 	}
 
@@ -686,7 +688,7 @@ func customRunners(cfg *ProductConfig, tmpDir string) ([]op.Runner, error) {
 			// Get the timestamp which marks the start of our duration
 			from = time.Now().Add(-since)
 		}
-		copier := op.NewCopier(c.Path, dest, from, time.Time{})
+		copier := runner.NewCopier(c.Path, dest, from, time.Time{})
 		runners = append(runners, copier)
 	}
 

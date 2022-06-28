@@ -6,28 +6,30 @@ import (
 
 	"github.com/hashicorp/hcdiag/op"
 
+	"github.com/hashicorp/hcdiag/runner"
+
 	"github.com/hashicorp/go-hclog"
 )
 
-var _ op.Runner = Journald{}
+var _ runner.Runner = Journald{}
 
 // JournaldTimeLayout custom go time layouts must match the reference time Jan 2 15:04:05 2006 MST
 const JournaldTimeLayout = "2006-01-02 15:04:05"
 
 type Journald struct {
-	service string
-	destDir string
-	since   time.Time
-	until   time.Time
+	Service string    `json:"service"`
+	DestDir string    `json:"destDir"`
+	Since   time.Time `json:"since"`
+	Until   time.Time `json:"until"`
 }
 
 // NewJournald sets the defaults for the journald runner
 func NewJournald(service, destDir string, since, until time.Time) *Journald {
 	return &Journald{
-		service: service,
-		destDir: destDir,
-		since:   since,
-		until:   until,
+		Service: service,
+		DestDir: destDir,
+		Since:   since,
+		Until:   until,
 	}
 }
 
@@ -39,36 +41,38 @@ func (j Journald) ID() string {
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func (j Journald) Run() op.Op {
 	// Check if systemd has a unit with the provided name
-	cmd := fmt.Sprintf("systemctl is-enabled %s", j.service)
-	o := op.NewCommander(cmd, "string").Run()
+	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
+	o := runner.NewCommander(cmd, "string").Run()
 	if o.Error != nil {
-		hclog.L().Debug("skipping journald", "service", j.service, "output", o.Result, "error", o.Error)
-		return op.New(j, o.Result, op.Fail, JournaldServiceNotEnabled{
-			service: j.service,
+		hclog.L().Debug("skipping journald", "service", j.Service, "output", o.Result, "error", o.Error)
+		return op.New(j.ID(), o.Result, op.Fail, JournaldServiceNotEnabled{
+			service: j.Service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),
 			err:     o.Error,
-		})
+		},
+			runner.Params(j))
 	}
 
 	// check if user is able to read messages
-	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.service)
-	o = op.NewSheller(cmd).Run()
+	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
+	o = runner.NewSheller(cmd).Run()
 	// permissions error detected
 	if o.Error == nil {
-		return op.New(j, o.Result, op.Fail, JournaldPermissionError{
-			service: j.service,
+		return op.New(j.ID(), o.Result, op.Fail, JournaldPermissionError{
+			service: j.Service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),
 			err:     o.Error,
-		})
+		},
+			runner.Params(j))
 	}
 
 	cmd = j.LogsCmd()
-	s := op.NewSheller(cmd)
+	s := runner.NewSheller(cmd)
 	o = s.Run()
 
-	return op.New(j, o.Result, o.Status, o.Error)
+	return op.New(j.ID(), o.Result, o.Status, o.Error, runner.Params(j))
 }
 
 // LogsCmd arranges the params into a runnable command string.
@@ -76,20 +80,20 @@ func (j Journald) LogsCmd() string {
 	// Write since and until flags with formatted time if either has a non-zero value
 	// Flag strings handle their own trailing whitespace to avoid having extra spaces when the flag is disabled.
 	var sinceFlag, untilFlag string
-	if !j.since.IsZero() {
-		t := j.since.Format(JournaldTimeLayout)
+	if !j.Since.IsZero() {
+		t := j.Since.Format(JournaldTimeLayout)
 		sinceFlag = fmt.Sprintf("--since \"%s\" ", t)
 	}
-	if !j.until.IsZero() {
-		t := j.until.Format(JournaldTimeLayout)
+	if !j.Until.IsZero() {
+		t := j.Until.Format(JournaldTimeLayout)
 		untilFlag = fmt.Sprintf("--until \"%s\" ", t)
 	}
 
 	// Add our write destination
-	dest := fmt.Sprintf("%s/journald-%s.log", j.destDir, j.service)
+	dest := fmt.Sprintf("%s/journald-%s.log", j.DestDir, j.Service)
 
 	// Compose the service name with flags and write to dest
-	cmd := fmt.Sprintf("journalctl -x -u %s %s%s--no-pager > %s", j.service, sinceFlag, untilFlag, dest)
+	cmd := fmt.Sprintf("journalctl -x -u %s %s%s--no-pager > %s", j.Service, sinceFlag, untilFlag, dest)
 	return cmd
 }
 

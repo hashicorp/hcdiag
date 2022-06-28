@@ -4,19 +4,21 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcdiag/op"
+
+	"github.com/hashicorp/hcdiag/runner"
 )
 
-var _ op.Runner = ProcFile{}
+var _ runner.Runner = ProcFile{}
 
 type ProcFile struct {
-	os       string
-	commands []string
+	OS       string   `json:"os"`
+	Commands []string `json:"commands"`
 }
 
 func NewProcFile(os string) *ProcFile {
 	return &ProcFile{
-		os: os,
-		commands: []string{
+		OS: os,
+		Commands: []string{
 			"cat /proc/cpuinfo",
 			"cat /proc/loadavg",
 			"cat /proc/version",
@@ -30,17 +32,17 @@ func (p ProcFile) ID() string {
 }
 
 func (p ProcFile) Run() op.Op {
-	if p.os != "linux" {
+	if p.OS != "linux" {
 		// TODO(mkcp): Replace status with op.Skip when we implement it
-		return op.New(p, nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", p.os))
+		return op.New(p.ID(), nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p))
 	}
 	m := make(map[string]interface{})
-	for _, c := range p.commands {
-		sheller := op.NewSheller(c).Run()
+	for _, c := range p.Commands {
+		sheller := runner.NewSheller(c).Run()
 		m[c] = sheller.Result
 		if sheller.Error != nil {
-			return op.New(p, m, op.Fail, sheller.Error)
+			return op.New(p.ID(), m, op.Fail, sheller.Error, runner.Params(p))
 		}
 	}
-	return op.New(p, m, op.Success, nil)
+	return op.New(p.ID(), m, op.Success, nil, runner.Params(p))
 }

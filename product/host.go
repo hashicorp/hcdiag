@@ -5,8 +5,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/hcdiag/op"
-	"github.com/hashicorp/hcdiag/op/host"
+	"github.com/hashicorp/hcdiag/runner"
+	"github.com/hashicorp/hcdiag/runner/host"
 )
 
 // NewHost takes a product config and creates a Product containing all of the host's ops.
@@ -20,11 +20,11 @@ func NewHost(logger hclog.Logger, cfg Config) *Product {
 }
 
 // HostRunners checks the operating system and passes it into the operations, returning a list of ops to run.
-func HostRunners(os string) []op.Runner {
+func HostRunners(os string) []runner.Runner {
 	if os == "auto" {
 		os = runtime.GOOS
 	}
-	return []op.Runner{
+	return []runner.Runner{
 		host.NewOS(os),
 		host.NewDisk(),
 		host.Info{},

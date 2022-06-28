@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/op"
+
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/product"
 	"github.com/stretchr/testify/assert"
 )

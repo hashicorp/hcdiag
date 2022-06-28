@@ -4,10 +4,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcdiag/op"
+
+	"github.com/hashicorp/hcdiag/runner"
 	"github.com/stretchr/testify/assert"
 )
 
-var _ op.Runner = mockRunner{}
+var _ runner.Runner = mockRunner{}
 
 type mockRunner struct {
 	id string
@@ -20,81 +22,81 @@ func TestFilters(t *testing.T) {
 	testTable := []struct {
 		desc    string
 		product *Product
-		expect  []op.Runner
+		expect  []runner.Runner
 	}{
 		{
 			desc: "Handles empty ops and empty filters",
 			product: &Product{
-				Runners: []op.Runner{},
+				Runners: []runner.Runner{},
 			},
-			expect: []op.Runner{},
+			expect: []runner.Runner{},
 		},
 		{
 			desc: "Handles empty ops with non-empty filters",
 			product: &Product{
-				Runners:  []op.Runner{},
+				Runners:  []runner.Runner{},
 				Excludes: []string{"hello"},
 			},
-			expect: []op.Runner{},
+			expect: []runner.Runner{},
 		},
 		{
 			desc: "Handles nil filters",
 			product: &Product{
-				Runners: []op.Runner{mockRunner{id: "still here"}},
+				Runners: []runner.Runner{mockRunner{id: "still here"}},
 			},
-			expect: []op.Runner{mockRunner{id: "still here"}},
+			expect: []runner.Runner{mockRunner{id: "still here"}},
 		},
 		{
 			desc: "Handles nil runners",
 			product: &Product{
 				Excludes: []string{"nope"},
 			},
-			expect: []op.Runner{},
+			expect: []runner.Runner{},
 		},
 		{
 			desc: "Handles empty filters",
 			product: &Product{
-				Runners: []op.Runner{
+				Runners: []runner.Runner{
 					mockRunner{id: "still here"},
 				},
 				Excludes: []string{},
 				Selects:  []string{},
 			},
-			expect: []op.Runner{mockRunner{id: "still here"}},
+			expect: []runner.Runner{mockRunner{id: "still here"}},
 		},
 		{
 			desc: "Applies matching excludes",
 			product: &Product{
-				Runners: []op.Runner{
+				Runners: []runner.Runner{
 					mockRunner{id: "goodbye"},
 				},
 				Excludes: []string{"goodbye"},
 			},
-			expect: []op.Runner{},
+			expect: []runner.Runner{},
 		},
 		{
 			desc: "Does not apply non-matching excludes",
 			product: &Product{
-				Runners:  []op.Runner{mockRunner{id: "goodbye"}},
+				Runners:  []runner.Runner{mockRunner{id: "goodbye"}},
 				Excludes: []string{"hello"},
 			},
-			expect: []op.Runner{mockRunner{id: "goodbye"}},
+			expect: []runner.Runner{mockRunner{id: "goodbye"}},
 		},
 		{
 			desc: "Applies matching Selects",
 			product: &Product{
-				Runners: []op.Runner{
+				Runners: []runner.Runner{
 					mockRunner{id: "goodbye"},
 					mockRunner{id: "hello"},
 				},
 				Selects: []string{"hello"},
 			},
-			expect: []op.Runner{mockRunner{id: "hello"}},
+			expect: []runner.Runner{mockRunner{id: "hello"}},
 		},
 		{
 			desc: "Ignores excludes when Selects are present, and ignores order",
 			product: &Product{
-				Runners: []op.Runner{
+				Runners: []runner.Runner{
 					mockRunner{id: "select3"},
 					mockRunner{id: "select1"},
 					mockRunner{id: "goodbye"},
@@ -103,7 +105,7 @@ func TestFilters(t *testing.T) {
 				Excludes: []string{"select2", "select3"},
 				Selects:  []string{"select2", "select1", "select3"},
 			},
-			expect: []op.Runner{
+			expect: []runner.Runner{
 				mockRunner{id: "select3"},
 				mockRunner{id: "select1"},
 				mockRunner{id: "select2"},
@@ -129,7 +131,7 @@ func TestFilterErrors(t *testing.T) {
 		{
 			desc: "Select returns error when pattern is malformed",
 			product: &Product{
-				Runners: []op.Runner{mockRunner{id: "ignoreme"}},
+				Runners: []runner.Runner{mockRunner{id: "ignoreme"}},
 				Selects: []string{"mal[formed"},
 			},
 			expect: "filter error: 'syntax error in pattern'",
@@ -137,7 +139,7 @@ func TestFilterErrors(t *testing.T) {
 		{
 			desc: "Exclude returns error when pattern is malformed",
 			product: &Product{
-				Runners:  []op.Runner{mockRunner{id: "ignoreme"}},
+				Runners:  []runner.Runner{mockRunner{id: "ignoreme"}},
 				Excludes: []string{"mal[formed"},
 			},
 			expect: "filter error: 'syntax error in pattern'",

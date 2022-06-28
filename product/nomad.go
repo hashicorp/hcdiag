@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
-	"github.com/hashicorp/hcdiag/op"
-	logs "github.com/hashicorp/hcdiag/op/log"
+	"github.com/hashicorp/hcdiag/runner"
+	logs "github.com/hashicorp/hcdiag/runner/log"
 )
 
 const (
@@ -51,16 +51,16 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 
 // FIXME(mkcp): doccment
 // NomadRunners ...
-func NomadRunners(cfg Config, api *client.APIClient) ([]op.Runner, error) {
-	runners := []op.Runner{
-		op.NewCommander("nomad version", "string"),
-		op.NewCommander("nomad node status -self -json", "json"),
-		op.NewCommander("nomad agent-info -json", "json"),
-		op.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+func NomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
+	runners := []runner.Runner{
+		runner.NewCommander("nomad version", "string"),
+		runner.NewCommander("nomad node status -self -json", "json"),
+		runner.NewCommander("nomad agent-info -json", "json"),
+		runner.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
-		op.NewHTTPer(api, "/v1/agent/members?stale=true"),
-		op.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
-		op.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
+		runner.NewHTTPer(api, "/v1/agent/members?stale=true"),
+		runner.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
+		runner.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
 
 		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -69,8 +69,8 @@ func NomadRunners(cfg Config, api *client.APIClient) ([]op.Runner, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs", "nomad")
-		logCopier := op.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		runners = append([]op.Runner{logCopier}, runners...)
+		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until)
+		runners = append([]runner.Runner{logCopier}, runners...)
 	}
 
 	return runners, nil

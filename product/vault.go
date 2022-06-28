@@ -6,10 +6,10 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	logs "github.com/hashicorp/hcdiag/op/log"
+	logs "github.com/hashicorp/hcdiag/runner/log"
 
 	"github.com/hashicorp/hcdiag/client"
-	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 )
 
 const (
@@ -38,14 +38,14 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 
 // TODO(mkcp): doccomment
 // VaultRunners ...
-func VaultRunners(cfg Config, api *client.APIClient) ([]op.Runner, error) {
-	runners := []op.Runner{
-		op.NewCommander("vault version", "string"),
-		op.NewCommander("vault status -format=json", "json"),
-		op.NewCommander("vault read sys/health -format=json", "json"),
-		op.NewCommander("vault read sys/seal-status -format=json", "json"),
-		op.NewCommander("vault read sys/host-info -format=json", "json"),
-		op.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+func VaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
+	runners := []runner.Runner{
+		runner.NewCommander("vault version", "string"),
+		runner.NewCommander("vault status -format=json", "json"),
+		runner.NewCommander("vault read sys/health -format=json", "json"),
+		runner.NewCommander("vault read sys/seal-status -format=json", "json"),
+		runner.NewCommander("vault read sys/host-info -format=json", "json"),
+		runner.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -54,8 +54,8 @@ func VaultRunners(cfg Config, api *client.APIClient) ([]op.Runner, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/vault")
-		logCopier := op.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		runners = append([]op.Runner{logCopier}, runners...)
+		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until)
+		runners = append([]runner.Runner{logCopier}, runners...)
 	}
 
 	return runners, nil

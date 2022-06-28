@@ -3,10 +3,11 @@ package host
 import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/runner"
 	"github.com/mitchellh/go-ps"
 )
 
-var _ op.Runner = &Process{}
+var _ runner.Runner = &Process{}
 
 type Process struct{}
 
@@ -17,8 +18,8 @@ func (p Process) ID() string {
 func (p Process) Run() op.Op {
 	processes, err := ps.Processes()
 	if err != nil {
-		hclog.L().Trace("op/host.Process.Run()", "error", err)
-		return op.New(p, processes, op.Fail, err)
+		hclog.L().Trace("runner/host.Process.Run()", "error", err)
+		return op.New(p.ID(), processes, op.Fail, err, nil)
 	}
 
 	processInfo := make([]string, 0)
@@ -27,5 +28,5 @@ func (p Process) Run() op.Op {
 		processInfo = append(processInfo, process.Executable())
 	}
 
-	return op.New(p, processInfo, op.Success, nil)
+	return op.New(p.ID(), processInfo, op.Success, nil, nil)
 }
