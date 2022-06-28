@@ -93,7 +93,7 @@ func (a *Agent) Run() []error {
 	}
 
 	// Create products
-	a.l.Debug("Gathering Products' Ops")
+	a.l.Debug("Gathering Products' Runners")
 	p, errProductSetup := a.Setup()
 	if errProductSetup != nil {
 		errs = append(errs, errProductSetup)
@@ -114,8 +114,8 @@ func (a *Agent) Run() []error {
 	// Store products
 	a.products = p
 
-	// Sum up all ops from products
-	a.NumOps = product.CountOps(a.products)
+	// Sum up all runners from products
+	a.NumOps = product.CountRunners(a.products)
 
 	// Run products
 	a.l.Info("Gathering diagnostics")
@@ -188,9 +188,9 @@ func (a *Agent) DryRun() []error {
 
 	a.l.Info("Showing diagnostics that would be gathered")
 	for _, p := range a.products {
-		set := p.Ops
-		for _, s := range set {
-			a.l.Info("would run", "product", p.Name, "op", s.Identifier)
+		set := p.Runners
+		for _, r := range set {
+			a.l.Info("would run", "product", p.Name, "op", r.ID())
 		}
 	}
 	a.l.Info("Would write output", "dest", a.Config.Destination)
@@ -267,9 +267,9 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		s := op.NewCopier(f, dest, a.Config.Since, a.Config.Until)
-		if _, err = s.Run(); err != nil {
-			return err
+		o := op.NewCopier(f, dest, a.Config.Since, a.Config.Until).Run()
+		if o.Error != nil {
+			return o.Error
 		}
 	}
 
@@ -293,7 +293,7 @@ func (a *Agent) RunProducts() error {
 		a.results[name] = result
 		a.resultsLock.Unlock()
 
-		statuses, err := op.StatusCounts(product.Ops)
+		statuses, err := op.StatusCounts(result)
 		if err != nil {
 			a.l.Error("Error rendering op statuses", "product", product, "error", err)
 		}
@@ -321,12 +321,12 @@ func (a *Agent) RunProducts() error {
 
 // RecordManifest writes additional data to the agent to serialize into manifest.json
 func (a *Agent) RecordManifest() {
-	for name, p := range a.products {
-		for _, s := range p.Ops {
+	for name, ops := range a.results {
+		for _, o := range ops {
 			m := ManifestOp{
-				ID:     s.Identifier,
-				Error:  s.ErrString,
-				Status: s.Status,
+				ID:     o.Identifier,
+				Error:  o.ErrString,
+				Status: o.Status,
 			}
 			a.ManifestOps[name] = append(a.ManifestOps[name], m)
 		}
@@ -436,11 +436,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if consul != nil {
-			customOps, err := customOps(consul, a.tmpDir)
+			customRunners, err := customRunners(consul, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newConsul.Ops = append(newConsul.Ops, customOps...)
+			newConsul.Runners = append(newConsul.Runners, customRunners...)
 			newConsul.Excludes = consul.Excludes
 			newConsul.Selects = consul.Selects
 		}
@@ -453,11 +453,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if nomad != nil {
-			customOps, err := customOps(nomad, a.tmpDir)
+			customRunners, err := customRunners(nomad, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newNomad.Ops = append(newNomad.Ops, customOps...)
+			newNomad.Runners = append(newNomad.Runners, customRunners...)
 			newNomad.Excludes = nomad.Excludes
 			newNomad.Selects = nomad.Selects
 		}
@@ -469,11 +469,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if tfe != nil {
-			customOps, err := customOps(tfe, a.tmpDir)
+			customRunners, err := customRunners(tfe, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newTFE.Ops = append(newTFE.Ops, customOps...)
+			newTFE.Runners = append(newTFE.Runners, customRunners...)
 			newTFE.Excludes = tfe.Excludes
 			newTFE.Selects = tfe.Selects
 		}
@@ -485,11 +485,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if vault != nil {
-			customOps, err := customOps(vault, a.tmpDir)
+			customRunners, err := customRunners(vault, a.tmpDir)
 			if err != nil {
 				return nil, err
 			}
-			newVault.Ops = append(newVault.Ops, customOps...)
+			newVault.Runners = append(newVault.Runners, customRunners...)
 			newVault.Excludes = vault.Excludes
 			newVault.Selects = vault.Selects
 		}
@@ -498,11 +498,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	newHost := product.NewHost(a.l, cfg)
 	if a.Config.Host != nil {
-		customOps, err := customHostOps(a.Config.Host, a.tmpDir)
+		customRunners, err := customHostRunners(a.Config.Host, a.tmpDir)
 		if err != nil {
 			return nil, err
 		}
-		newHost.Ops = append(newHost.Ops, customOps...)
+		newHost.Runners = append(newHost.Runners, customRunners...)
 		newHost.Excludes = a.Config.Host.Excludes
 		newHost.Selects = a.Config.Host.Selects
 	}
@@ -597,22 +597,22 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// TODO(mkcp): This duplicates much of customOps and can certainly be improved.
-func customHostOps(cfg *HostConfig, tmpDir string) ([]*op.Op, error) {
-	ops := make([]*op.Op, 0)
+// TODO(mkcp): This duplicates much of customRunners and can certainly be improved.
+func customHostRunners(cfg *HostConfig, tmpDir string) ([]op.Runner, error) {
+	runners := make([]op.Runner, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
 		cmder := op.NewCommander(c.Run, c.Format)
-		ops = append(ops, cmder)
+		runners = append(runners, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
 		sheller := op.NewSheller(c.Run)
-		ops = append(ops, sheller)
+		runners = append(runners, sheller)
 	}
 
 	for _, g := range cfg.GETs {
-		ops = append(ops, host.NewGetter(g.Path))
+		runners = append(runners, host.NewGetter(g.Path))
 	}
 
 	// Build copiers
@@ -631,24 +631,24 @@ func customHostOps(cfg *HostConfig, tmpDir string) ([]*op.Op, error) {
 		}
 
 		copier := op.NewCopier(c.Path, dest, from, time.Time{})
-		ops = append(ops, copier)
+		runners = append(runners, copier)
 	}
 
-	return ops, nil
+	return runners, nil
 }
 
 // TODO(mkcp): Products, not the agent, should handle their own custom ops when they're created.
-func customOps(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
-	ops := make([]*op.Op, 0)
+func customRunners(cfg *ProductConfig, tmpDir string) ([]op.Runner, error) {
+	runners := make([]op.Runner, 0)
 	// Build Commanders
 	for _, c := range cfg.Commands {
 		cmder := op.NewCommander(c.Run, c.Format)
-		ops = append(ops, cmder)
+		runners = append(runners, cmder)
 	}
 	// Build Shellers
 	for _, c := range cfg.Shells {
 		sheller := op.NewSheller(c.Run)
-		ops = append(ops, sheller)
+		runners = append(runners, sheller)
 	}
 
 	// Build HTTPers
@@ -669,7 +669,7 @@ func customOps(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
 	}
 	for _, g := range cfg.GETs {
 		httper := op.NewHTTPer(c, g.Path)
-		ops = append(ops, httper)
+		runners = append(runners, httper)
 	}
 
 	// Build copiers
@@ -687,8 +687,8 @@ func customOps(cfg *ProductConfig, tmpDir string) ([]*op.Op, error) {
 			from = time.Now().Add(-since)
 		}
 		copier := op.NewCopier(c.Path, dest, from, time.Time{})
-		ops = append(ops, copier)
+		runners = append(runners, copier)
 	}
 
-	return ops, nil
+	return runners, nil
 }

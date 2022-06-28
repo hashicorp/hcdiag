@@ -13,33 +13,34 @@ type ProcFile struct {
 	commands []string
 }
 
-func NewProcFile(os string) *op.Op {
-	return &op.Op{
-		Identifier: "/proc/ files",
-		Runner: ProcFile{
-			os: os,
-			commands: []string{
-				"cat /proc/cpuinfo",
-				"cat /proc/loadavg",
-				"cat /proc/version",
-				"cat /proc/vmstat",
-			},
+func NewProcFile(os string) *ProcFile {
+	return &ProcFile{
+		os: os,
+		commands: []string{
+			"cat /proc/cpuinfo",
+			"cat /proc/loadavg",
+			"cat /proc/version",
+			"cat /proc/vmstat",
 		},
 	}
 }
 
-func (s ProcFile) Run() (interface{}, op.Status, error) {
-	if s.os != "linux" {
+func (p ProcFile) ID() string {
+	return "/proc/ files"
+}
+
+func (p ProcFile) Run() op.Op {
+	if p.os != "linux" {
 		// TODO(mkcp): Replace status with op.Skip when we implement it
-		return nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", s.os)
+		return op.New(p, nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", p.os))
 	}
 	m := make(map[string]interface{})
-	for _, c := range s.commands {
-		res, _, err := op.NewSheller(c).Runner.Run()
-		m[c] = res
-		if err != nil {
-			return m, op.Fail, err
+	for _, c := range p.commands {
+		sheller := op.NewSheller(c).Run()
+		m[c] = sheller.Result
+		if sheller.Error != nil {
+			return op.New(p, m, op.Fail, sheller.Error)
 		}
 	}
-	return m, op.Success, nil
+	return op.New(p, m, op.Success, nil)
 }

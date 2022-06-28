@@ -13,22 +13,26 @@ type EtcHosts struct {
 	os string
 }
 
-func NewEtcHosts() *op.Op {
-	return &op.Op{
-		Identifier: "/etc/hosts",
-		Runner:     EtcHosts{os: runtime.GOOS},
+func NewEtcHosts() *EtcHosts {
+	return &EtcHosts{
+		os: runtime.GOOS,
 	}
 }
 
-func (s EtcHosts) Run() (interface{}, op.Status, error) {
+func (r EtcHosts) ID() string {
+	return "/etc/hosts"
+}
+
+func (r EtcHosts) Run() op.Op {
 	// Not compatible with windows
-	if s.os == "windows" {
+	if r.os == "windows" {
 		// TODO(mkcp): This should be op.Status("skip") once we implement it
-		return nil, op.Success, fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", s.os)
+		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.os)
+		return op.New(r, nil, op.Success, err)
 	}
-	res, _, err := op.NewSheller("cat /etc/hosts").Runner.Run()
-	if err != nil {
-		return res, op.Fail, err
+	s := op.NewSheller("cat /etc/hosts").Run()
+	if s.Error != nil {
+		return op.New(r, s.Result, op.Fail, s.Error)
 	}
-	return res, op.Success, nil
+	return op.New(r, s.Result, op.Success, nil)
 }

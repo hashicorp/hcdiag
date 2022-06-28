@@ -14,30 +14,32 @@ type IPTables struct {
 }
 
 // NewIPTables returns a op configured to run several iptables commands
-func NewIPTables() *op.Op {
-	return &op.Op{
-		Identifier: "iptables",
-		Runner: IPTables{
-			commands: []string{
-				"iptables -L -n -v",
-				"iptables -L -n -v -t nat",
-				"iptables -L -n -v -t mangle",
-			},
+func NewIPTables() *IPTables {
+	return &IPTables{
+		commands: []string{
+			"iptables -L -n -v",
+			"iptables -L -n -v -t nat",
+			"iptables -L -n -v -t mangle",
 		},
 	}
 }
 
-func (s IPTables) Run() (interface{}, op.Status, error) {
+func (r IPTables) ID() string {
+	return "iptables"
+}
+
+func (r IPTables) Run() op.Op {
 	if runtime.GOOS != "linux" {
-		return nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS)
+		// TODO(mkcp): use skip status once available
+		return op.New(r, nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS))
 	}
 	result := make(map[string]string)
-	for _, c := range s.commands {
-		res, _, err := op.NewCommander(c, "string").Runner.Run()
-		result[c] = res.(string)
-		if err != nil {
-			return result, op.Fail, err
+	for _, c := range r.commands {
+		o := op.NewCommander(c, "string").Run()
+		result[c] = o.Result.(string)
+		if o.Error != nil {
+			return op.New(r, result, op.Fail, o.Error)
 		}
 	}
-	return result, op.Success, nil
+	return op.New(r, result, op.Success, nil)
 }

@@ -10,18 +10,14 @@ import (
 )
 
 func TestNewCommander(t *testing.T) {
-	expect := Op{
-		Identifier: "echo hello",
-		Runner: Commander{
-			Command: "echo hello",
-			format:  "string",
-		},
+	testCmd := "echo hello"
+	testFmt := "string"
+	expect := &Commander{
+		command: testCmd,
+		format:  testFmt,
 	}
-	actual := NewCommander("echo hello", "string")
-	// TODO: proper comparison, my IDE doesn't like this: "avoid using reflect.DeepEqual with errors"
-	if !reflect.DeepEqual(&expect, actual) {
-		t.Errorf("expected (%#v) does not match actual (%#v)", expect, actual)
-	}
+	actual := NewCommander(testCmd, testFmt)
+	assert.Equal(t, expect, actual)
 }
 
 func TestCommander_Run(t *testing.T) {
@@ -52,10 +48,10 @@ func TestCommander_Run(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			c := NewCommander(tc.command, tc.format)
-			result, status, err := c.Runner.Run()
-			assert.NoError(t, err)
-			assert.Equal(t, Success, status)
-			assert.Equal(t, tc.expect, result)
+			o := c.Run()
+			assert.NoError(t, o.Error)
+			assert.Equal(t, Success, o.Status)
+			assert.Equal(t, tc.expect, o.Result)
 		})
 	}
 }
@@ -86,12 +82,12 @@ func TestCommander_RunError(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			c := NewCommander(tc.command, tc.format)
-			result, status, err := c.Runner.Run()
-			assert.Error(t, err)
-			hclog.L().Trace("commander.Run() errored", "error", err, "error type", reflect.TypeOf(err))
-			assert.Equal(t, tc.status, status)
+			o := c.Run()
+			assert.Error(t, o.Error)
+			hclog.L().Trace("commander.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
+			assert.Equal(t, tc.status, o.Status)
 			if tc.expect != nil {
-				assert.Equal(t, tc.expect, result)
+				assert.Equal(t, tc.expect, o.Result)
 			}
 		})
 	}

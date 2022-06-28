@@ -8,18 +8,18 @@ import (
 
 var _ op.Runner = &Network{}
 
-func NewNetwork() *op.Op {
-	return &op.Op{Identifier: "network", Runner: Network{}}
-}
-
 type Network struct{}
 
-func (n Network) Run() (interface{}, op.Status, error) {
+func (n Network) ID() string {
+	return "network"
+}
+
+func (n Network) Run() op.Op {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
 		hclog.L().Trace("op/host.Network.Run()", "error", err)
-		return nil, op.Fail, err
+		return op.New(n, nil, op.Fail, err)
 	}
 
-	return netInterfaces, op.Success, nil
+	return op.New(n, netInterfaces, op.Success, nil)
 }

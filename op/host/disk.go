@@ -13,20 +13,22 @@ var _ op.Runner = Disk{}
 
 type Disk struct{}
 
-func NewDisk() *op.Op {
-	return &op.Op{
-		Identifier: "disks",
-		Runner:     Disk{},
-	}
+func NewDisk() *Disk {
+	return &Disk{}
 }
 
-func (dp Disk) Run() (interface{}, op.Status, error) {
+func (d Disk) ID() string {
+	return "disks"
+}
+
+func (d Disk) Run() op.Op {
 	// third party
 	diskInfo, err := disk.Partitions(true)
 	if err != nil {
 		hclog.L().Trace("op/host.Disk.Run()", "error", err)
-		return diskInfo, op.Unknown, fmt.Errorf("error getting disk information err=%w", err)
+		err1 := fmt.Errorf("error getting disk information err=%w", err)
+		return op.New(d, diskInfo, op.Unknown, err1)
 	}
 
-	return diskInfo, op.Success, nil
+	return op.New(d, diskInfo, op.Success, nil)
 }

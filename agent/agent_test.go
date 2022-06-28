@@ -146,12 +146,12 @@ func TestAgent_RecordManifest(t *testing.T) {
 	t.Run("adds to ManifestOps when ops exist", func(t *testing.T) {
 		// Setup
 		testProduct := "host"
+		testResults := map[string]op.Op{
+			"": {},
+		}
 		a := NewAgent(Config{}, hclog.Default())
-		pCfg := product.Config{OS: "auto"}
-		p := make(map[string]*product.Product)
-		p[testProduct] = product.NewHost(hclog.Default(), pCfg)
-		a.products = p
-		assert.NotEmptyf(t, a.products[testProduct].Ops, "test setup failure, no ops available")
+		a.results[testProduct] = testResults
+		assert.NotEmptyf(t, a.results[testProduct], "test setup failure, no ops available")
 
 		// Record and check
 		a.RecordManifest()

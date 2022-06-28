@@ -9,40 +9,44 @@ import (
 
 // Sheller runs shell commands in a real unix shell.
 type Sheller struct {
-	Command string `json:"command"`
-	Shell   string `json:"shell"`
+	command string
+	shell   string
 }
 
 // NewSheller provides a Op for running shell commands.
-func NewSheller(command string) *Op {
-	return &Op{
-		Identifier: command,
-		Runner:     &Sheller{Command: command},
+func NewSheller(command string) *Sheller {
+	return &Sheller{
+		command: command,
 	}
 }
 
+func (s Sheller) ID() string {
+	return s.command
+}
+
 // Run ensures a shell exists and optimistically executes the given Command string
-func (s *Sheller) Run() (interface{}, Status, error) {
+func (s Sheller) Run() Op {
 	// Read the shell from the environment
 	shell, err := util.GetShell()
 	if err != nil {
-		return nil, Fail, err
+		return New(s, nil, Fail, err)
 	}
-	s.Shell = shell
+	s.shell = shell
 
 	// Run the command
-	args := []string{"-c", s.Command}
-	bts, err := exec.Command(s.Shell, args...).CombinedOutput()
+	args := []string{"-c", s.command}
+	bts, err := exec.Command(s.shell, args...).CombinedOutput()
 	if err != nil {
 		// Return the stdout result even on failure
 		// TODO(mkcp): This is a good place to switch on exec.Command errors and provide better guidance.
-		return string(bts), Unknown, ShellExecError{
-			command: s.Command,
+		err1 := ShellExecError{
+			command: s.command,
 			err:     err,
 		}
+		return New(s, string(bts), Unknown, err1)
 	}
 
-	return string(bts), Success, nil
+	return New(s, string(bts), Success, nil)
 }
 
 type ShellExecError struct {

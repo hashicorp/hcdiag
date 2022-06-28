@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/hcdiag/util"
 )
 
+var _ Runner = Copier{}
+
 // Copier copies files to temp dir based on a filter.
 type Copier struct {
 	SourceDir string    `json:"source_directory"`
@@ -18,54 +20,55 @@ type Copier struct {
 	Until     time.Time `json:"until"`
 }
 
-// NewCopier provides a Op for copying files to temp dir based on a filter.
-func NewCopier(path, destDir string, since, until time.Time) *Op {
+// NewCopier provides a Runner for copying files to temp dir based on a filter.
+func NewCopier(path, destDir string, since, until time.Time) *Copier {
 	sourceDir, filter := util.SplitFilepath(path)
-	return &Op{
-		Identifier: "copy " + filepath.Join(sourceDir, filter),
-		Runner: Copier{
-			SourceDir: sourceDir,
-			Filter:    filter,
-			DestDir:   destDir,
-			Since:     since,
-			Until:     until,
-		},
+	return &Copier{
+		SourceDir: sourceDir,
+		Filter:    filter,
+		DestDir:   destDir,
+		Since:     since,
+		Until:     until,
 	}
 }
 
+func (c Copier) ID() string {
+	return "copy " + filepath.Join(c.SourceDir, c.Filter)
+}
+
 // Run satisfies the Runner interface and copies the filtered source files to the destination.
-func (c Copier) Run() (interface{}, Status, error) {
+func (c Copier) Run() Op {
 	// Ensure destination directory exists
 	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
-		return nil, Fail, &MakeDirError{
+		return New(c, nil, Fail, MakeDirError{
 			path: c.DestDir,
 			err:  err,
-		}
+		})
 	}
 
 	// Find all the files
 	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
-		return nil, Fail, &FindFilesError{
+		return New(c, nil, Fail, FindFilesError{
 			path: c.SourceDir,
 			err:  err,
-		}
+		})
 	}
 
 	// Copy the files
 	for _, s := range files {
 		err = util.CopyDir(c.DestDir, s)
 		if err != nil {
-			return nil, Fail, &CopyFilesError{
+			return New(c, nil, Fail, CopyFilesError{
 				dest:  c.DestDir,
 				files: files,
 				err:   err,
-			}
+			})
 		}
 	}
 
-	return files, Success, nil
+	return New(c, files, Success, nil)
 }
 
 type MakeDirError struct {

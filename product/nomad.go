@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
-	s "github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/op"
 	logs "github.com/hashicorp/hcdiag/op/log"
 )
 
@@ -36,30 +36,31 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	if DefaultInterval == cfg.DebugInterval {
 		cfg.DebugInterval = NomadDebugInterval
 	}
-	ops, err := NomadOps(cfg, api)
+	ops, err := NomadRunners(cfg, api)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Product{
-		l:      logger.Named("product"),
-		Name:   Nomad,
-		Ops:    ops,
-		Config: cfg,
+		l:       logger.Named("product"),
+		Name:    Nomad,
+		Runners: ops,
+		Config:  cfg,
 	}, nil
 }
 
-// NomadOps seek information about Nomad.
-func NomadOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
-	ops := []*s.Op{
-		s.NewCommander("nomad version", "string"),
-		s.NewCommander("nomad node status -self -json", "json"),
-		s.NewCommander("nomad agent-info -json", "json"),
-		s.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+// FIXME(mkcp): doccment
+// NomadRunners ...
+func NomadRunners(cfg Config, api *client.APIClient) ([]op.Runner, error) {
+	runners := []op.Runner{
+		op.NewCommander("nomad version", "string"),
+		op.NewCommander("nomad node status -self -json", "json"),
+		op.NewCommander("nomad agent-info -json", "json"),
+		op.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
-		s.NewHTTPer(api, "/v1/agent/members?stale=true"),
-		s.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
-		s.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
+		op.NewHTTPer(api, "/v1/agent/members?stale=true"),
+		op.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
+		op.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
 
 		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -68,9 +69,9 @@ func NomadOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs", "nomad")
-		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		ops = append([]*s.Op{logCopier}, ops...)
+		logCopier := op.NewCopier(logPath, dest, cfg.Since, cfg.Until)
+		runners = append([]op.Runner{logCopier}, runners...)
 	}
 
-	return ops, nil
+	return runners, nil
 }

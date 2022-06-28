@@ -8,17 +8,17 @@ import (
 
 var _ op.Runner = &Process{}
 
-func NewProcess() *op.Op {
-	return &op.Op{Identifier: "process", Runner: Process{}}
-}
-
 type Process struct{}
 
-func (p Process) Run() (interface{}, op.Status, error) {
+func (p Process) ID() string {
+	return "process"
+}
+
+func (p Process) Run() op.Op {
 	processes, err := ps.Processes()
 	if err != nil {
 		hclog.L().Trace("op/host.Process.Run()", "error", err)
-		return processes, op.Fail, err
+		return op.New(p, processes, op.Fail, err)
 	}
 
 	processInfo := make([]string, 0)
@@ -27,5 +27,5 @@ func (p Process) Run() (interface{}, op.Status, error) {
 		processInfo = append(processInfo, process.Executable())
 	}
 
-	return processInfo, op.Success, nil
+	return op.New(p, processInfo, op.Success, nil)
 }

@@ -21,53 +21,54 @@ type Journald struct {
 	until   time.Time
 }
 
-// NewJournald sets the defaults for the journald runner and returns a op
-func NewJournald(service, destDir string, since, until time.Time) *op.Op {
-	return &op.Op{
-		Identifier: "journald",
-		Runner: Journald{
-			service: service,
-			destDir: destDir,
-			since:   since,
-			until:   until,
-		},
+// NewJournald sets the defaults for the journald runner
+func NewJournald(service, destDir string, since, until time.Time) *Journald {
+	return &Journald{
+		service: service,
+		destDir: destDir,
+		since:   since,
+		until:   until,
 	}
+}
+
+func (j Journald) ID() string {
+	return "journald"
 }
 
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
-func (j Journald) Run() (interface{}, op.Status, error) {
+func (j Journald) Run() op.Op {
 	// Check if systemd has a unit with the provided name
-	cmd := fmt.Sprintf("systemctl is-enabled %s", j.service) // TODO(gulducat): another command?
-	out, err := op.NewCommander(cmd, "string").Run()
-	if err != nil {
-		hclog.L().Debug("skipping journald", "service", j.service, "output", out, "error", err)
-		return nil, op.Fail, JournaldServiceNotEnabled{
+	cmd := fmt.Sprintf("systemctl is-enabled %s", j.service)
+	o := op.NewCommander(cmd, "string").Run()
+	if o.Error != nil {
+		hclog.L().Debug("skipping journald", "service", j.service, "output", o.Result, "error", o.Error)
+		return op.New(j, o.Result, op.Fail, JournaldServiceNotEnabled{
 			service: j.service,
 			command: cmd,
-			result:  fmt.Sprintf("%s", out),
-			err:     err,
-		}
+			result:  fmt.Sprintf("%s", o.Result),
+			err:     o.Error,
+		})
 	}
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.service)
-	out, err = op.NewSheller(cmd).Run()
+	o = op.NewSheller(cmd).Run()
 	// permissions error detected
-	if err == nil {
-		return nil, op.Fail, JournaldPermissionError{
+	if o.Error == nil {
+		return op.New(j, o.Result, op.Fail, JournaldPermissionError{
 			service: j.service,
 			command: cmd,
-			result:  fmt.Sprintf("%s", out),
-			err:     err,
-		}
+			result:  fmt.Sprintf("%s", o.Result),
+			err:     o.Error,
+		})
 	}
 
 	cmd = j.LogsCmd()
 	s := op.NewSheller(cmd)
-	s.Identifier = "journald"
+	o = s.Run()
 
-	return s.Runner.Run()
+	return op.New(j, o.Result, o.Status, o.Error)
 }
 
 // LogsCmd arranges the params into a runnable command string.

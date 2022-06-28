@@ -9,7 +9,7 @@ import (
 	logs "github.com/hashicorp/hcdiag/op/log"
 
 	"github.com/hashicorp/hcdiag/client"
-	s "github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/op"
 )
 
 const (
@@ -24,27 +24,28 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 
-	ops, err := VaultOps(cfg, api)
+	runners, err := VaultRunners(cfg, api)
 	if err != nil {
 		return nil, err
 	}
 	return &Product{
-		l:      logger.Named("product"),
-		Name:   Vault,
-		Ops:    ops,
-		Config: cfg,
+		l:       logger.Named("product"),
+		Name:    Vault,
+		Runners: runners,
+		Config:  cfg,
 	}, nil
 }
 
-// VaultOps generates a list of ops to inspect Vault.
-func VaultOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
-	ops := []*s.Op{
-		s.NewCommander("vault version", "string"),
-		s.NewCommander("vault status -format=json", "json"),
-		s.NewCommander("vault read sys/health -format=json", "json"),
-		s.NewCommander("vault read sys/seal-status -format=json", "json"),
-		s.NewCommander("vault read sys/host-info -format=json", "json"),
-		s.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+// TODO(mkcp): doccomment
+// VaultRunners ...
+func VaultRunners(cfg Config, api *client.APIClient) ([]op.Runner, error) {
+	runners := []op.Runner{
+		op.NewCommander("vault version", "string"),
+		op.NewCommander("vault status -format=json", "json"),
+		op.NewCommander("vault read sys/health -format=json", "json"),
+		op.NewCommander("vault read sys/seal-status -format=json", "json"),
+		op.NewCommander("vault read sys/host-info -format=json", "json"),
+		op.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
 
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -53,9 +54,9 @@ func VaultOps(cfg Config, api *client.APIClient) ([]*s.Op, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/vault")
-		logCopier := s.NewCopier(logPath, dest, cfg.Since, cfg.Until)
-		ops = append([]*s.Op{logCopier}, ops...)
+		logCopier := op.NewCopier(logPath, dest, cfg.Since, cfg.Until)
+		runners = append([]op.Runner{logCopier}, runners...)
 	}
 
-	return ops, nil
+	return runners, nil
 }

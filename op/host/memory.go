@@ -10,20 +10,17 @@ var _ op.Runner = Memory{}
 
 type Memory struct{}
 
-func NewMemory() *op.Op {
-	return &op.Op{
-		Identifier: "memory",
-		Runner:     Memory{},
-	}
+func (m Memory) ID() string {
+	return "memory"
 }
 
-// Run calls out to mem.VirtualMemory and returns it for results
-func (m Memory) Run() (interface{}, op.Status, error) {
+// Run calls out to mem.VirtualMemory
+func (m Memory) Run() op.Op {
 	memoryInfo, err := mem.VirtualMemory()
 	if err != nil {
 		hclog.L().Trace("op/host.Memory.Run()", "error", err)
-		return memoryInfo, op.Fail, err
+		return op.New(m, memoryInfo, op.Fail, err)
 	}
 
-	return memoryInfo, op.Success, nil
+	return op.New(m, memoryInfo, op.Success, nil)
 }

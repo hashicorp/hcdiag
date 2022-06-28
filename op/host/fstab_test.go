@@ -14,8 +14,16 @@ type mockShellRunner struct {
 	err    error
 }
 
-func (m mockShellRunner) Run() (interface{}, op.Status, error) {
-	return m.result, m.status, m.err
+func (m mockShellRunner) Run() op.Op {
+	return op.Op{
+		Result: m.result,
+		Status: m.status,
+		Error:  m.err,
+	}
+}
+
+func (m mockShellRunner) ID() string {
+	return ""
 }
 
 var _ op.Runner = mockShellRunner{}
@@ -56,12 +64,10 @@ func TestFSTab_Run(t *testing.T) {
 			name: "Test Successful Run",
 			fstab: FSTab{
 				os: "linux",
-				sheller: &op.Op{
-					Runner: mockShellRunner{
-						result: "contents",
-						status: op.Success,
-						err:    nil,
-					},
+				sheller: &mockShellRunner{
+					result: "contents",
+					status: op.Success,
+					err:    nil,
 				},
 			},
 			expected: response{
@@ -74,12 +80,10 @@ func TestFSTab_Run(t *testing.T) {
 			name: "Test Unsuccessful Run",
 			fstab: FSTab{
 				os: "linux",
-				sheller: &op.Op{
-					Runner: mockShellRunner{
-						result: nil,
-						status: op.Unknown,
-						err:    fmt.Errorf("an error"),
-					},
+				sheller: &mockShellRunner{
+					result: nil,
+					status: op.Unknown,
+					err:    fmt.Errorf("an error"),
 				},
 			},
 			expected: response{
@@ -93,11 +97,11 @@ func TestFSTab_Run(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			expected := tc.expected
-			result, status, err := tc.fstab.Run()
-			assert.Equal(t, expected.result, result)
-			assert.Equal(t, expected.status, status)
+			o := tc.fstab.Run()
+			assert.Equal(t, expected.result, o.Result)
+			assert.Equal(t, expected.status, o.Status)
 			if tc.expected.expectErr {
-				assert.Error(t, err)
+				assert.Error(t, o.Error)
 			}
 		})
 	}
@@ -119,8 +123,7 @@ func TestNewFSTab(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			fstab := NewFSTab(tc.os)
-			runner := fstab.Runner.(FSTab)
-			assert.Equal(t, tc.expected.os, runner.os)
+			assert.Equal(t, tc.expected.os, fstab.os)
 		})
 	}
 }

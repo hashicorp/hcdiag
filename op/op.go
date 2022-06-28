@@ -3,9 +3,11 @@ package op
 import (
 	"fmt"
 	"path/filepath"
+
+	"github.com/hashicorp/hcdiag/util"
 )
 
-// Status describes the result of a op run
+// Status describes the result of a Runner's Run
 type Status string
 
 const (
@@ -21,31 +23,35 @@ const (
 
 // Op seeks information via its Runner then stores the results.
 type Op struct {
-	Runner     Runner      `json:"runner"`
-	Identifier string      `json:"-"`
-	Result     interface{} `json:"result"`
-	ErrString  string      `json:"error"` // this simplifies json marshaling
-	Error      error       `json:"-"`
-	Status     Status      `json:"status"`
+	Identifier string                 `json:"-"`
+	Result     interface{}            `json:"result"`
+	ErrString  string                 `json:"error"` // this simplifies json marshaling
+	Error      error                  `json:"-"`
+	Status     Status                 `json:"status"`
+	Params     map[string]interface{} `json:"params"`
+}
+
+// New takes a runner its results, serializing it into an immutable Op struct.
+func New(runner Runner, result interface{}, status Status, err error) Op {
+	// We store the error directly to make JSON serialization easier
+	var message string
+	if err != nil {
+		message = err.Error()
+	}
+	return Op{
+		Identifier: runner.ID(),
+		Result:     result,
+		Error:      err,
+		ErrString:  message,
+		Status:     status,
+		Params:     util.RunnerParams(runner),
+	}
 }
 
 // Runner runs things to get information.
 type Runner interface {
-	Run() (interface{}, Status, error)
-}
-
-// Run calls a Runner's Run() method and writes the results and any errors on the op struct
-func (s *Op) Run() (interface{}, error) {
-	result, stat, err := s.Runner.Run()
-	s.Result = result
-	s.Error = err
-	s.Status = stat
-
-	if err != nil {
-		s.ErrString = fmt.Sprintf("%s", err)
-		return s.Result, s.Error
-	}
-	return result, err
+	ID() string
+	Run() Op
 }
 
 // Exclude takes a slice of matcher strings and a slice of ops. If any of the op identifiers match the exclude
@@ -53,16 +59,16 @@ func (s *Op) Run() (interface{}, error) {
 // NOTE(mkcp): This is precisely identical to Select() except we flip the match check. Maybe we can perform both rounds
 //  of filtering in one pass one rather than iterating over all the ops several times. Not likely to be a huge speed
 //  increase though... we're not even remotely bottlenecked on op filtering.
-func Exclude(excludes []string, ops []*Op) ([]*Op, error) {
-	newOps := make([]*Op, 0)
-	for _, s := range ops {
+func Exclude(excludes []string, runners []Runner) ([]Runner, error) {
+	newRunners := make([]Runner, 0)
+	for _, r := range runners {
 		// Set our match flag if we get a hit for any of the matchers on this op
 		var match bool
 		var err error
 		for _, matcher := range excludes {
-			match, err = filepath.Match(matcher, s.Identifier)
+			match, err = filepath.Match(matcher, r.ID())
 			if err != nil {
-				return newOps, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
+				return newRunners, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
 			}
 			if match {
 				break
@@ -71,40 +77,40 @@ func Exclude(excludes []string, ops []*Op) ([]*Op, error) {
 
 		// Add the op back to our set if we have not matched an exclude
 		if !match {
-			newOps = append(newOps, s)
+			newRunners = append(newRunners, r)
 		}
 	}
-	return newOps, nil
+	return newRunners, nil
 }
 
 // Select takes a slice of matcher strings and a slice of ops. The only ops returned will be those
 // matching the given select strings according to filepath.Match()
-func Select(selects []string, ops []*Op) ([]*Op, error) {
-	newOps := make([]*Op, 0)
-	for _, op := range ops {
+func Select(selects []string, runners []Runner) ([]Runner, error) {
+	newRunners := make([]Runner, 0)
+	for _, r := range runners {
 		// Set our match flag if we get a hit for any of the matchers on this op
 		var match bool
 		var err error
 		for _, matcher := range selects {
-			match, err = filepath.Match(matcher, op.Identifier)
+			match, err = filepath.Match(matcher, r.ID())
 			if err != nil {
-				return newOps, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
+				return newRunners, fmt.Errorf("filter error: '%s' for '%s'", err, matcher)
 			}
 			if match {
 				break
 			}
 		}
 
-		// Only include the op if we've matched it
+		// Only include the runner if we've matched it
 		if match {
-			newOps = append(newOps, op)
+			newRunners = append(newRunners, r)
 		}
 	}
-	return newOps, nil
+	return newRunners, nil
 }
 
 // StatusCounts takes a slice of op references and returns a map containing sums of each Status
-func StatusCounts(ops []*Op) (map[Status]int, error) {
+func StatusCounts(ops map[string]Op) (map[Status]int, error) {
 	statuses := make(map[Status]int)
 	for _, op := range ops {
 		if op.Status == "" {
