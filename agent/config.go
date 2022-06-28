@@ -2,6 +2,10 @@ package agent
 
 import "time"
 
+type HCLConfig interface {
+	*HostConfig | *ProductConfig
+}
+
 // Config stores all user-provided inputs from the CLI and HCL
 type Config struct {
 	// HostConfig and ProductConfig are specified by HCL

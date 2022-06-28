@@ -500,7 +500,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	newHost := product.NewHost(a.l, cfg)
 	if a.Config.Host != nil {
-		customRunners, err := customHostRunners(a.Config.Host, a.tmpDir)
+		customRunners, err := customRunners(a.Config.Host, a.tmpDir)
 		if err != nil {
 			return nil, err
 		}
@@ -599,98 +599,98 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// TODO(mkcp): This duplicates much of customOps and can certainly be improved.
-func customHostRunners(cfg *HostConfig, tmpDir string) ([]runner.Runner, error) {
-	runners := make([]runner.Runner, 0)
-	// Build Commanders
-	for _, c := range cfg.Commands {
-		cmder := runner.NewCommander(c.Run, c.Format)
-		runners = append(runners, cmder)
-	}
-	// Build Shellers
-	for _, c := range cfg.Shells {
-		sheller := runner.NewSheller(c.Run)
-		runners = append(runners, sheller)
-	}
-
-	for _, g := range cfg.GETs {
-		runners = append(runners, host.NewGetter(g.Path))
-	}
-
-	// Build copiers
-	dest := tmpDir + "/host"
-	for _, c := range cfg.Copies {
-		var from time.Time
-
-		// Set `from` with a timestamp
-		if c.Since != "" {
-			since, err := time.ParseDuration(c.Since)
-			if err != nil {
-				return nil, err
-			}
-			// Get the timestamp which marks the start of our duration
-			from = time.Now().Add(-since)
-		}
-
-		copier := runner.NewCopier(c.Path, dest, from, time.Time{})
-		runners = append(runners, copier)
-	}
-
-	return runners, nil
-}
-
 // TODO(mkcp): Products, not the agent, should handle their own custom ops when they're created.
-func customRunners(cfg *ProductConfig, tmpDir string) ([]runner.Runner, error) {
+func customRunners[C HCLConfig](config C, tmpDir string) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, 0)
-	// Build Commanders
-	for _, c := range cfg.Commands {
-		cmder := runner.NewCommander(c.Run, c.Format)
-		runners = append(runners, cmder)
-	}
-	// Build Shellers
-	for _, c := range cfg.Shells {
-		sheller := runner.NewSheller(c.Run)
-		runners = append(runners, sheller)
-	}
-
-	// Build HTTPers
-	var c *client.APIClient
-	var err error
-	switch cfg.Name {
-	case product.Consul:
-		c, err = client.NewConsulAPI()
-	case product.Nomad:
-		c, err = client.NewNomadAPI()
-	case product.TFE:
-		c, err = client.NewTFEAPI()
-	case product.Vault:
-		c, err = client.NewVaultAPI()
-	}
-	if err != nil {
-		return nil, err
-	}
-	for _, g := range cfg.GETs {
-		httper := runner.NewHTTPer(c, g.Path)
-		runners = append(runners, httper)
-	}
-
-	// Build copiers
-	dest := tmpDir + "/" + cfg.Name
-	for _, c := range cfg.Copies {
-		var from time.Time
-
-		// Set `from` with a timestamp
-		if c.Since != "" {
-			since, err := time.ParseDuration(c.Since)
-			if err != nil {
-				return nil, err
-			}
-			// Get the timestamp which marks the start of our duration
-			from = time.Now().Add(-since)
+	switch any(config).(type) {
+	case *ProductConfig:
+		cfg := any(config).(*ProductConfig)
+		// Build Commanders
+		for _, c := range cfg.Commands {
+			cmder := runner.NewCommander(c.Run, c.Format)
+			runners = append(runners, cmder)
 		}
-		copier := runner.NewCopier(c.Path, dest, from, time.Time{})
-		runners = append(runners, copier)
-	}
+		// Build Shellers
+		for _, c := range cfg.Shells {
+			sheller := runner.NewSheller(c.Run)
+			runners = append(runners, sheller)
+		}
 
+		// Build HTTPers
+		var c *client.APIClient
+		var err error
+		switch cfg.Name {
+		case product.Consul:
+			c, err = client.NewConsulAPI()
+		case product.Nomad:
+			c, err = client.NewNomadAPI()
+		case product.TFE:
+			c, err = client.NewTFEAPI()
+		case product.Vault:
+			c, err = client.NewVaultAPI()
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, g := range cfg.GETs {
+			httper := runner.NewHTTPer(c, g.Path)
+			runners = append(runners, httper)
+			hclog.L().Info("post-gets", "runners", runners)
+		}
+
+		// Build copiers
+		dest := tmpDir + "/" + cfg.Name
+		for _, c := range cfg.Copies {
+			var from time.Time
+
+			// Set `from` with a timestamp
+			if c.Since != "" {
+				since, err := time.ParseDuration(c.Since)
+				if err != nil {
+					return nil, err
+				}
+				// Get the timestamp which marks the start of our duration
+				from = time.Now().Add(-since)
+			}
+			copier := runner.NewCopier(c.Path, dest, from, time.Time{})
+			runners = append(runners, copier)
+		}
+
+	case *HostConfig:
+		cfg := any(config).(*HostConfig)
+		// Build Commanders
+		for _, c := range cfg.Commands {
+			cmder := runner.NewCommander(c.Run, c.Format)
+			runners = append(runners, cmder)
+		}
+		// Build Shellers
+		for _, c := range cfg.Shells {
+			sheller := runner.NewSheller(c.Run)
+			runners = append(runners, sheller)
+		}
+
+		for _, g := range cfg.GETs {
+			runners = append(runners, host.NewGetter(g.Path))
+		}
+
+		// Build copiers
+		dest := tmpDir + "/host"
+		for _, c := range cfg.Copies {
+			var from time.Time
+
+			// Set `from` with a timestamp
+			if c.Since != "" {
+				since, err := time.ParseDuration(c.Since)
+				if err != nil {
+					return nil, err
+				}
+				// Get the timestamp which marks the start of our duration
+				from = time.Now().Add(-since)
+			}
+
+			copier := runner.NewCopier(c.Path, dest, from, time.Time{})
+			runners = append(runners, copier)
+		}
+	}
 	return runners, nil
 }
