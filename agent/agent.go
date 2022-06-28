@@ -602,9 +602,8 @@ func formatReportLine(cells ...string) string {
 // TODO(mkcp): Products, not the agent, should handle their own custom ops when they're created.
 func customRunners[C HCLConfig](config C, tmpDir string) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, 0)
-	switch any(config).(type) {
+	switch cfg := any(config).(type) {
 	case *ProductConfig:
-		cfg := any(config).(*ProductConfig)
 		// Build Commanders
 		for _, c := range cfg.Commands {
 			cmder := runner.NewCommander(c.Run, c.Format)
@@ -657,7 +656,6 @@ func customRunners[C HCLConfig](config C, tmpDir string) ([]runner.Runner, error
 		}
 
 	case *HostConfig:
-		cfg := any(config).(*HostConfig)
 		// Build Commanders
 		for _, c := range cfg.Commands {
 			cmder := runner.NewCommander(c.Run, c.Format)
