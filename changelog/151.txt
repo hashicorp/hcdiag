@@ -1,0 +1,7 @@
+```release-note:improvement
+core: Upgrade to go 1.18.3.
+`
+```release-note:improvement
+agent: Reduce duplication via a type union customRunners and type-specific HCLConfig to Runner map functions.
+`
+
