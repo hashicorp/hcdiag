@@ -1,0 +1,5 @@
+```release-note:breaking
+cli: The previously-deprecated command line flag `-all` has now been removed. Similar behavior has been implemented with
+product auto-detection, in which all installed HashiCorp products are automatically checked by simply executing `hcdiag`
+with no flags.
+```
