@@ -32,10 +32,6 @@ func realMain() (returnCode int) {
 	if err != nil {
 		return 64
 	}
-	// DEPRECATED(mkcp): Warn users if they're utilizing a deprecated flag
-	if flags.AllProducts {
-		l.Warn("DEPRECATED: -all will be removed in the future. Instead, provide multiple product flags.")
-	}
 
 	// If -version, skip agent setup and print version
 	if flags.Version {
@@ -105,7 +101,6 @@ type Flags struct {
 	Nomad              bool
 	TFE                bool
 	Vault              bool
-	AllProducts        bool
 	AutoDetectProducts bool
 
 	// Since provides a time range for ops to work from
@@ -157,7 +152,6 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
 	flags.BoolVar(&f.TFE, "terraform-ent", false, "(Experimental) Run Terraform Enterprise diagnostics")
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
-	flags.BoolVar(&f.AllProducts, "all", false, "DEPRECATED: Run all available product diagnostics")
 	flags.BoolVar(&f.AutoDetectProducts, "autodetect", true, "Auto-Detect installed products; any provided product flags will override this setting")
 	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
 	flags.DurationVar(&f.IncludeSince, "include-since", SeventyTwoHours, "Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
@@ -183,14 +177,10 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	config.Serial = flags.Serial
 	config.Dryrun = flags.Dryrun
 
-	// DEPRECATED(mkcp): flags.AllProducts
-	config.Consul = flags.AllProducts || flags.Consul
-	// DEPRECATED(mkcp): flags.AllProducts
-	config.Nomad = flags.AllProducts || flags.Nomad
-	// DEPRECATED(mkcp): flags.AllProducts
-	config.TFE = flags.AllProducts || flags.TFE
-	// DEPRECATED(mkcp): flags.AllProducts
-	config.Vault = flags.AllProducts || flags.Vault
+	config.Consul = flags.Consul
+	config.Nomad = flags.Nomad
+	config.TFE = flags.TFE
+	config.Vault = flags.Vault
 
 	// If any products have been set manually, then we do not care about product auto-detection
 	if flags.AutoDetectProducts && !checkProductsSet(config) {

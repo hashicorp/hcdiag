@@ -81,8 +81,8 @@ func TestFunctional(t *testing.T) {
 					// dave's pr: https://github.com/hashicorp/vault/pull/14399
 					skip: runtime.GOOS == "windows",
 				},
-				"all-unix": {
-					flags: []string{"-all"},
+				"autodetect-unix": {
+					flags: []string{},
 					outFiles: []string{
 						"ConsulDebug.tar.gz",
 						filepath.Join("nomad*", "index.json"),
