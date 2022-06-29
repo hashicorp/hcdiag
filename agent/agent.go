@@ -408,6 +408,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	// TODO(mkcp): Products.Config and agent ProductConfig is hella confusing and should be refactored
 	// NOTE(mkcp): product.Config is a config struct with common params between product. while ProductConfig are the
 	//  product-specific values we take in from HCL. Very confusing and needs work!
+	// TODO(mkcp): Much of this can be de-duplicated and handled via the product package.
 	var consul, nomad, tfe, vault *ProductConfig
 
 	for _, p := range a.Config.Products {
@@ -438,7 +439,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if consul != nil {
-			customRunners, err := customRunners(consul, a.tmpDir)
+			c, err := client.NewConsulAPI()
+			if err != nil {
+				return nil, err
+			}
+			customRunners, err := customRunners(consul, a.tmpDir, c)
 			if err != nil {
 				return nil, err
 			}
@@ -455,7 +460,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if nomad != nil {
-			customRunners, err := customRunners(nomad, a.tmpDir)
+			c, err := client.NewConsulAPI()
+			if err != nil {
+				return nil, err
+			}
+			customRunners, err := customRunners(nomad, a.tmpDir, c)
 			if err != nil {
 				return nil, err
 			}
@@ -471,7 +480,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if tfe != nil {
-			customRunners, err := customRunners(tfe, a.tmpDir)
+			c, err := client.NewTFEAPI()
+			if err != nil {
+				return nil, err
+			}
+			customRunners, err := customRunners(tfe, a.tmpDir, c)
 			if err != nil {
 				return nil, err
 			}
@@ -487,7 +500,11 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 			return nil, err
 		}
 		if vault != nil {
-			customRunners, err := customRunners(vault, a.tmpDir)
+			c, err := client.NewVaultAPI()
+			if err != nil {
+				return nil, err
+			}
+			customRunners, err := customRunners(vault, a.tmpDir, c)
 			if err != nil {
 				return nil, err
 			}
@@ -500,7 +517,7 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 
 	newHost := product.NewHost(a.l, cfg)
 	if a.Config.Host != nil {
-		customRunners, err := customHostRunners(a.Config.Host, a.tmpDir)
+		customRunners, err := customRunners(a.Config.Host, a.tmpDir, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -599,98 +616,102 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// TODO(mkcp): This duplicates much of customOps and can certainly be improved.
-func customHostRunners(cfg *HostConfig, tmpDir string) ([]runner.Runner, error) {
+// customRunners steps through the HCLConfig structs and maps each runner config type to the corresponding New<Runner> function.
+// All custom runners are reduced into a linear slice of runners and served back up to the product.
+// No runners are returned if any config is invalid.
+func customRunners[T HCLConfig](config T, tmpDir string, c *client.APIClient) ([]runner.Runner, error) {
+	var dest string
 	runners := make([]runner.Runner, 0)
-	// Build Commanders
-	for _, c := range cfg.Commands {
-		cmder := runner.NewCommander(c.Run, c.Format)
-		runners = append(runners, cmder)
-	}
-	// Build Shellers
-	for _, c := range cfg.Shells {
-		sheller := runner.NewSheller(c.Run)
-		runners = append(runners, sheller)
-	}
-
-	for _, g := range cfg.GETs {
-		runners = append(runners, host.NewGetter(g.Path))
-	}
-
-	// Build copiers
-	dest := tmpDir + "/host"
-	for _, c := range cfg.Copies {
-		var from time.Time
-
-		// Set `from` with a timestamp
-		if c.Since != "" {
-			since, err := time.ParseDuration(c.Since)
-			if err != nil {
-				return nil, err
-			}
-			// Get the timestamp which marks the start of our duration
-			from = time.Now().Add(-since)
+	switch cfg := any(config).(type) {
+	case *ProductConfig:
+		// Set and validate the params that are different between Product and Host
+		dest = tmpDir + "/" + cfg.Name
+		if c == nil {
+			return nil, fmt.Errorf("agent.customRunners product received unexpected nil client, product=%s", cfg.Name)
 		}
 
-		copier := runner.NewCopier(c.Path, dest, from, time.Time{})
-		runners = append(runners, copier)
-	}
+		// Build product's HTTPers
+		runners = append(runners, mapProductGETs(cfg.GETs, c)...)
 
+		// Identical code between ProductConfig and HostConfig, but cfg's type must be resolved via the switch to access the fields
+		// Build copiers
+		copiers, err := mapCopies(cfg.Copies, dest)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, copiers...)
+
+		// Build commanders and shellers
+		runners = append(runners, mapCommands(cfg.Commands)...)
+		runners = append(runners, mapShells(cfg.Shells)...)
+
+	case *HostConfig:
+		// Set and validate the params that are different between Product and Host
+		dest = tmpDir + "/host"
+		if c != nil {
+			return nil, fmt.Errorf("agent.customRunners host received a client when nil expected, client=%v", c)
+		}
+
+		// Build host's HTTPers
+		for _, g := range cfg.GETs {
+			runners = append(runners, host.NewGetter(g.Path))
+		}
+
+		// Identical code between ProductConfig and HostConfig, but cfg's type must be resolved via the switch
+		// Build copiers
+		copiers, err := mapCopies(cfg.Copies, dest)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, copiers...)
+
+		// Build commanders and shellers
+		runners = append(runners, mapCommands(cfg.Commands)...)
+		runners = append(runners, mapShells(cfg.Shells)...)
+	}
 	return runners, nil
 }
 
-// TODO(mkcp): Products, not the agent, should handle their own custom ops when they're created.
-func customRunners(cfg *ProductConfig, tmpDir string) ([]runner.Runner, error) {
-	runners := make([]runner.Runner, 0)
-	// Build Commanders
-	for _, c := range cfg.Commands {
-		cmder := runner.NewCommander(c.Run, c.Format)
-		runners = append(runners, cmder)
+func mapCommands(cfgs []CommandConfig) []runner.Runner {
+	runners := make([]runner.Runner, len(cfgs))
+	for i, c := range cfgs {
+		runners[i] = runner.NewCommander(c.Run, c.Format)
 	}
-	// Build Shellers
-	for _, c := range cfg.Shells {
-		sheller := runner.NewSheller(c.Run)
-		runners = append(runners, sheller)
-	}
+	return runners
+}
 
-	// Build HTTPers
-	var c *client.APIClient
-	var err error
-	switch cfg.Name {
-	case product.Consul:
-		c, err = client.NewConsulAPI()
-	case product.Nomad:
-		c, err = client.NewNomadAPI()
-	case product.TFE:
-		c, err = client.NewTFEAPI()
-	case product.Vault:
-		c, err = client.NewVaultAPI()
+func mapShells(cfgs []ShellConfig) []runner.Runner {
+	runners := make([]runner.Runner, len(cfgs))
+	for i, c := range cfgs {
+		runners[i] = runner.NewSheller(c.Run)
 	}
-	if err != nil {
-		return nil, err
-	}
-	for _, g := range cfg.GETs {
-		httper := runner.NewHTTPer(c, g.Path)
-		runners = append(runners, httper)
-	}
+	return runners
+}
 
-	// Build copiers
-	dest := tmpDir + "/" + cfg.Name
-	for _, c := range cfg.Copies {
-		var from time.Time
+func mapCopies(cfgs []CopyConfig, dest string) ([]runner.Runner, error) {
+	runners := make([]runner.Runner, len(cfgs))
+	for i, c := range cfgs {
+		var since time.Time
 
 		// Set `from` with a timestamp
 		if c.Since != "" {
-			since, err := time.ParseDuration(c.Since)
+			sinceDur, err := time.ParseDuration(c.Since)
 			if err != nil {
 				return nil, err
 			}
 			// Get the timestamp which marks the start of our duration
-			from = time.Now().Add(-since)
+			// FIXME(mkcp): "Now" should be sourced from the agent to avoid clock sync issues
+			since = time.Now().Add(-sinceDur)
 		}
-		copier := runner.NewCopier(c.Path, dest, from, time.Time{})
-		runners = append(runners, copier)
+		runners[i] = runner.NewCopier(c.Path, dest, since, time.Time{})
 	}
-
 	return runners, nil
+}
+
+func mapProductGETs(cfgs []GETConfig, c *client.APIClient) []runner.Runner {
+	runners := make([]runner.Runner, len(cfgs))
+	for i, g := range cfgs {
+		runners[i] = runner.NewHTTPer(c, g.Path)
+	}
+	return runners
 }
