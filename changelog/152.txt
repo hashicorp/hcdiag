@@ -1,0 +1,5 @@
+```release-note:breaking
+cli: The default CLI behavior when no product flags are passed in is now to auto-detect installed products and check each one.
+Previously, the behavior was to run only host diagnostics. If you want to still get just host diagnostics, use the flag
+`autodetect=false`.
+```

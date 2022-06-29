@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 	"time"
@@ -100,11 +101,12 @@ type Flags struct {
 	Dryrun bool
 
 	// Products
-	Consul      bool
-	Nomad       bool
-	TFE         bool
-	Vault       bool
-	AllProducts bool
+	Consul             bool
+	Nomad              bool
+	TFE                bool
+	Vault              bool
+	AllProducts        bool
+	AutoDetectProducts bool
 
 	// Since provides a time range for ops to work from
 	Since time.Duration
@@ -156,6 +158,7 @@ func (f *Flags) parseFlags(args []string) error {
 	flags.BoolVar(&f.TFE, "terraform-ent", false, "(Experimental) Run Terraform Enterprise diagnostics")
 	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
 	flags.BoolVar(&f.AllProducts, "all", false, "DEPRECATED: Run all available product diagnostics")
+	flags.BoolVar(&f.AutoDetectProducts, "autodetect", true, "Auto-Detect installed products; any provided product flags will override this setting")
 	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
 	flags.DurationVar(&f.IncludeSince, "include-since", SeventyTwoHours, "Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
 	flags.DurationVar(&f.Since, "since", SeventyTwoHours, "Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
@@ -189,6 +192,24 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	// DEPRECATED(mkcp): flags.AllProducts
 	config.Vault = flags.AllProducts || flags.Vault
 
+	// If any products have been set manually, then we do not care about product auto-detection
+	if flags.AutoDetectProducts && !checkProductsSet(config) {
+		config.Consul = autoDetectCommand("consul")
+		config.Nomad = autoDetectCommand("nomad")
+		config.TFE = autoDetectCommand("terraform")
+		config.Vault = autoDetectCommand("vault")
+
+		if checkProductsSet(config) {
+			hclog.L().Info(
+				"Auto-detected products; if you wish to limit hcdiag, please use the appropriate -<product> flag and run again",
+				"consul", config.Consul,
+				"nomad", config.Nomad,
+				"terraform", config.TFE,
+				"vault", config.Vault,
+			)
+		}
+	}
+
 	// Params for --includes
 	config.Includes = flags.Includes
 
@@ -200,6 +221,20 @@ func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
 	config.DebugInterval = flags.DebugInterval
 
 	return config
+}
+
+// checkProductsSet returns true if any of the individual products are true in the provided config
+func checkProductsSet(config agent.Config) bool {
+	return config.Consul || config.Nomad || config.TFE || config.Vault
+}
+
+func autoDetectCommand(cmd string) bool {
+	p, err := exec.LookPath(cmd)
+	if err != nil {
+		return false
+	}
+	hclog.L().Debug("Found command", "cmd", cmd, "path", p)
+	return true
 }
 
 // pickSinceVsIncludeSince if Since is default and IncludeSince is NOT default, use IncludeSince

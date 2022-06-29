@@ -58,7 +58,7 @@ func TestFunctional(t *testing.T) {
 				skip     bool     // skip the sub-test or not
 			}{
 				"host": {
-					flags:    []string{},
+					flags:    []string{"-autodetect=false"},
 					outFiles: []string{},
 					skip:     false,
 				},
