@@ -160,7 +160,7 @@ product "vault" {
 }
 ```
 
-#### Table of Available Runner
+#### Table of Available Runners
 
 More will be added as they are made available
 
