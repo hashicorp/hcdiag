@@ -95,7 +95,7 @@ Terraform Enterprise historically uses replicated to provide similar functionali
 | `serial`        | Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load.                   | bool   | false         |
 
 
-### Custom Seekers with Configuration
+### Adding and Filtering Runners with Configuration
 In addition to the defaults hcdiag offers, for the host and products, diagnostic runs can be tailored to specific
 use-cases. With the `-config <FILE>` flag, users can execute HCL configuration saved to disk. Here's a simple example:
 
@@ -108,22 +108,24 @@ product "consul" {
 }
 ```
 
-Running `hcdiag` with this HCL means we run one seeker: the CLI command `consul version` and the `format = "string"`
-tells hcdiag how to parse the result. The `product "consul" {}` block ensures we store the results in the proper location.
+Executing `hcdiag -config example.hcl` with the HCL above means we add a Runner: the CLI command `consul version`. The
+`format = "string"` attribute tells `hcdiag` how to parse the result. The `product "consul" {}` block ensures we configure
+the HTTP client for TLS and store the results in the proper location behind the scenes.
 
-Let's go over how to write the custom configuration:
+Let's go over how to write configuration:
 
-Seekers must be described in a `product` or `host` block. These contain our seekers and tell hcdiag where the store the
-results. If a command or file copy is not product specific, `host { ... }` scopes the seeker to the machine the seeker
-is run on. The supported product blocks are: `"consul", "vault", "nomad",` and `"terraform-ent"`. A full reference table
-of seekers is available in a table below.
+In `hcdiag`, Runners provide an abstraction for any kind of operation. The `command` block above represents a `Command`
+Runner, and must be described in a `product` or `host` block. These contain our Runners and tell `hcdiag` where to store
+the results. If a command or file copy is not product specific, `host { ... }` scopes the Runner to the local machine.
+The supported product blocks are: `"consul", "vault", "nomad",` and `"terraform-ent"`. A full reference table
+of Runners is available in a table below.
 
-Lastly, we'll cover filters. Filters optionally let you remove results from the support bundle. The two options are
-`excludes` and `selects`. Each is an array that takes a list of seeker IDs. `exclude` removes matching seekers from the
-results and `selects` removes everything that _doesn't_ match the seeker IDs. `selects` take precedence if a seeker matches
-for both.
+Filters optionally let you remove Runners before they're Run. Because they're never executed, the results aren't in the
+support bundle. The two options are `excludes` and `selects`. Each is an array that takes a list of Runner IDs.
+`exclude` removes matching Runners and `selects` removes everything that _doesn't_ match the Runner IDs. `selects`
+take precedence if a Runner matches for both.
 
-Here's a complete example that describes each of the seekers for one of the product blocks, and host.
+Here's a complete example that describes each of the Runners for one of the product blocks, and host.
 
 ```hcl
 host {
@@ -133,7 +135,7 @@ host {
   }
 }
 
-product "consul" {
+product "vault" {
   command {
     run = "consul version"
     format = "json"
@@ -158,16 +160,16 @@ product "consul" {
 }
 ```
 
-#### Table of Available Seekers
+#### Table of Available Runner
 
 More will be added as they are made available
 
 | Constructor                | Config Block | Description                                                                                                                                                                            | Parameters                                                       |
 |----------------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
-| `seeker.NewCommander(...)` | `command`    | Issues a CLI command and optionally parses the result if format JSON is specified. Otherwise use string.                                                                               | `command = <string,required>` <br/> `format = <string,required>` |
-| `seeker.NewCopier(...)`    | `copy`       | Copies the file or directory and all of its contents into the bundle using the same name. Since will check the last modified time of the file and ignore if it's outside the duration. | `path = <string,required>` <br/> `since = <duration,optional>`   |
-| `seeker.NewHTTPer(...)`    | `GET`        | Makes an HTTP get request to the path                                                                                                                                                  | `path = <string,required>`                                       |
-| `seeker.NewSheller(...)`   | `shell`      | An "escape hatch" allowing arbitrary shell strings to be executed.                                                                                                                     | `run = <string,required>`                                        |
+| `runner.NewCommander(...)` | `command`    | Issues a CLI command and optionally parses the result if format JSON is specified. Otherwise use string.                                                                               | `command = <string,required>` <br/> `format = <string,required>` |
+| `runner.NewCopier(...)`    | `copy`       | Copies the file or directory and all of its contents into the bundle using the same name. Since will check the last modified time of the file and ignore if it's outside the duration. | `path = <string,required>` <br/> `since = <duration,optional>`   |
+| `runner.NewHTTPer(...)`    | `GET`        | Makes an HTTP get request to the path                                                                                                                                                  | `path = <string,required>`                                       |
+| `runner.NewSheller(...)`   | `shell`      | An "escape hatch" allowing arbitrary shell strings to be executed.                                                                                                                     | `run = <string,required>`                                        |
 
 
 ## FAQs
