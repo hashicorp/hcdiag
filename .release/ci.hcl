@@ -4,7 +4,7 @@ project "hcdiag" {
   // the team key is not used by CRT currently
   team = "hcdiag"
   slack {
-    notification_channel = "C03LH6ELB5E" // hcdiag project channel
+    notification_channel = "C03MXBRA1FC" // #feed-hcdiag
   }
   github {
     organization = "hashicorp"
