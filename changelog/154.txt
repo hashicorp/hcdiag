@@ -1,0 +1,6 @@
+```release-note:improvement
+README: Replaced references to Seekers with Runners.
+```
+```release-note:improvement
+README: Various improvements to configuration docs.
+```
