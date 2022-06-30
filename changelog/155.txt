@@ -1,0 +1,3 @@
+```release-note:bug
+cli: Error and exit when the first arg to hcdiag is in subcommand form, rather than silently accepting invalid input.
+```

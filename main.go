@@ -26,9 +26,16 @@ func main() {
 func realMain() (returnCode int) {
 	l := configureLogging("hcdiag")
 
+	// Ensure the first arg is a flag
+	err := noSubcommand(os.Args)
+	if err != nil {
+		l.Error("subcommands not supported", "error", err)
+		return 2
+	}
+
 	// Parse our CLI flags
 	flags := Flags{}
-	err := flags.parseFlags(os.Args[1:])
+	err = flags.parseFlags(os.Args[1:])
 	if err != nil {
 		return 64
 	}
@@ -244,4 +251,14 @@ func setTime(cfg agent.Config, now time.Time, since time.Duration) agent.Config 
 	cfg.Until = time.Time{}
 
 	return cfg
+}
+
+func noSubcommand(args []string) error {
+	mustBeFlag := args[1]
+	checker := '-'
+	firstChar := []rune(mustBeFlag)[0]
+	if firstChar != checker {
+		return fmt.Errorf("expected first arg to be flag, instead received arg=%v", mustBeFlag)
+	}
+	return nil
 }
