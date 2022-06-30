@@ -51,7 +51,10 @@ Terraform Enterprise historically uses replicated to provide similar functionali
     - If both are present, `VAULT_TOKEN` will be used.
 
 ### Example Runs
-- Log hcdiag run to console without reading or writing. (Also checks client requirements setup)
+- Gather host/node and product diagnostics for all supported HashiCorp products installed on the system
+  - `hcdiag`
+
+- Log hcdiag run to console without reading or writing files. (Also checks client requirements setup)
   - `hcdiag -dryrun`
 
 - Gather node and diagnostics for one or many products
@@ -69,6 +72,10 @@ Terraform Enterprise historically uses replicated to provide similar functionali
 - Gather diagnostics and use the CLI to copy individual files or whole directories
   - `hcdiag -vault -include "/var/log/dmesg,/var/log/vault-"`
 
+- Gather only host diagnostics (prior to `0.4.0`, this was the behavior of running `hcdiag` with no flags).
+  - `hcdiag -autodetect=false`
+  - *Note:* The `=` is required here because it is a boolean flag.
+
 ### Flags
 | Argument        | Description                                                                                                                                            | Type   | Default Value |
 |-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------|---------------|
@@ -78,7 +85,7 @@ Terraform Enterprise historically uses replicated to provide similar functionali
 | `nomad`         | Run Nomad diagnostics                                                                                                                                  | bool   | false         |
 | `terraform-ent` | Run Terraform Enterprise/Cloud diagnostics                                                                                                             | bool   | false         |
 | `vault`         | Run Vault diagnostics                                                                                                                                  | bool   | false         |
-| `all`           | DEPRECATED: Run all available product diagnostics                                                                                                      | bool   | false         |
+| `autodetect`    | Automatically detect which product CLIs are installed and gather diagnostics for each. If any product flags are provided, they override this one.      | bool   | true          |
 | `since`         | Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                | string | "72h"         |
 | `include-since` | Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                      | string | "72h"         |
 | `includes`      | files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | ""            |
@@ -164,6 +171,22 @@ More will be added as they are made available
 
 
 ## FAQs
+### Why is hcdiag checking for all HashiCorp products when I only want one?
+
+We heard feedback from `hcdiag` users that the default behavior, with no flags provided, could be confusing. In that case,
+it only gathered host details from the machine where it ran. This could cause users to think that data had been
+collected about their HashiCorp products when it actually hadn't.
+
+Beginning in version `0.4.0`, the default behavior - when no product flags are provided (such as `-consul`, `-vault`, etc.) -
+is to detect which product CLIs are installed on the system. Any that are found are added, automatically, to the list of
+products for which to pull diagnostics.
+
+In the event that you run `hcdiag` with no product flags on a system where the CLI for multiple HashiCorp products are installed,
+but any of them are not configured, this can lead to failures. For example, if you had both Terraform and Vault CLIs installed,
+but only Vault was configured, then `hcdiag` might fail on Terraform Enterprise checks. A log message is displayed when auto-detection
+is used, and it will indicate which products were found on your system. If you find that you wish to limit which products
+are executed, please use the appropriate product flag. In the previous example, you would want to run `hcdiag -vault` instead
+of just `hcdiag` because you have both CLIs on your system, but Terraform is not actually configured for use.
 
 ### How do I use hcdiag with Kubernetes?
 
