@@ -135,7 +135,7 @@ host {
   }
 }
 
-product "vault" {
+product "consul" {
   command {
     run = "consul version"
     format = "json"
