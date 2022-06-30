@@ -30,7 +30,7 @@ func realMain() (returnCode int) {
 	err := noSubcommand(os.Args)
 	if err != nil {
 		l.Error("subcommands not supported", "error", err)
-		os.Exit(2)
+		return 2
 	}
 
 	// Parse our CLI flags
