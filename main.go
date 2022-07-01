@@ -254,6 +254,10 @@ func setTime(cfg agent.Config, now time.Time, since time.Duration) agent.Config 
 }
 
 func noSubcommand(args []string) error {
+	if len(args) <= 1 {
+		return nil
+	}
+
 	mustBeFlag := args[1]
 	checker := '-'
 	firstChar := []rune(mustBeFlag)[0]
