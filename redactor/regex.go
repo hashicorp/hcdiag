@@ -16,6 +16,7 @@ type RegexRedactor struct {
 }
 
 func NewRegexRedactor(reg string, repl string) RegexRedactor {
+	// TODO (nwchandler): Should we panic on this (MustCompile)? Redaction seems critical enough to me that we should...
 	re := regexp.MustCompile(reg)
 
 	return RegexRedactor{

@@ -123,3 +123,23 @@ func FuzzRegexRedactor_Redact(f *testing.F) {
 		}
 	})
 }
+
+func BenchmarkRegexRedactor_Redact1(b *testing.B)   { benchmarkRegexHelper(1, b) }
+func BenchmarkRegexRedactor_Redact2(b *testing.B)   { benchmarkRegexHelper(2, b) }
+func BenchmarkRegexRedactor_Redact3(b *testing.B)   { benchmarkRegexHelper(3, b) }
+func BenchmarkRegexRedactor_Redact10(b *testing.B)  { benchmarkRegexHelper(10, b) }
+func BenchmarkRegexRedactor_Redact20(b *testing.B)  { benchmarkRegexHelper(20, b) }
+func BenchmarkRegexRedactor_Redact30(b *testing.B)  { benchmarkRegexHelper(30, b) }
+func BenchmarkRegexRedactor_Redact100(b *testing.B) { benchmarkRegexHelper(100, b) }
+
+func benchmarkRegexHelper(num int, b *testing.B) {
+	input := strings.NewReader(strings.Repeat("hello world", num))
+	redactor := RegexRedactor{
+		RegEx:       "hello",
+		Replacement: "REDACTED",
+	}
+
+	for i := 0; i < b.N; i++ {
+		_, _ = redactor.Redact(input)
+	}
+}
