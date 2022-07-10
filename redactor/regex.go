@@ -4,6 +4,8 @@ import (
 	"io"
 	"io/ioutil"
 	"regexp"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 var _ Redactor = &RegexRedactor{}
@@ -35,14 +37,24 @@ func (reg RegexRedactor) Redact(in io.Reader) (RedactedReader, error) {
 	rr := RedactedReader{
 		rdr: r,
 	}
+
+	// The goroutine is required for piping from io.PipeWriter to io.PipeReader.
 	go func() {
-		defer w.Close()
+		defer func(w *io.PipeWriter) {
+			err := w.Close()
+			if err != nil {
+				hclog.L().Warn("RegexRedactor failed to close PipeWriter", "writer", w)
+			}
+		}(w)
 
 		content, _ := ioutil.ReadAll(in)
 
 		redacted := reg.re.ReplaceAll(content, []byte(reg.Replacement))
 
-		w.Write(redacted)
+		_, err := w.Write(redacted)
+		if err != nil {
+			hclog.L().Warn("RegexRedactor failed to write redacted data to PipeWriter", "writer", w)
+		}
 	}()
 
 	return rr, nil
