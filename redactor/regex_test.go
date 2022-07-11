@@ -53,6 +53,15 @@ func TestRegexRedactor_Redact(t *testing.T) {
 			expected: []byte("Other text SECRET=my-secret-password Other text"),
 		},
 		{
+			name: "Unicode Redaction",
+			redactor: RegexRedactor{
+				RegEx:       `(🫣=)[^ ]+`,
+				Replacement: "${1}REDACTED",
+			},
+			input:    strings.NewReader("🫣=🤫"),
+			expected: []byte("🫣=REDACTED"),
+		},
+		{
 			name: "Multiple Group Surround Redaction",
 			redactor: RegexRedactor{
 				RegEx:       `(\s+")[a-zA-Z0-9]{8}("\s+)`,
