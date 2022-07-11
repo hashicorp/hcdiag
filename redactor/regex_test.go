@@ -35,6 +35,15 @@ func TestRegexRedactor_Redact(t *testing.T) {
 			expected: []byte("REDACTED world"),
 		},
 		{
+			name: "Case-Insensitive Redaction",
+			redactor: RegexRedactor{
+				RegEx:       `(?i)(SECRET=)[^ ]+`,
+				Replacement: "${1}REDACTED",
+			},
+			input:    strings.NewReader("secret=my-secret"),
+			expected: []byte("secret=REDACTED"),
+		},
+		{
 			name: "Middle Redaction",
 			redactor: RegexRedactor{
 				RegEx:       `(SECRET=)[^ ]+`,
