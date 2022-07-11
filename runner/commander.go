@@ -1,12 +1,15 @@
 package runner
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os/exec"
 	"strings"
 
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redactor"
 )
 
 var _ Runner = Commander{}
@@ -50,7 +53,13 @@ func (c Commander) Run() op.Op {
 	// TODO(mkcp): This can be detected rather than branching on user input
 	switch {
 	case c.Format == "string":
-		result = strings.TrimSuffix(string(bts), "\n")
+		// TODO: All of this is a test and needs removed
+		rdr := bytes.NewReader(bts)
+		red := redactor.NewRegexRedactor(`Darwin`, "REDACTED")
+		res, _ := red.Redact(rdr)
+		redacted, _ := ioutil.ReadAll(res)
+		result = strings.TrimSuffix(string(redacted), "\n")
+		//result = strings.TrimSuffix(string(bts), "\n")
 
 	case c.Format == "json":
 		if err := json.Unmarshal(bts, &result); err != nil {

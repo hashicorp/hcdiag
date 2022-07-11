@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcdiag/redactor"
 )
 
 const directoryPerms = 0755
@@ -73,7 +74,13 @@ func CopyFile(to, src string) error {
 		}
 	}()
 
+	// TODO: Somehow this needs to get back into the Runner, but here's a POC...
+	red := redactor.NewRegexRedactor(
+		`(SECRET=)[^ ]+`,
+		"${1}REDACTED")
+	res, _ := red.Redact(r)
+
 	// Write source contents to destination
-	_, err = io.Copy(w, r)
+	_, err = io.Copy(w, res)
 	return err
 }

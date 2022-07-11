@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
-
 	"github.com/hashicorp/hcdiag/util"
 )
 
