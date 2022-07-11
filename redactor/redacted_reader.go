@@ -8,9 +8,9 @@ var _ io.Reader = &RedactedReader{}
 // primary return type for other redaction types in the redactor package. Because it implements the io.Reader
 // interface, it can be used as input into other redactors, which allows for chaining redactions.
 type RedactedReader struct {
-	rdr io.Reader
+	reader io.Reader
 }
 
 func (rr RedactedReader) Read(p []byte) (int, error) {
-	return rr.rdr.Read(p)
+	return rr.reader.Read(p)
 }

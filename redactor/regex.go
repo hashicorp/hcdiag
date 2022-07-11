@@ -35,7 +35,7 @@ func (reg RegexRedactor) Redact(in io.Reader) (RedactedReader, error) {
 
 	r, w := io.Pipe()
 	rr := RedactedReader{
-		rdr: r,
+		reader: r,
 	}
 
 	// The goroutine is required for piping from io.PipeWriter to io.PipeReader.
