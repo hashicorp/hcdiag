@@ -1,7 +1,7 @@
 package redactor
 
 import (
-	"io/ioutil"
+	"io"
 	"strings"
 	"testing"
 
@@ -90,7 +90,7 @@ SECRET=REDACTED
 			} else {
 				assert.NoError(t, err)
 
-				b, err := ioutil.ReadAll(rr)
+				b, err := io.ReadAll(rr)
 				assert.Equal(t, string(tc.expected), string(b))
 				assert.NoError(t, err)
 			}
@@ -117,7 +117,7 @@ func FuzzRegexRedactor_Redact(f *testing.F) {
 		if err != nil {
 			t.Errorf("encountered error in test: %#v\n", err)
 		}
-		b, err := ioutil.ReadAll(rr)
+		b, err := io.ReadAll(rr)
 		if string(b) != input {
 			t.Errorf("input was unexpectedly altered;\nINPUT = %q\nOUTPUT = %q\n", input, string(b))
 		}

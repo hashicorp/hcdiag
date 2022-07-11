@@ -2,7 +2,6 @@ package redactor
 
 import (
 	"io"
-	"io/ioutil"
 	"regexp"
 
 	"github.com/hashicorp/go-hclog"
@@ -47,7 +46,7 @@ func (reg RegexRedactor) Redact(in io.Reader) (RedactedReader, error) {
 			}
 		}(w)
 
-		content, _ := ioutil.ReadAll(in)
+		content, _ := io.ReadAll(in)
 
 		redacted := reg.re.ReplaceAll(content, []byte(reg.Replacement))
 
