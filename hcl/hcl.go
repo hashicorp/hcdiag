@@ -3,8 +3,8 @@ package hcl
 import "github.com/hashicorp/hcl/v2/hclsimple"
 
 type HCL struct {
-	Host     *Host      `hcl:"host,block" json:"host_config"`
-	Products []*Product `hcl:"product,block" json:"products_config"`
+	Host     *Host      `hcl:"host,block" json:"host"`
+	Products []*Product `hcl:"product,block" json:"products"`
 }
 
 type Blocks interface {
