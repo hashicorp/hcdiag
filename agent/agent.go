@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/hcdiag/hcl"
 	"io"
 	"os"
 	"path/filepath"
@@ -16,15 +17,36 @@ import (
 
 	"github.com/hashicorp/hcdiag/runner/host"
 
-	"github.com/hashicorp/hcdiag/client"
-	"github.com/hashicorp/hcdiag/version"
-	"github.com/hashicorp/hcl/v2/hclsimple"
-
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/product"
 	"github.com/hashicorp/hcdiag/runner"
 	"github.com/hashicorp/hcdiag/util"
+	"github.com/hashicorp/hcdiag/version"
 )
+
+// Config stores all user-provided inputs from the CLI and HCL
+type Config struct {
+	// Host and Product are specified by HCL
+	HCL hcl.HCL `json:"hcl"`
+
+	OS          string    `json:"operating_system"`
+	Serial      bool      `json:"serial"`
+	Dryrun      bool      `json:"dry_run"`
+	Consul      bool      `json:"consul_enabled"`
+	Nomad       bool      `json:"nomad_enabled"`
+	TFE         bool      `json:"terraform_ent_enabled"`
+	Vault       bool      `json:"vault_enabled"`
+	Since       time.Time `json:"since"`
+	Until       time.Time `json:"until"`
+	Includes    []string  `json:"includes"`
+	Destination string    `json:"destination"`
+
+	// DebugDuration
+	DebugDuration time.Duration `json:"debug_duration"`
+	// DebugInterval
+	DebugInterval time.Duration `json:"debug_interval"`
+}
 
 // Agent holds our set of ops to be executed and their results.
 type Agent struct {
@@ -405,13 +427,13 @@ func (a *Agent) CheckAvailable() error {
 }
 
 func (a *Agent) Setup() (map[string]*product.Product, error) {
-	// TODO(mkcp): Products.Config and agent ProductConfig is hella confusing and should be refactored
-	// NOTE(mkcp): product.Config is a config struct with common params between product. while ProductConfig are the
+	// TODO(mkcp): Products.Config and agent Product is hella confusing and should be refactored
+	// NOTE(mkcp): product.Config is a config struct with common params between product. while Product are the
 	//  product-specific values we take in from HCL. Very confusing and needs work!
 	// TODO(mkcp): Much of this can be de-duplicated and handled via the product package.
-	var consul, nomad, tfe, vault *ProductConfig
+	var consul, nomad, tfe, vault *hcl.Product
 
-	for _, p := range a.Config.Products {
+	for _, p := range a.Config.HCL.Products {
 		switch p.Name {
 		case product.Consul:
 			consul = p
@@ -516,29 +538,19 @@ func (a *Agent) Setup() (map[string]*product.Product, error) {
 	}
 
 	newHost := product.NewHost(a.l, cfg)
-	if a.Config.Host != nil {
-		customRunners, err := customRunners(a.Config.Host, a.tmpDir, nil)
+	if a.Config.HCL.Host != nil {
+		customRunners, err := customRunners(a.Config.HCL.Host, a.tmpDir, nil)
 		if err != nil {
 			return nil, err
 		}
 		newHost.Runners = append(newHost.Runners, customRunners...)
-		newHost.Excludes = a.Config.Host.Excludes
-		newHost.Selects = a.Config.Host.Selects
+		newHost.Excludes = a.Config.HCL.Host.Excludes
+		newHost.Selects = a.Config.HCL.Host.Selects
 	}
 	p[product.Host] = newHost
 
 	// product.Config is a config struct with common params between product
 	return p, nil
-}
-
-func ParseHCL(path string) (Config, error) {
-	// Parse our HCL
-	var config Config
-	err := hclsimple.DecodeFile(path, nil, &config)
-	if err != nil {
-		return Config{}, err
-	}
-	return config, nil
 }
 
 // WriteSummary writes a summary report that includes the products and op statuses present in the agent's
@@ -619,11 +631,11 @@ func formatReportLine(cells ...string) string {
 // customRunners steps through the HCLConfig structs and maps each runner config type to the corresponding New<Runner> function.
 // All custom runners are reduced into a linear slice of runners and served back up to the product.
 // No runners are returned if any config is invalid.
-func customRunners[T HCLConfig](config T, tmpDir string, c *client.APIClient) ([]runner.Runner, error) {
+func customRunners[T hcl.Blocks](config T, tmpDir string, c *client.APIClient) ([]runner.Runner, error) {
 	var dest string
 	runners := make([]runner.Runner, 0)
 	switch cfg := any(config).(type) {
-	case *ProductConfig:
+	case *hcl.Product:
 		// Set and validate the params that are different between Product and Host
 		dest = tmpDir + "/" + cfg.Name
 		if c == nil {
@@ -633,7 +645,7 @@ func customRunners[T HCLConfig](config T, tmpDir string, c *client.APIClient) ([
 		// Build product's HTTPers
 		runners = append(runners, mapProductGETs(cfg.GETs, c)...)
 
-		// Identical code between ProductConfig and HostConfig, but cfg's type must be resolved via the switch to access the fields
+		// Identical code between Product and Host, but cfg's type must be resolved via the switch to access the fields
 		// Build copiers
 		copiers, err := mapCopies(cfg.Copies, dest)
 		if err != nil {
@@ -645,7 +657,7 @@ func customRunners[T HCLConfig](config T, tmpDir string, c *client.APIClient) ([
 		runners = append(runners, mapCommands(cfg.Commands)...)
 		runners = append(runners, mapShells(cfg.Shells)...)
 
-	case *HostConfig:
+	case *hcl.Host:
 		// Set and validate the params that are different between Product and Host
 		dest = tmpDir + "/host"
 		if c != nil {
@@ -657,7 +669,7 @@ func customRunners[T HCLConfig](config T, tmpDir string, c *client.APIClient) ([
 			runners = append(runners, host.NewGetter(g.Path))
 		}
 
-		// Identical code between ProductConfig and HostConfig, but cfg's type must be resolved via the switch
+		// Identical code between Product and Host, but cfg's type must be resolved via the switch
 		// Build copiers
 		copiers, err := mapCopies(cfg.Copies, dest)
 		if err != nil {
@@ -672,7 +684,7 @@ func customRunners[T HCLConfig](config T, tmpDir string, c *client.APIClient) ([
 	return runners, nil
 }
 
-func mapCommands(cfgs []CommandConfig) []runner.Runner {
+func mapCommands(cfgs []hcl.Command) []runner.Runner {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		runners[i] = runner.NewCommander(c.Run, c.Format)
@@ -680,7 +692,7 @@ func mapCommands(cfgs []CommandConfig) []runner.Runner {
 	return runners
 }
 
-func mapShells(cfgs []ShellConfig) []runner.Runner {
+func mapShells(cfgs []hcl.Shell) []runner.Runner {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		runners[i] = runner.NewSheller(c.Run)
@@ -688,7 +700,7 @@ func mapShells(cfgs []ShellConfig) []runner.Runner {
 	return runners
 }
 
-func mapCopies(cfgs []CopyConfig, dest string) ([]runner.Runner, error) {
+func mapCopies(cfgs []hcl.Copy, dest string) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		var since time.Time
@@ -708,7 +720,7 @@ func mapCopies(cfgs []CopyConfig, dest string) ([]runner.Runner, error) {
 	return runners, nil
 }
 
-func mapProductGETs(cfgs []GETConfig, c *client.APIClient) []runner.Runner {
+func mapProductGETs(cfgs []hcl.GET, c *client.APIClient) []runner.Runner {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
 		runners[i] = runner.NewHTTPer(c, g.Path)

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/hcdiag/hcl"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/agent"
 	"github.com/hashicorp/hcdiag/product"
@@ -49,13 +51,14 @@ func realMain() (returnCode int) {
 
 	// Build agent configuration from flags, HCL, and system time
 	var config agent.Config
-	// Set host and product config
+	// Parse and store HCL struct on agent.
 	if flags.Config != "" {
-		config, err = agent.ParseHCL(flags.Config)
+		hclCfg, err := hcl.Parse(flags.Config)
 		if err != nil {
 			log.Fatalf("Failed to load configuration: %s", err)
 		}
-		l.Debug("Config is", "config", config)
+		l.Debug("HCL config is", "hcl", hclCfg)
+		config.HCL = hclCfg
 	}
 	// Assign flag vals to our agent.Config
 	cfg := mergeAgentConfig(config, flags)

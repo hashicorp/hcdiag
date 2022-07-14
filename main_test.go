@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/agent"
+
 	"github.com/stretchr/testify/assert"
 )
 
