@@ -226,9 +226,9 @@ func TestSetup(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := NewAgent(tc.cfg, hclog.Default())
-			p, err := a.Setup()
+			err := a.Setup()
 			assert.NoError(t, err)
-			assert.Len(t, p, tc.expectedLen)
+			assert.Len(t, a.products, tc.expectedLen)
 		})
 	}
 }

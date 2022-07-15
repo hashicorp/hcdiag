@@ -3,10 +3,14 @@ package hcl
 import (
 	"testing"
 
+	"github.com/hashicorp/hcdiag/runner"
+
+	"github.com/hashicorp/hcdiag/client"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseHCL(t *testing.T) {
+func Test_ParseHCL(t *testing.T) {
 	testCases := []struct {
 		name   string
 		path   string
@@ -127,6 +131,89 @@ func TestParseHCL(t *testing.T) {
 			res, err := Parse(tc.path)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expect, res, tc.name)
+		})
+	}
+}
+
+func Test_BuildRunners(t *testing.T) {
+	testCases := []struct {
+		name   string
+		hcl    HCL
+		client *client.APIClient
+		tmpDir string
+		expect int
+	}{
+		{
+			name: "contains host",
+			hcl: HCL{
+				Host: &Host{
+					Commands: []Command{{
+						Run:    "testCommand",
+						Format: "string",
+					}},
+				},
+			},
+			expect: 1,
+		},
+		{
+			name: "contains one product",
+			hcl: HCL{
+				Products: []*Product{
+					{
+						Name: "hcdiag",
+						Commands: []Command{{
+							Run:    "testCommand",
+							Format: "string",
+						}},
+					},
+				},
+			},
+			client: &client.APIClient{},
+			expect: 1,
+		},
+		{
+			name: "contains many products",
+			hcl: HCL{
+				Products: []*Product{
+					{
+						Name: "hcdiag",
+						Commands: []Command{{
+							Run:    "testCommand",
+							Format: "string",
+						}},
+					},
+					{
+						Name: "hcdiag 2 the sequel to hcdiag",
+						Commands: []Command{{
+							Run:    "testCommand",
+							Format: "string",
+						}},
+					},
+				},
+			},
+			client: &client.APIClient{},
+			expect: 2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			products := tc.hcl.Products
+			host := tc.hcl.Host
+			if 0 < len(products) {
+				runners := make([]runner.Runner, 0)
+				for _, product := range products {
+					pRunners, err := BuildRunners(product, tc.tmpDir, tc.client)
+					assert.NoError(t, err)
+					runners = append(runners, pRunners...)
+				}
+				assert.Len(t, runners, tc.expect)
+			}
+			if host != nil {
+				hostRunners, err := BuildRunners(host, tc.tmpDir, tc.client)
+				assert.NoError(t, err)
+				assert.Len(t, hostRunners, tc.expect)
+			}
 		})
 	}
 }
