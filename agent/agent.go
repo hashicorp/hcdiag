@@ -49,8 +49,8 @@ type Config struct {
 // Agent stores the runtime state that we use throughout the Agent's lifecycle.
 type Agent struct {
 	l           hclog.Logger
-	products    map[string]*product.Product
-	results     map[string]map[string]op.Op
+	products    map[product.Name]*product.Product
+	results     map[product.Name]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
 	Start       time.Time       `json:"started_at"`
@@ -66,7 +66,7 @@ type Agent struct {
 func NewAgent(config Config, logger hclog.Logger) *Agent {
 	return &Agent{
 		l:           logger,
-		results:     make(map[string]map[string]op.Op),
+		results:     make(map[product.Name]map[string]op.Op),
 		Config:      config,
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
@@ -302,7 +302,7 @@ func (a *Agent) RunProducts() error {
 	wg.Add(len(a.products))
 
 	// NOTE(mkcp): Wraps product.Run(), writes to the a.results map, then counts up the results
-	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
+	run := func(wg *sync.WaitGroup, name product.Name, product *product.Product) {
 		result := product.Run()
 
 		// Write results
@@ -345,7 +345,7 @@ func (a *Agent) RecordManifest() {
 				Error:  o.ErrString,
 				Status: o.Status,
 			}
-			a.ManifestOps[name] = append(a.ManifestOps[name], m)
+			a.ManifestOps[string(name)] = append(a.ManifestOps[string(name)], m)
 		}
 	}
 }
@@ -426,17 +426,18 @@ func (a *Agent) Setup() error {
 	// Destructure the HCL.Products collection into vars for downstream processing
 	for _, p := range a.Config.HCL.Products {
 		switch p.Name {
-		case product.Consul:
+		case string(product.Consul):
 			consulHCL = p
-		case product.Nomad:
+		case string(product.Nomad):
 			nomadHCL = p
-		case product.TFE:
+		case string(product.TFE):
 			tfeHCL = p
-		case product.Vault:
+		case string(product.Vault):
 			vaultHCL = p
 		}
 	}
 
+	// Create the base config that we copy into each product
 	cfg := product.Config{
 		TmpDir:        a.tmpDir,
 		Since:         a.Config.Since,
@@ -447,7 +448,7 @@ func (a *Agent) Setup() error {
 	}
 
 	// Store our products
-	a.products = make(map[string]*product.Product)
+	a.products = make(map[product.Name]*product.Product)
 
 	if a.Config.Consul {
 		newConsul, err := product.NewConsul(a.l, cfg)

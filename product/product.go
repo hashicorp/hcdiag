@@ -10,12 +10,14 @@ import (
 	"github.com/hashicorp/hcdiag/runner"
 )
 
+type Name string
+
 const (
-	Consul = "consul"
-	Host   = "host"
-	Nomad  = "nomad"
-	TFE    = "terraform-ent"
-	Vault  = "vault"
+	Consul Name = "consul"
+	Host   Name = "host"
+	Nomad  Name = "nomad"
+	TFE    Name = "terraform-ent"
+	Vault  Name = "vault"
 )
 
 const (
@@ -24,7 +26,7 @@ const (
 )
 
 type Config struct {
-	Name          string
+	Name          Name
 	TmpDir        string
 	Since         time.Time
 	Until         time.Time
@@ -35,7 +37,7 @@ type Config struct {
 
 type Product struct {
 	l        hclog.Logger
-	Name     string
+	Name     Name
 	Runners  []runner.Runner
 	Excludes []string
 	Selects  []string
@@ -97,7 +99,7 @@ func CommanderHealthCheck(client, agent string) error {
 }
 
 // CountRunners takes a map of product references and returns a count of all the runners
-func CountRunners(products map[string]*Product) int {
+func CountRunners(products map[Name]*Product) int {
 	var count int
 	for _, product := range products {
 		count += len(product.Runners)

@@ -132,7 +132,7 @@ func TestCopyIncludes(t *testing.T) {
 func TestRunProducts(t *testing.T) {
 	l := hclog.Default()
 	pCfg := product.Config{OS: "auto"}
-	p := make(map[string]*product.Product)
+	p := make(map[product.Name]*product.Product)
 	a := NewAgent(Config{}, hclog.Default())
 	a.products = p
 	p["host"] = product.NewHost(l, pCfg)
@@ -146,7 +146,7 @@ func TestRunProducts(t *testing.T) {
 func TestAgent_RecordManifest(t *testing.T) {
 	t.Run("adds to ManifestOps when ops exist", func(t *testing.T) {
 		// Setup
-		testProduct := "host"
+		testProduct := product.Host
 		testResults := map[string]op.Op{
 			"": {},
 		}
