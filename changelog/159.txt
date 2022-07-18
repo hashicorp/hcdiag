@@ -1,0 +1,6 @@
+```release-note:improvement
+hcl: Extract HCL package to prepare for additional HCL configuration options.
+```
+```release-note:improvement
+hcl: Migrate customRunners creation to the HCL package to enable adding more runners to HCL.
+```
