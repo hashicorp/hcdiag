@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/hcdiag/hcl"
+
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/go-hclog"
@@ -33,6 +35,7 @@ type Config struct {
 	OS            string
 	DebugDuration time.Duration
 	DebugInterval time.Duration
+	HCL           *hcl.Product
 }
 
 type Product struct {
@@ -105,4 +108,21 @@ func CountRunners(products map[Name]*Product) int {
 		count += len(product.Runners)
 	}
 	return count
+}
+
+// DestructureHCL takes the collection of products and assigns them to vars
+func DestructureHCL(products []*hcl.Product) (consulHCL, nomadHCL, tfeHCL, vaultHCL *hcl.Product) {
+	for _, p := range products {
+		switch p.Name {
+		case string(Consul):
+			consulHCL = p
+		case string(Nomad):
+			nomadHCL = p
+		case string(TFE):
+			tfeHCL = p
+		case string(Vault):
+			vaultHCL = p
+		}
+	}
+	return consulHCL, nomadHCL, tfeHCL, vaultHCL
 }

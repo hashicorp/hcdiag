@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/hashicorp/hcdiag/hcl"
+
 	"github.com/hashicorp/go-hclog"
 
 	logs "github.com/hashicorp/hcdiag/runner/log"
@@ -19,26 +21,35 @@ const (
 
 // NewVault takes a product config and creates a Product containing all of Vault's ops.
 func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
+	product := &Product{
+		l:      logger.Named("product"),
+		Name:   Vault,
+		Config: cfg,
+	}
 	api, err := client.NewVaultAPI()
 	if err != nil {
 		return nil, err
 	}
 
-	runners, err := VaultRunners(cfg, api)
+	product.Runners, err = vaultRunners(cfg, api)
 	if err != nil {
 		return nil, err
 	}
-	return &Product{
-		l:       logger.Named("product"),
-		Name:    Vault,
-		Runners: runners,
-		Config:  cfg,
-	}, nil
+	if cfg.HCL != nil {
+		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api)
+		if err != nil {
+			return nil, err
+		}
+		product.Runners = append(product.Runners, hclRunners...)
+		product.Excludes = cfg.HCL.Excludes
+		product.Selects = cfg.HCL.Selects
+	}
+
+	return product, nil
 }
 
-// TODO(mkcp): doccomment
-// VaultRunners ...
-func VaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
+// vaultRunners provides a list of default runners to inspect vault
+func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
 		runner.NewCommander("vault version", "string"),
 		runner.NewCommander("vault status -format=json", "json"),

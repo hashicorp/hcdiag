@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/hcdiag/hcl"
+
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/go-hclog"
@@ -135,9 +137,11 @@ func TestRunProducts(t *testing.T) {
 	p := make(map[product.Name]*product.Product)
 	a := NewAgent(Config{}, hclog.Default())
 	a.products = p
-	p["host"] = product.NewHost(l, pCfg)
+	h, err := product.NewHost(l, pCfg, &hcl.Host{})
+	assert.NoError(t, err)
+	p[product.Host] = h
 
-	err := a.RunProducts()
+	err = a.RunProducts()
 	assert.NoError(t, err)
 	assert.Len(t, a.products, 1, "has one product")
 	assert.NotNil(t, a.products["host"], "product is under \"host\" key")

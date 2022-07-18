@@ -3,6 +3,8 @@ package product
 import (
 	"runtime"
 
+	"github.com/hashicorp/hcdiag/hcl"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/runner"
@@ -10,20 +12,33 @@ import (
 )
 
 // NewHost takes a product config and creates a Product containing all of the host's ops.
-func NewHost(logger hclog.Logger, cfg Config) *Product {
-	return &Product{
-		l:       logger.Named("product"),
-		Name:    Host,
-		Runners: HostRunners(cfg.OS),
-		Config:  cfg,
+func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
+	product := &Product{
+		l:      logger.Named("product"),
+		Name:   Host,
+		Config: cfg,
 	}
-}
-
-// HostRunners checks the operating system and passes it into the operations, returning a list of ops to run.
-func HostRunners(os string) []runner.Runner {
-	if os == "auto" {
+	var os string
+	if cfg.OS == "auto" {
 		os = runtime.GOOS
 	}
+	// TODO(mkcp): Host can have an API client now and it would simplify quite a bit.
+	runners := hostRunners(os)
+	if hcl2 != nil {
+		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil)
+		if err != nil {
+			return nil, err
+		}
+		product.Runners = append(product.Runners, hclRunners...)
+		product.Excludes = hcl2.Excludes
+		product.Selects = hcl2.Selects
+	}
+	product.Runners = runners
+	return product, nil
+}
+
+// hostRunners checks the operating system and passes it into the operations, returning a list of ops to run.
+func hostRunners(os string) []runner.Runner {
 	return []runner.Runner{
 		host.NewOS(os),
 		host.NewDisk(),
