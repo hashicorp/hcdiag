@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: Refactor agent.Setup() by migrating HCL runner setup into each product's New<product> function.
+```
