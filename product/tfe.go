@@ -3,30 +3,42 @@ package product
 import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
+	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/runner"
 )
 
-// NewTFE takes a product config and creates a Product containing all of TFE's ops.
+// NewTFE takes a logger and product config, and it creates a Product with all of TFE's default runners.
 func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
+	product := &Product{
+		l:      logger.Named("product"),
+		Name:   TFE,
+		Config: cfg,
+	}
 	api, err := client.NewTFEAPI()
 	if err != nil {
 		return nil, err
 	}
 
-	runners, err := TFERunners(cfg, api)
+	product.Runners, err = tfeRunners(cfg, api)
 	if err != nil {
 		return nil, err
 	}
-	return &Product{
-		l:       logger.Named("product"),
-		Name:    TFE,
-		Runners: runners,
-		Config:  cfg,
-	}, nil
+
+	if cfg.HCL != nil {
+		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api)
+		if err != nil {
+			return nil, err
+		}
+		product.Runners = append(product.Runners, hclRunners...)
+		product.Excludes = cfg.HCL.Excludes
+		product.Selects = cfg.HCL.Selects
+	}
+
+	return product, nil
 }
 
-// TFERunners configures a set of default runners for TFE.
-func TFERunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
+// tfeRunners configures a set of default runners for TFE.
+func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	return []runner.Runner{
 		runner.NewCommander("replicatedctl support-bundle", "string"),
 

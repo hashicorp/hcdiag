@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/hcdiag/hcl"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
@@ -19,8 +21,13 @@ const (
 	NomadDebugInterval = 30 * time.Second
 )
 
-// NewNomad takes a product config and creates a Product with all of Nomad's default ops
+// NewNomad takes a logger and product config, and it creates a Product with all of Nomad's default runners.
 func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
+	product := &Product{
+		l:      logger.Named("product"),
+		Name:   Nomad,
+		Config: cfg,
+	}
 	api, err := client.NewNomadAPI()
 	if err != nil {
 		return nil, err
@@ -36,22 +43,26 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	if DefaultInterval == cfg.DebugInterval {
 		cfg.DebugInterval = NomadDebugInterval
 	}
-	ops, err := NomadRunners(cfg, api)
+	product.Runners, err = nomadRunners(cfg, api)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Product{
-		l:       logger.Named("product"),
-		Name:    Nomad,
-		Runners: ops,
-		Config:  cfg,
-	}, nil
+	if cfg.HCL != nil {
+		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api)
+		if err != nil {
+			return nil, err
+		}
+		product.Runners = append(product.Runners, hclRunners...)
+		product.Excludes = cfg.HCL.Excludes
+		product.Selects = cfg.HCL.Selects
+	}
+
+	return product, nil
 }
 
-// FIXME(mkcp): doccment
-// NomadRunners ...
-func NomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
+// nomadRunners generates a slice of runners to inspect nomad
+func nomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
 		runner.NewCommander("nomad version", "string"),
 		runner.NewCommander("nomad node status -self -json", "json"),

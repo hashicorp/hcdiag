@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -17,7 +18,6 @@ import (
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/product"
 	"github.com/hashicorp/hcdiag/runner"
 	"github.com/hashicorp/hcdiag/util"
@@ -49,8 +49,8 @@ type Config struct {
 // Agent stores the runtime state that we use throughout the Agent's lifecycle.
 type Agent struct {
 	l           hclog.Logger
-	products    map[string]*product.Product
-	results     map[string]map[string]op.Op
+	products    map[product.Name]*product.Product
+	results     map[product.Name]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
 	Start       time.Time       `json:"started_at"`
@@ -66,8 +66,9 @@ type Agent struct {
 func NewAgent(config Config, logger hclog.Logger) *Agent {
 	return &Agent{
 		l:           logger,
-		results:     make(map[string]map[string]op.Op),
 		Config:      config,
+		results:     make(map[product.Name]map[string]op.Op),
+		products:    make(map[product.Name]*product.Product),
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
 	}
@@ -302,7 +303,7 @@ func (a *Agent) RunProducts() error {
 	wg.Add(len(a.products))
 
 	// NOTE(mkcp): Wraps product.Run(), writes to the a.results map, then counts up the results
-	run := func(wg *sync.WaitGroup, name string, product *product.Product) {
+	run := func(wg *sync.WaitGroup, name product.Name, product *product.Product) {
 		result := product.Run()
 
 		// Write results
@@ -345,7 +346,7 @@ func (a *Agent) RecordManifest() {
 				Error:  o.ErrString,
 				Status: o.Status,
 			}
-			a.ManifestOps[name] = append(a.ManifestOps[name], m)
+			a.ManifestOps[string(name)] = append(a.ManifestOps[string(name)], m)
 		}
 	}
 }
@@ -419,25 +420,18 @@ func (a *Agent) CheckAvailable() error {
 	return nil
 }
 
-// Setup is a mess, plsfix
+// Setup instantiates each enabled product for the run. We compose product-specific configuration with the shared config
+// that each product needs to build its runners.
 func (a *Agent) Setup() error {
-	var consulHCL, nomadHCL, tfeHCL, vaultHCL *hcl.Product
-
-	// Destructure the HCL.Products collection into vars for downstream processing
-	for _, p := range a.Config.HCL.Products {
-		switch p.Name {
-		case product.Consul:
-			consulHCL = p
-		case product.Nomad:
-			nomadHCL = p
-		case product.TFE:
-			tfeHCL = p
-		case product.Vault:
-			vaultHCL = p
-		}
+	if a.products == nil {
+		return errors.New("agent.products is nil")
 	}
 
-	cfg := product.Config{
+	// Convert the slice of HCL products into a map we can read entries from directly
+	hclProducts := hcl.ProductsMap(a.Config.HCL.Products)
+
+	// Create the base config that we copy into each product
+	baseCfg := product.Config{
 		TmpDir:        a.tmpDir,
 		Since:         a.Config.Since,
 		Until:         a.Config.Until,
@@ -446,100 +440,51 @@ func (a *Agent) Setup() error {
 		DebugInterval: a.Config.DebugInterval,
 	}
 
-	// Store our products
-	a.products = make(map[string]*product.Product)
-
+	// Build Consul and assign it to the product map.
 	if a.Config.Consul {
+		cfg := baseCfg
+		cfg.HCL = hclProducts["consul"]
 		newConsul, err := product.NewConsul(a.l, cfg)
 		if err != nil {
 			return err
 		}
-		if consulHCL != nil {
-			c, err := client.NewConsulAPI()
-			if err != nil {
-				return err
-			}
-			customRunners, err := hcl.BuildRunners(consulHCL, a.tmpDir, c)
-			if err != nil {
-				return err
-			}
-			newConsul.Runners = append(newConsul.Runners, customRunners...)
-			newConsul.Excludes = consulHCL.Excludes
-			newConsul.Selects = consulHCL.Selects
-		}
 		a.products[product.Consul] = newConsul
-
 	}
+	// Build Nomad and assign it to the product map.
 	if a.Config.Nomad {
+		cfg := baseCfg
+		cfg.HCL = hclProducts["nomad"]
 		newNomad, err := product.NewNomad(a.l, cfg)
 		if err != nil {
 			return err
 		}
-		if nomadHCL != nil {
-			c, err := client.NewConsulAPI()
-			if err != nil {
-				return err
-			}
-			customRunners, err := hcl.BuildRunners(nomadHCL, a.tmpDir, c)
-			if err != nil {
-				return err
-			}
-			newNomad.Runners = append(newNomad.Runners, customRunners...)
-			newNomad.Excludes = nomadHCL.Excludes
-			newNomad.Selects = nomadHCL.Selects
-		}
 		a.products[product.Nomad] = newNomad
 	}
+	// Build TFE and assign it to the product map.
 	if a.Config.TFE {
+		cfg := baseCfg
+		cfg.HCL = hclProducts["terraform-ent"]
 		newTFE, err := product.NewTFE(a.l, cfg)
 		if err != nil {
 			return err
 		}
-		if tfeHCL != nil {
-			c, err := client.NewTFEAPI()
-			if err != nil {
-				return err
-			}
-			customRunners, err := hcl.BuildRunners(tfeHCL, a.tmpDir, c)
-			if err != nil {
-				return err
-			}
-			newTFE.Runners = append(newTFE.Runners, customRunners...)
-			newTFE.Excludes = tfeHCL.Excludes
-			newTFE.Selects = tfeHCL.Selects
-		}
 		a.products[product.TFE] = newTFE
 	}
+	// Build Vault and assign it to the product map.
 	if a.Config.Vault {
+		cfg := baseCfg
+		cfg.HCL = hclProducts["vault"]
 		newVault, err := product.NewVault(a.l, cfg)
 		if err != nil {
 			return err
 		}
-		if vaultHCL != nil {
-			c, err := client.NewVaultAPI()
-			if err != nil {
-				return err
-			}
-			customRunners, err := hcl.BuildRunners(vaultHCL, a.tmpDir, c)
-			if err != nil {
-				return err
-			}
-			newVault.Runners = append(newVault.Runners, customRunners...)
-			newVault.Excludes = vaultHCL.Excludes
-			newVault.Selects = vaultHCL.Selects
-		}
 		a.products[product.Vault] = newVault
 	}
 
-	newHost := product.NewHost(a.l, cfg)
-	if a.Config.HCL.Host != nil {
-		customRunners, err := hcl.BuildRunners(a.Config.HCL.Host, a.tmpDir, nil)
-		if err != nil {
-			return err
-		}
-		newHost.Runners = append(newHost.Runners, customRunners...)
-		newHost.Excludes = a.Config.HCL.Host.Excludes
-		newHost.Selects = a.Config.HCL.Host.Selects
+	// Build host and assign it to the product map.
+	newHost, err := product.NewHost(a.l, baseCfg, a.Config.HCL.Host)
+	if err != nil {
+		return err
 	}
 	a.products[product.Host] = newHost
 
