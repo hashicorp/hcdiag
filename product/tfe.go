@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/hcdiag/runner"
 )
 
-// NewTFE takes a product config and creates a Product containing all of TFE's ops.
+// NewTFE takes a logger and product config, and it creates a Product with all of TFE's default ops.
 func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	product := &Product{
 		l:      logger.Named("product"),

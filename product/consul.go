@@ -48,7 +48,7 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 	return product, nil
 }
 
-// consulRunners generates a slice of ops to inspect consul
+// consulRunners generates a slice of runners to inspect consul.
 func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
 		runner.NewCommander("consul version", "string"),
