@@ -21,7 +21,7 @@ const (
 	NomadDebugInterval = 30 * time.Second
 )
 
-// NewNomad takes a logger and product config, and it creates a Product with all of Nomad's default ops.
+// NewNomad takes a logger and product config, and it creates a Product with all of Nomad's default runners.
 func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	product := &Product{
 		l:      logger.Named("product"),

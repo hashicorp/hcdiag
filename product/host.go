@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/hcdiag/runner/host"
 )
 
-// NewHost takes a logger, config, and HCL, and it creates a Product with all the host's default ops.
+// NewHost takes a logger, config, and HCL, and it creates a Product with all the host's default runners.
 func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
 	product := &Product{
 		l:      logger.Named("product"),
