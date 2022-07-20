@@ -107,20 +107,3 @@ func CountRunners(products map[Name]*Product) int {
 	}
 	return count
 }
-
-// DestructureHCL takes the collection of products and assigns them to vars.
-func DestructureHCL(products []*hcl.Product) (consulHCL, nomadHCL, tfeHCL, vaultHCL *hcl.Product) {
-	for _, p := range products {
-		switch p.Name {
-		case string(Consul):
-			consulHCL = p
-		case string(Nomad):
-			nomadHCL = p
-		case string(TFE):
-			tfeHCL = p
-		case string(Vault):
-			vaultHCL = p
-		}
-	}
-	return consulHCL, nomadHCL, tfeHCL, vaultHCL
-}

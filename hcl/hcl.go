@@ -164,3 +164,12 @@ func mapProductGETs(cfgs []GET, c *client.APIClient) []runner.Runner {
 	}
 	return runners
 }
+
+// ProductsMap takes the collection of products and returns a map that keys each product to its Name.
+func ProductsMap(products []*Product) map[string]*Product {
+	m := make(map[string]*Product)
+	for _, p := range products {
+		m[p.Name] = p
+	}
+	return m
+}

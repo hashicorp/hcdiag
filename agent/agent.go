@@ -420,15 +420,15 @@ func (a *Agent) CheckAvailable() error {
 	return nil
 }
 
-// Setup is a mess, plsfix
+// Setup instantiates each enabled product for the run. We compose product-specific configuration with the shared config
+// that each product needs to build its runners.
 func (a *Agent) Setup() error {
 	if a.products == nil {
 		return errors.New("agent.products is nil")
 	}
 
-	// Destructure the slice of HCL configs into vars
-	// TODO(mkcp): This is kinda janky
-	consulHCL, nomadHCL, tfeHCL, vaultHCL := product.DestructureHCL(a.Config.HCL.Products)
+	// Convert the slice of HCL products into a map we can read entries from directly
+	hclProducts := hcl.ProductsMap(a.Config.HCL.Products)
 
 	// Create the base config that we copy into each product
 	baseCfg := product.Config{
@@ -443,7 +443,7 @@ func (a *Agent) Setup() error {
 	// Build Consul and assign it to the product map.
 	if a.Config.Consul {
 		cfg := baseCfg
-		cfg.HCL = consulHCL
+		cfg.HCL = hclProducts["consul"]
 		newConsul, err := product.NewConsul(a.l, cfg)
 		if err != nil {
 			return err
@@ -453,7 +453,7 @@ func (a *Agent) Setup() error {
 	// Build Nomad and assign it to the product map.
 	if a.Config.Nomad {
 		cfg := baseCfg
-		cfg.HCL = nomadHCL
+		cfg.HCL = hclProducts["nomad"]
 		newNomad, err := product.NewNomad(a.l, cfg)
 		if err != nil {
 			return err
@@ -463,7 +463,7 @@ func (a *Agent) Setup() error {
 	// Build TFE and assign it to the product map.
 	if a.Config.TFE {
 		cfg := baseCfg
-		cfg.HCL = tfeHCL
+		cfg.HCL = hclProducts["terraform-ent"]
 		newTFE, err := product.NewTFE(a.l, cfg)
 		if err != nil {
 			return err
@@ -473,7 +473,7 @@ func (a *Agent) Setup() error {
 	// Build Vault and assign it to the product map.
 	if a.Config.Vault {
 		cfg := baseCfg
-		cfg.HCL = vaultHCL
+		cfg.HCL = hclProducts["vault"]
 		newVault, err := product.NewVault(a.l, cfg)
 		if err != nil {
 			return err
