@@ -37,7 +37,7 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 	return product, nil
 }
 
-// hostRunners checks the operating system and passes it into the operations, returning a list of ops to run.
+// hostRunners generates a slice of runners to inspect the host.
 func hostRunners(os string) []runner.Runner {
 	return []runner.Runner{
 		host.NewOS(os),
