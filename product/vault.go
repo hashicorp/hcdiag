@@ -19,7 +19,7 @@ const (
 	VaultAgentCheck  = "vault status"
 )
 
-// NewVault takes a product config and creates a Product containing all of Vault's ops.
+// NewVault takes a product config and creates a Product containing all of Vault's runners.
 func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 	product := &Product{
 		l:      logger.Named("product"),
@@ -48,7 +48,7 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 	return product, nil
 }
 
-// vaultRunners provides a list of default runners to inspect vault
+// vaultRunners provides a list of default runners to inspect vault.
 func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
 		runner.NewCommander("vault version", "string"),

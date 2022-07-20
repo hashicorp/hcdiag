@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/hcdiag/runner"
 )
 
-// NewTFE takes a logger and product config, and it creates a Product with all of TFE's default ops.
+// NewTFE takes a logger and product config, and it creates a Product with all of TFE's default runners.
 func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	product := &Product{
 		l:      logger.Named("product"),
@@ -19,7 +19,7 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 
-	product.Runners, err = TFERunners(cfg, api)
+	product.Runners, err = tfeRunners(cfg, api)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,8 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	return product, nil
 }
 
-// TFERunners configures a set of default runners for TFE.
-func TFERunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
+// tfeRunners configures a set of default runners for TFE.
+func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	return []runner.Runner{
 		runner.NewCommander("replicatedctl support-bundle", "string"),
 

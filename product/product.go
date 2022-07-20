@@ -47,15 +47,13 @@ type Product struct {
 	Config   Config
 }
 
-// Run iterates over the list of ops in a product and stores each runner into a map.
+// Run iterates over the list of runners in a product and returns a map of runner IDs to Ops.
 func (p *Product) Run() map[string]op.Op {
 	p.l.Info("Running operations for", "product", p.Name)
 	results := make(map[string]op.Op)
 	for _, r := range p.Runners {
 		p.l.Info("running operation", "product", p.Name, "runner", r.ID())
 		o := r.Run()
-		// NOTE(mkcp): There's nothing stopping Run() from being called multiple times, so we'll copy the runner off the product once it's done.
-		// TODO(mkcp): It would be nice if we got an immutable runner result type back from runner runs instead.
 		results[r.ID()] = o
 		// Note runner errors to users and keep going.
 		if o.Error != nil {
@@ -69,7 +67,7 @@ func (p *Product) Run() map[string]op.Op {
 	return results
 }
 
-// Filter applies our slices of exclude and select runner.Identifier matchers to the set of the product's ops
+// Filter applies our slices of exclude and select runner.ID() matchers to the set of the product's runners.
 func (p *Product) Filter() error {
 	if p.Runners == nil {
 		p.Runners = []runner.Runner{}
@@ -101,7 +99,7 @@ func CommanderHealthCheck(client, agent string) error {
 	return nil
 }
 
-// CountRunners takes a map of product references and returns a count of all the runners
+// CountRunners takes a map of product references and returns a count of all the runners.
 func CountRunners(products map[Name]*Product) int {
 	var count int
 	for _, product := range products {
@@ -110,7 +108,7 @@ func CountRunners(products map[Name]*Product) int {
 	return count
 }
 
-// DestructureHCL takes the collection of products and assigns them to vars
+// DestructureHCL takes the collection of products and assigns them to vars.
 func DestructureHCL(products []*hcl.Product) (consulHCL, nomadHCL, tfeHCL, vaultHCL *hcl.Product) {
 	for _, p := range products {
 		switch p.Name {
