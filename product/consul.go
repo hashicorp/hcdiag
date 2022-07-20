@@ -18,7 +18,7 @@ const (
 	ConsulAgentCheck  = "consul info"
 )
 
-// NewConsul takes a logger, config, and HCL and creates a Product with all of Consul's default ops.
+// NewConsul takes a logger and product config, and it creates a Product with all of Consul's default ops.
 func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 	product := &Product{
 		l:      logger.Named("product"),
