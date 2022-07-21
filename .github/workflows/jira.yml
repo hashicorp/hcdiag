@@ -51,10 +51,9 @@ jobs:
           issuetype: "${{ steps.set-ticket-type.outputs.type }}"
           summary: "${{ github.event.repository.name }} [${{ steps.set-ticket-type.outputs.type }} #${{ github.event.issue.number || github.event.pull_request.number }}]: ${{ github.event.issue.title || github.event.pull_request.title }}"
           description: "${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"
-          # customfield_10091 is "Team (R&D)", customfield_10371 is "Source", customfield_10089 is "Issue Link" (use JIRA API to retrieve)
-          extraFields: '{ "customfield_10089": "${{ github.event.issue.html_url || github.event.pull_request.html_url }}",
-                          "customfield_10091": ["customer-connections"],
-                          "customfield_10371": { "value": "${{ steps.set-ticket-source.outputs.source }}" } }'
+          # customfield_10089 is "Issue Link", customfield_10371 is "Source" (use JIRA API to retrieve)
+          extraFields: "{ "customfield_10089": "${{ github.event.issue.html_url || github.event.pull_request.html_url }}",
+                          "customfield_10371": { "value": "${{ steps.set-ticket-source.outputs.source }}" } }"
 
       - name: Search
         if: github.event.action != 'opened'
