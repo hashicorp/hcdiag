@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/runner"
 	"github.com/hashicorp/hcdiag/runner/host"
+	"github.com/hashicorp/hcdiag/runner/log"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 	"time"
 )
@@ -19,22 +20,26 @@ type Blocks interface {
 }
 
 type Host struct {
-	Commands []Command `hcl:"command,block"`
-	Shells   []Shell   `hcl:"shell,block"`
-	GETs     []GET     `hcl:"GET,block"`
-	Copies   []Copy    `hcl:"copy,block"`
-	Excludes []string  `hcl:"excludes,optional"`
-	Selects  []string  `hcl:"selects,optional"`
+	Commands     []Command     `hcl:"command,block"`
+	Shells       []Shell       `hcl:"shell,block"`
+	GETs         []GET         `hcl:"GET,block"`
+	Copies       []Copy        `hcl:"copy,block"`
+	DockerLogs   []DockerLog   `hcl:"docker-log,block"`
+	JournaldLogs []JournaldLog `hcl:"journald-log,block"`
+	Excludes     []string      `hcl:"excludes,optional"`
+	Selects      []string      `hcl:"selects,optional"`
 }
 
 type Product struct {
-	Name     string    `hcl:"name,label"`
-	Commands []Command `hcl:"command,block"`
-	Shells   []Shell   `hcl:"shell,block"`
-	GETs     []GET     `hcl:"GET,block"`
-	Copies   []Copy    `hcl:"copy,block"`
-	Excludes []string  `hcl:"excludes,optional"`
-	Selects  []string  `hcl:"selects,optional"`
+	Name         string        `hcl:"name,label"`
+	Commands     []Command     `hcl:"command,block"`
+	Shells       []Shell       `hcl:"shell,block"`
+	GETs         []GET         `hcl:"GET,block"`
+	Copies       []Copy        `hcl:"copy,block"`
+	DockerLogs   []DockerLog   `hcl:"docker-log,block"`
+	JournaldLogs []JournaldLog `hcl:"journald-log,block"`
+	Excludes     []string      `hcl:"excludes,optional"`
+	Selects      []string      `hcl:"selects,optional"`
 }
 
 type Command struct {
@@ -55,6 +60,18 @@ type Copy struct {
 	Since string `hcl:"since,optional"`
 }
 
+type DockerLog struct {
+	Container string        `hcl:"container"`
+	Dest      string        `hcl:"dest,optional"`
+	Since     time.Duration `hcl:"since,optional"`
+}
+
+type JournaldLog struct {
+	Service string        `hcl:"service"`
+	Dest    string        `hcl:"dest,optional"`
+	Since   time.Duration `hcl:"since,optional"`
+}
+
 // Parse takes a file path and decodes the file from disk into HCL types.
 func Parse(path string) (HCL, error) {
 	var h HCL
@@ -68,7 +85,7 @@ func Parse(path string) (HCL, error) {
 // BuildRunners steps through the HCLConfig structs and maps each runner config type to the corresponding New<Runner> function.
 // All custom runners are reduced into a linear slice of runners and served back up to the product.
 // No runners are returned if any config is invalid.
-func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient) ([]runner.Runner, error) {
+func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since, until time.Time) ([]runner.Runner, error) {
 	var dest string
 	runners := make([]runner.Runner, 0)
 	switch cfg := any(config).(type) {
@@ -89,6 +106,10 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient) ([]run
 			return nil, err
 		}
 		runners = append(runners, copiers...)
+
+		// Build docker and journald logs
+		runners = append(runners, mapDockerLogs(cfg.DockerLogs, dest, since)...)
+		runners = append(runners, mapJournaldLogs(cfg.JournaldLogs, dest, since, until)...)
 
 		// Build commanders and shellers
 		runners = append(runners, mapCommands(cfg.Commands)...)
@@ -113,6 +134,10 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient) ([]run
 			return nil, err
 		}
 		runners = append(runners, copiers...)
+
+		// Build docker and journald logs
+		runners = append(runners, mapDockerLogs(cfg.DockerLogs, dest, since)...)
+		runners = append(runners, mapJournaldLogs(cfg.JournaldLogs, dest, since, until)...)
 
 		// Build commanders and shellers
 		runners = append(runners, mapCommands(cfg.Commands)...)
@@ -161,6 +186,42 @@ func mapProductGETs(cfgs []GET, c *client.APIClient) []runner.Runner {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
 		runners[i] = runner.NewHTTPer(c, g.Path)
+	}
+	return runners
+}
+
+func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time) []runner.Runner {
+	runners := make([]runner.Runner, len(cfgs))
+
+	for i, d := range cfgs {
+		if d.Dest != "" {
+			dest = d.Dest
+		}
+		if d.Since != 0 {
+			// TODO(mkcp): Adding an agent.Now would help us pass an absolute now into this function. There's a subtle
+			//  bug: different runners have different now values but it's unlikely to ever cause an issues for users.
+			since = time.Now().Add(-d.Since)
+		}
+		runners[i] = log.NewDocker(d.Container, dest, since)
+	}
+	return runners
+}
+
+func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time) []runner.Runner {
+	runners := make([]runner.Runner, len(cfgs))
+
+	for i, j := range cfgs {
+		if j.Dest != "" {
+			dest = j.Dest
+		}
+		if j.Since != 0 {
+			// TODO(mkcp): Adding an agent.Now would help us pass an absolute now into this function. There's a subtle
+			//  bug: different runners have different now values but it's unlikely to ever cause an issues for users.
+			now := time.Now()
+			since = now.Add(-j.Since)
+			until = time.Time{}
+		}
+		runners[i] = log.NewJournald(j.Service, dest, since, until)
 	}
 	return runners
 }

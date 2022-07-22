@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcdiag/runner"
 
@@ -135,12 +136,14 @@ func Test_ParseHCL(t *testing.T) {
 	}
 }
 
-func Test_BuildRunners(t *testing.T) {
+func TestBuildRunners(t *testing.T) {
 	testCases := []struct {
 		name   string
 		hcl    HCL
 		client *client.APIClient
 		tmpDir string
+		since  time.Time
+		until  time.Time
 		expect int
 	}{
 		{
@@ -203,17 +206,136 @@ func Test_BuildRunners(t *testing.T) {
 			if 0 < len(products) {
 				runners := make([]runner.Runner, 0)
 				for _, product := range products {
-					pRunners, err := BuildRunners(product, tc.tmpDir, tc.client)
+					pRunners, err := BuildRunners(product, tc.tmpDir, tc.client, tc.since, tc.until)
 					assert.NoError(t, err)
 					runners = append(runners, pRunners...)
 				}
 				assert.Len(t, runners, tc.expect)
 			}
 			if host != nil {
-				hostRunners, err := BuildRunners(host, tc.tmpDir, tc.client)
+				hostRunners, err := BuildRunners(host, tc.tmpDir, tc.client, tc.since, tc.until)
 				assert.NoError(t, err)
 				assert.Len(t, hostRunners, tc.expect)
 			}
 		})
+	}
+}
+
+func TestMapDockerLogs(t *testing.T) {
+	defaultDest := "/some/path"
+	defaultSince := time.Now()
+	testDuration, _ := time.ParseDuration("48h")
+
+	cases := []struct {
+		name     string
+		config   []DockerLog
+		expected int
+	}{
+		{
+			name:     "none",
+			config:   []DockerLog{},
+			expected: 0,
+		},
+		{
+			name: "only service name",
+			config: []DockerLog{
+				{Container: "testService"},
+			},
+			expected: 1,
+		},
+		{
+			name: "all attrs",
+			config: []DockerLog{
+				{
+					Container: "testService",
+					Dest:      "/my/new-destination",
+					Since:     testDuration,
+				},
+			},
+			expected: 1,
+		},
+		{
+			name: "multi-runners with multi-attrs",
+			config: []DockerLog{
+				{
+					Container: "testService",
+					Dest:      "/my/new-destination",
+					Since:     testDuration,
+				},
+				{
+					Container: "testService",
+				},
+				{
+					Container: "testService2",
+					Dest:      "/my/wacky-destination",
+				},
+			},
+			expected: 3,
+		},
+	}
+
+	for _, tc := range cases {
+		runners := mapDockerLogs(tc.config, defaultDest, defaultSince)
+		assert.Len(t, runners, tc.expected)
+	}
+}
+
+func TestMapJournaldLogs(t *testing.T) {
+	defaultDest := "/some/path"
+	defaultSince := time.Now()
+	defaultUntil := time.Time{}
+	testDuration, _ := time.ParseDuration("48h")
+
+	cases := []struct {
+		name     string
+		config   []JournaldLog
+		expected int
+	}{
+		{
+			name:     "none",
+			config:   []JournaldLog{},
+			expected: 0,
+		},
+		{
+			name: "only service name",
+			config: []JournaldLog{
+				{Service: "testService"},
+			},
+			expected: 1,
+		},
+		{
+			name: "all attrs",
+			config: []JournaldLog{
+				{
+					Service: "testService",
+					Dest:    "/my/new-destination",
+					Since:   testDuration,
+				},
+			},
+			expected: 1,
+		},
+		{
+			name: "multi-runners with multi-attrs",
+			config: []JournaldLog{
+				{
+					Service: "testService",
+					Dest:    "/my/new-destination",
+					Since:   testDuration,
+				},
+				{
+					Service: "testService",
+				},
+				{
+					Service: "testService2",
+					Dest:    "/my/wacky-destination",
+				},
+			},
+			expected: 3,
+		},
+	}
+
+	for _, tc := range cases {
+		runners := mapJournaldLogs(tc.config, defaultDest, defaultSince, defaultUntil)
+		assert.Len(t, runners, tc.expected)
 	}
 }
