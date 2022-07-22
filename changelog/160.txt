@@ -1,0 +1,3 @@
+```release-note:improvement
+runner: The Processes runner now gives more detailed process information: process name, PID, and PPID.
+```
