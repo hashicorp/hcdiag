@@ -61,15 +61,15 @@ type Copy struct {
 }
 
 type DockerLog struct {
-	Container string        `hcl:"container"`
-	Dest      string        `hcl:"dest,optional"`
-	Since     time.Duration `hcl:"since,optional"`
+	Container string `hcl:"container"`
+	Dest      string `hcl:"dest,optional"`
+	Since     string `hcl:"since,optional"`
 }
 
 type JournaldLog struct {
-	Service string        `hcl:"service"`
-	Dest    string        `hcl:"dest,optional"`
-	Since   time.Duration `hcl:"since,optional"`
+	Service string `hcl:"service"`
+	Dest    string `hcl:"dest,optional"`
+	Since   string `hcl:"since,optional"`
 }
 
 // Parse takes a file path and decodes the file from disk into HCL types.
@@ -108,8 +108,16 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, copiers...)
 
 		// Build docker and journald logs
-		runners = append(runners, mapDockerLogs(cfg.DockerLogs, dest, since)...)
-		runners = append(runners, mapJournaldLogs(cfg.JournaldLogs, dest, since, until)...)
+		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, dockerLogs...)
+		journaldLogs, err := mapJournaldLogs(cfg.JournaldLogs, dest, since, until)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, journaldLogs...)
 
 		// Build commanders and shellers
 		runners = append(runners, mapCommands(cfg.Commands)...)
@@ -136,8 +144,16 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, copiers...)
 
 		// Build docker and journald logs
-		runners = append(runners, mapDockerLogs(cfg.DockerLogs, dest, since)...)
-		runners = append(runners, mapJournaldLogs(cfg.JournaldLogs, dest, since, until)...)
+		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, dockerLogs...)
+		journaldLogs, err := mapJournaldLogs(cfg.JournaldLogs, dest, since, until)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, journaldLogs...)
 
 		// Build commanders and shellers
 		runners = append(runners, mapCommands(cfg.Commands)...)
@@ -190,40 +206,48 @@ func mapProductGETs(cfgs []GET, c *client.APIClient) []runner.Runner {
 	return runners
 }
 
-func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time) []runner.Runner {
+func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, d := range cfgs {
 		if d.Dest != "" {
 			dest = d.Dest
 		}
-		if d.Since != 0 {
+		if d.Since != "" {
+			dur, err := time.ParseDuration(d.Since)
+			if err != nil {
+				return nil, err
+			}
 			// TODO(mkcp): Adding an agent.Now would help us pass an absolute now into this function. There's a subtle
 			//  bug: different runners have different now values but it's unlikely to ever cause an issues for users.
-			since = time.Now().Add(-d.Since)
+			since = time.Now().Add(-dur)
 		}
 		runners[i] = log.NewDocker(d.Container, dest, since)
 	}
-	return runners
+	return runners, nil
 }
 
-func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time) []runner.Runner {
+func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, j := range cfgs {
 		if j.Dest != "" {
 			dest = j.Dest
 		}
-		if j.Since != 0 {
+		if j.Since != "" {
+			dur, err := time.ParseDuration(j.Since)
+			if err != nil {
+				return nil, err
+			}
 			// TODO(mkcp): Adding an agent.Now would help us pass an absolute now into this function. There's a subtle
 			//  bug: different runners have different now values but it's unlikely to ever cause an issues for users.
 			now := time.Now()
-			since = now.Add(-j.Since)
+			since = now.Add(dur)
 			until = time.Time{}
 		}
 		runners[i] = log.NewJournald(j.Service, dest, since, until)
 	}
-	return runners
+	return runners, nil
 }
 
 // ProductsMap takes the collection of products and returns a map that keys each product to its Name.

@@ -224,7 +224,7 @@ func TestBuildRunners(t *testing.T) {
 func TestMapDockerLogs(t *testing.T) {
 	defaultDest := "/some/path"
 	defaultSince := time.Now()
-	testDuration, _ := time.ParseDuration("48h")
+	testDuration := "48h"
 
 	cases := []struct {
 		name     string
@@ -275,7 +275,8 @@ func TestMapDockerLogs(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		runners := mapDockerLogs(tc.config, defaultDest, defaultSince)
+		runners, err := mapDockerLogs(tc.config, defaultDest, defaultSince)
+		assert.NoError(t, err)
 		assert.Len(t, runners, tc.expected)
 	}
 }
@@ -284,7 +285,7 @@ func TestMapJournaldLogs(t *testing.T) {
 	defaultDest := "/some/path"
 	defaultSince := time.Now()
 	defaultUntil := time.Time{}
-	testDuration, _ := time.ParseDuration("48h")
+	testDuration := "48h"
 
 	cases := []struct {
 		name     string
@@ -335,7 +336,8 @@ func TestMapJournaldLogs(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		runners := mapJournaldLogs(tc.config, defaultDest, defaultSince, defaultUntil)
+		runners, err := mapJournaldLogs(tc.config, defaultDest, defaultSince, defaultUntil)
+		assert.NoError(t, err)
 		assert.Len(t, runners, tc.expected)
 	}
 }
