@@ -1,0 +1,3 @@
+```release-note:improvement
+HCL: Add docker-log and journald-log runners to HCL.
+```
