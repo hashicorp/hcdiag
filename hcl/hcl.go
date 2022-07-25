@@ -42,22 +42,31 @@ type Product struct {
 	Selects      []string      `hcl:"selects,optional"`
 }
 
+type Redact struct {
+	Name    string `hcl:"name,label"`
+	Replace string `hcl:"replace,optional"`
+}
+
 type Command struct {
-	Run    string `hcl:"run"`
-	Format string `hcl:"format"`
+	Run        string   `hcl:"run"`
+	Format     string   `hcl:"format"`
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 type Shell struct {
-	Run string `hcl:"run"`
+	Run        string   `hcl:"run"`
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 type GET struct {
-	Path string `hcl:"path"`
+	Path       string   `hcl:"path"`
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 type Copy struct {
-	Path  string `hcl:"path"`
-	Since string `hcl:"since,optional"`
+	Path       string   `hcl:"path"`
+	Since      string   `hcl:"since,optional"`
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 type DockerLog struct {
