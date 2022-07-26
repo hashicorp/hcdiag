@@ -1,0 +1,3 @@
+```release-note:improvement
+op: Add "skip" status for things that were intentionally skipped.
+```
