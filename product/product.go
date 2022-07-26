@@ -61,19 +61,22 @@ func (p *Product) Run() map[string]op.Op {
 			case op.Fail:
 				// TODO(dcohen) This should be p.l.Error, but that outputs an "Error:" line which breaks the test-functional github workflow
 				p.l.Warn("result",
-					"runner", r.ID(),
+					"runner", o.Identifier,
+					"status", o.Status,
 					"result", fmt.Sprintf("%s", o.Result),
 					"error", o.Error,
 				)
 			case op.Unknown:
 				p.l.Warn("result",
-					"runner", r.ID(),
+					"runner", o.Identifier,
+					"status", o.Status,
 					"result", fmt.Sprintf("%s", o.Result),
 					"error", o.Error,
 				)
 			case op.Skip:
 				p.l.Info("result",
-					"runner", r.ID(),
+					"runner", o.Identifier,
+					"status", o.Status,
 					"result", fmt.Sprintf("%s", o.Result),
 					"error", o.Error,
 				)
