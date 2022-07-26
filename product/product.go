@@ -59,7 +59,8 @@ func (p *Product) Run() map[string]op.Op {
 		if o.Error != nil {
 			switch o.Status {
 			case op.Fail:
-				p.l.Error("result",
+				// TODO(dcohen) This should be p.l.Error, but that outputs an "Error:" line which breaks the test-functional github workflow
+				p.l.Warn("result",
 					"runner", r.ID(),
 					"result", fmt.Sprintf("%s", o.Result),
 					"error", o.Error,
