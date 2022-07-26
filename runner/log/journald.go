@@ -45,7 +45,7 @@ func (j Journald) Run() op.Op {
 	o := runner.NewCommander(cmd, "string").Run()
 	if o.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.Service, "output", o.Result, "error", o.Error)
-		return op.New(j.ID(), o.Result, op.Fail, JournaldServiceNotEnabled{
+		return op.New(j.ID(), o.Result, op.Skip, JournaldServiceNotEnabled{
 			service: j.Service,
 			command: cmd,
 			result:  fmt.Sprintf("%s", o.Result),

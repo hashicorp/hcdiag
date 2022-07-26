@@ -32,8 +32,7 @@ func (r IPTables) ID() string {
 
 func (r IPTables) Run() op.Op {
 	if runtime.GOOS != "linux" {
-		// TODO(mkcp): use skip status once available
-		return op.New(r.ID(), nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS), runner.Params(r))
+		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS), runner.Params(r))
 	}
 	result := make(map[string]string)
 	for _, c := range r.Commands {

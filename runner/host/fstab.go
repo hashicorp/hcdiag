@@ -29,8 +29,7 @@ func (r FSTab) ID() string {
 func (r FSTab) Run() op.Op {
 	// Only Linux is supported currently; Windows is unsupported, and Darwin doesn't use /etc/fstab by default.
 	if r.OS != "linux" {
-		// TODO(nwchandler): This should be op.Status("skip") once we implement it
-		return op.New(r.ID(), nil, op.Success, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.OS), runner.Params(r))
+		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.OS), runner.Params(r))
 	}
 	o := r.Sheller.Run()
 	if o.Error != nil {
