@@ -1,3 +1,6 @@
 ```release-note:improvement
 op: Add "skip" status for things that were intentionally skipped.
 ```
+```release-note:improvement
+log/journald: check if journald present on system; otherwise skip
+```
