@@ -48,7 +48,7 @@ func TestFSTab_Run(t *testing.T) {
 				OS: "windows",
 			},
 			expected: response{
-				status:    op.Success,
+				status:    op.Skip,
 				expectErr: true,
 			},
 		},
@@ -58,7 +58,7 @@ func TestFSTab_Run(t *testing.T) {
 				OS: "darwin",
 			},
 			expected: response{
-				status:    op.Success,
+				status:    op.Skip,
 				expectErr: true,
 			},
 		},
