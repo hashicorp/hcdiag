@@ -40,9 +40,18 @@ func (j Journald) ID() string {
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func (j Journald) Run() op.Op {
+	o := runner.NewSheller("journalctl --version").Run()
+	if o.Error != nil {
+		return op.New(j.ID(), o.Result, op.Skip, JournaldNotFound{
+			service: j.Service,
+			err:     o.Error,
+		},
+			runner.Params(j))
+	}
+
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
-	o := runner.NewCommander(cmd, "string").Run()
+	o = runner.NewCommander(cmd, "string").Run()
 	if o.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.Service, "output", o.Result, "error", o.Error)
 		return op.New(j.ID(), o.Result, op.Skip, JournaldServiceNotEnabled{
@@ -124,5 +133,18 @@ func (e JournaldPermissionError) Error() string {
 }
 
 func (e JournaldPermissionError) Unwrap() error {
+	return e.err
+}
+
+type JournaldNotFound struct {
+	service string
+	err     error
+}
+
+func (e JournaldNotFound) Error() string {
+	return fmt.Sprintf("journald not found on this system, service=%s, error=%s", e.service, e.err)
+}
+
+func (e JournaldNotFound) Unwrap() error {
 	return e.err
 }
