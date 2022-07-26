@@ -28,9 +28,8 @@ func (r EtcHosts) ID() string {
 func (r EtcHosts) Run() op.Op {
 	// Not compatible with windows
 	if r.OS == "windows" {
-		// TODO(mkcp): This should be op.Status("skip") once we implement it
 		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.OS)
-		return op.New(r.ID(), nil, op.Success, err, runner.Params(r))
+		return op.New(r.ID(), nil, op.Skip, err, runner.Params(r))
 	}
 	s := runner.NewSheller("cat /etc/hosts").Run()
 	if s.Error != nil {

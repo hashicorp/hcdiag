@@ -10,12 +10,17 @@ type Status string
 const (
 	// Success means all systems green
 	Success Status = "success"
+
 	// Fail means that we detected a known error and can conclusively say that the runner did not complete.
 	Fail Status = "fail"
+
 	// Unknown means that we detected an error and the result is indeterminate (e.g. some side effect like disk or
 	//   network may or may not have completed) or we don't recognize the error. If we don't recognize the error that's
 	//   a signal to improve the error handling to account for it.
 	Unknown Status = "unknown"
+
+	// Skip means that this Op was intentionally not run
+	Skip Status = "skip"
 )
 
 // Op seeks information via its Runner then stores the results.

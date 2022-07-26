@@ -251,3 +251,25 @@ func EnsureDirectory(dir string) error {
 
 	return nil
 }
+
+// Colorize colorizes text output for the terminal using a color you specify.
+func Colorize(color string, text string) string {
+	reset := "\033[0m"
+
+	var colorSelect = map[string]string{
+		"red":    "\033[31m",
+		"green":  "\033[32m",
+		"yellow": "\033[33m",
+		"blue":   "\033[34m",
+		"purple": "\033[35m",
+		"cyan":   "\033[36m",
+		"white":  "\033[37m",
+	}
+
+	chosenColor, ok := colorSelect[color]
+	if !ok {
+		chosenColor = ""
+	}
+
+	return fmt.Sprintf("%s%s%s", chosenColor, text, reset)
+}

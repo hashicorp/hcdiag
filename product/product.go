@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/runner"
+	"github.com/hashicorp/hcdiag/util"
 )
 
 type Name string
@@ -57,11 +58,26 @@ func (p *Product) Run() map[string]op.Op {
 		results[r.ID()] = o
 		// Note runner errors to users and keep going.
 		if o.Error != nil {
-			p.l.Warn("result",
-				"runner", r.ID(),
-				"result", fmt.Sprintf("%s", o.Result),
-				"error", o.Error,
-			)
+			switch o.Status {
+			case op.Fail:
+				p.l.Error("result",
+					"runner", r.ID(),
+					"result", util.Colorize("red", fmt.Sprintf("%s", o.Result)),
+					"error", o.Error,
+				)
+			case op.Unknown:
+				p.l.Warn("result",
+					"runner", r.ID(),
+					"result", util.Colorize("yellow", fmt.Sprintf("%s", o.Result)),
+					"error", o.Error,
+				)
+			case op.Skip:
+				p.l.Info("result",
+					"runner", r.ID(),
+					"result", util.Colorize("white", fmt.Sprintf("%s", o.Result)),
+					"error", o.Error,
+				)
+			}
 		}
 	}
 	return results

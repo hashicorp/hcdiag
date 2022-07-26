@@ -33,8 +33,7 @@ func (p ProcFile) ID() string {
 
 func (p ProcFile) Run() op.Op {
 	if p.OS != "linux" {
-		// TODO(mkcp): Replace status with op.Skip when we implement it
-		return op.New(p.ID(), nil, op.Success, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p))
+		return op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p))
 	}
 	m := make(map[string]interface{})
 	for _, c := range p.Commands {
