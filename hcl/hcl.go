@@ -127,8 +127,17 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, journaldLogs...)
 
 		// Build commanders and shellers
-		runners = append(runners, mapCommands(cfg.Commands)...)
-		runners = append(runners, mapShells(cfg.Shells)...)
+		commands, err := mapCommands(cfg.Commands)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, commands...)
+
+		shells, err := mapShells(cfg.Shells)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, shells...)
 
 	case *Host:
 		// Set and validate the params that are different between Product and Host
@@ -163,32 +172,53 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, journaldLogs...)
 
 		// Build commanders and shellers
-		runners = append(runners, mapCommands(cfg.Commands)...)
-		runners = append(runners, mapShells(cfg.Shells)...)
+		commands, err := mapCommands(cfg.Commands)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, commands...)
+		shells, err := mapShells(cfg.Shells)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, shells...)
 	}
 	return runners, nil
 }
 
-func mapCommands(cfgs []Command) []runner.Runner {
+func mapCommands(cfgs []Command) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
+		err := ValidateRedactions(c.Redactions)
+		if err != nil {
+			return nil, err
+		}
 		runners[i] = runner.NewCommander(c.Run, c.Format)
 	}
-	return runners
+	return runners, nil
 }
 
-func mapShells(cfgs []Shell) []runner.Runner {
+func mapShells(cfgs []Shell) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
+		err := ValidateRedactions(c.Redactions)
+		if err != nil {
+			return nil, err
+		}
 		runners[i] = runner.NewSheller(c.Run)
 	}
-	return runners
+	return runners, nil
 }
 
 func mapCopies(cfgs []Copy, dest string) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		var since time.Time
+
+		err := ValidateRedactions(c.Redactions)
+		if err != nil {
+			return nil, err
+		}
 
 		// Set `from` with a timestamp
 		if c.Since != "" {
@@ -258,4 +288,18 @@ func ProductsMap(products []*Product) map[string]*Product {
 		m[p.Name] = p
 	}
 	return m
+}
+
+// ValidateRedactions takes a slice of redactions and ensures they match valid names.
+func ValidateRedactions(redactions []Redact) error {
+	set := map[string]bool{
+		"regex":   true,
+		"literal": true,
+	}
+	for _, r := range redactions {
+		if !set[r.Name] {
+			return fmt.Errorf("invalid redact, name=%s", r.Name)
+		}
+	}
+	return nil
 }
