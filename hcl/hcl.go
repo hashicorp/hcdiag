@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcdiag/runner/host"
 	"github.com/hashicorp/hcdiag/runner/log"
 	"github.com/hashicorp/hcl/v2/hclsimple"
+	"regexp"
 	"time"
 )
 
@@ -43,7 +44,9 @@ type Product struct {
 }
 
 type Redact struct {
-	Name    string `hcl:"name,label"`
+	Label   string `hcl:"name,label"`
+	ID      string `hcl:"id,optional"`
+	Match   string `hcl:"match"`
 	Replace string `hcl:"replace,optional"`
 }
 
@@ -292,13 +295,17 @@ func ProductsMap(products []*Product) map[string]*Product {
 
 // ValidateRedactions takes a slice of redactions and ensures they match valid names.
 func ValidateRedactions(redactions []Redact) error {
-	set := map[string]bool{
-		"regex":   true,
-		"literal": true,
-	}
 	for _, r := range redactions {
-		if !set[r.Name] {
-			return fmt.Errorf("invalid redact, name=%s", r.Name)
+		switch r.Label {
+		case "regex":
+			_, err := regexp.Compile(r.Match)
+			if err != nil {
+				return fmt.Errorf("could not compile regex, matcher=%s, err=%s", r.Match, err)
+			}
+		case "literal":
+			continue
+		default:
+			return fmt.Errorf("invalid redact name, name=%s", r.Label)
 		}
 	}
 	return nil
