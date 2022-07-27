@@ -234,7 +234,6 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 			return nil, err
 		}
 
-		err := ValidateRedactions(c.Redactions)
 		if err != nil {
 			return nil, err
 		}
