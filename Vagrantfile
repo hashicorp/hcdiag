@@ -9,7 +9,7 @@
 
 Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search
-  config.vm.box = "ubuntu/focal64"
+  config.vm.box = "ubuntu/jammy64"
 
   config.vm.network "forwarded_port", guest: 4646, host: 4646 # nomad
   config.vm.network "forwarded_port", guest: 8200, host: 8200 # vault
@@ -121,6 +121,8 @@ EOF
 
   config.vm.provision "build hcdiag", type: "shell", inline: <<-SHELL
     sudo apt-get install -y build-essential
+    # git is super-careful because this is our repo, mounted into the VM
+    git config --global --add safe.directory /vagrant
     cd /vagrant
     make clean build
   SHELL
