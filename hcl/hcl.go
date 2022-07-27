@@ -53,11 +53,6 @@ type Redact struct {
 	Replace string `hcl:"replace,optional"`
 }
 
-type Redact struct {
-	Name    string `hcl:"name,label"`
-	Replace string `hcl:"replace,optional"`
-}
-
 type Command struct {
 	Run        string   `hcl:"run"`
 	Format     string   `hcl:"format"`
