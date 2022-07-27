@@ -1,0 +1,3 @@
+```release-note:improvement
+redact: Add redact package and Redact type that allows a regex to be applied to a reader and written to a writer.
+```
