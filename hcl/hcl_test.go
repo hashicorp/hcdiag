@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ParseHCL(t *testing.T) {
+func TestParse(t *testing.T) {
 	testCases := []struct {
 		name   string
 		path   string
@@ -333,5 +333,128 @@ func TestMapJournaldLogs(t *testing.T) {
 		runners, err := mapJournaldLogs(tc.config, defaultDest, defaultSince, defaultUntil)
 		assert.NoError(t, err)
 		assert.Len(t, runners, tc.expected)
+	}
+}
+
+func TestValidateRedactions(t *testing.T) {
+	type testCase struct {
+		name       string
+		redactions []Redact
+	}
+	shouldPass := []testCase{
+		{
+			name:       "empty redactions",
+			redactions: []Redact{},
+		},
+		{
+			name: "one literal",
+			redactions: []Redact{
+				{
+					Label: "literal",
+					Match: "something",
+				},
+			},
+		},
+		{
+			name: "many literals",
+			redactions: []Redact{
+				{
+					Label: "literal",
+					ID:    "one",
+					Match: "something",
+				},
+				{
+					Label: "literal",
+					ID:    "two",
+					Match: "something else",
+				},
+			},
+		},
+		{
+			name: "one regex",
+			redactions: []Redact{
+				{
+					Label: "regex",
+					ID:    "reg1",
+					Match: "just a regex",
+				},
+			},
+		},
+		{
+			name: "many regexes",
+			redactions: []Redact{
+				{
+					Label: "regex",
+					ID:    "reg1",
+					Match: "just a regex",
+				},
+				{
+					Label: "regex",
+					ID:    "reg2",
+					Match: "/just a fancy regex/",
+				},
+				{
+					Label: "regex",
+					ID:    "reg3",
+					Match: "^a very fancy (.) regex?",
+				},
+			},
+		},
+		{
+			name: "both regexes and literals",
+			redactions: []Redact{
+				{
+					Label: "regex",
+					ID:    "reg",
+					Match: "just a regex",
+				},
+				{
+					Label: "literal",
+					ID:    "lit",
+					Match: "something",
+				},
+			},
+		},
+	}
+	shouldErr := []testCase{
+		{
+			name: "bad label",
+			redactions: []Redact{
+				{
+					Label: "shouldNotMatchAnyRegexLabel",
+				},
+			},
+		},
+		{
+			name: "one bad regex",
+			redactions: []Redact{
+				{
+					Label: "regex",
+					ID:    "bad-reg-perl-stuff",
+					Match: "\"^/(?!/)(.*?)\"",
+				},
+			},
+		},
+		{
+			name: "good and bad regexes",
+			redactions: []Redact{
+				{
+					Label: "regex",
+					ID:    "the good stuff",
+					Match: "/hello/",
+				},
+				{
+					Label: "regex",
+					ID:    "bad-reg-perl-stuff",
+					Match: "\"^/(?!/)(.*?)\"",
+				},
+			},
+		},
+	}
+	for _, tc := range shouldPass {
+		assert.NoError(t, ValidateRedactions(tc.redactions), tc)
+	}
+	for _, tc := range shouldErr {
+		assert.Error(t, ValidateRedactions(tc.redactions), tc)
 	}
 }
