@@ -234,15 +234,6 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 			return nil, err
 		}
 
-		if err != nil {
-			return nil, err
-		}
-
-		err = ValidateRedactions(c.Redactions)
-		if err != nil {
-			return nil, err
-		}
-
 		// Set `from` with a timestamp
 		if c.Since != "" {
 			sinceDur, err := time.ParseDuration(c.Since)
