@@ -13,7 +13,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     name: Jira sync
-    steps:
+    steps:    
       - name: Login
         uses: atlassian/gajira-login@v2.0.0
         env:
@@ -33,21 +33,42 @@ jobs:
           fi
 
       - name: Set ticket source
+        if: github.event.action == 'opened'
         id: set-ticket-source
         run: |
           if [[ "${{ contains(github.event.issue.labels.*.name, 'support') }}" == "true" ]]; then
             echo "::set-output name=source::Support"
           elif [[ "${{ contains(github.event.issue.labels.*.name, 'field') }}" == "true" ]]; then
             echo "::set-output name=source::Field"
+          elif [[ "${{ contains(github.event.issue.labels.*.name, 'internal') }}" == "true" ]]; then
+            echo "::set-output name=source::Internal"
+          elif [[ "${{ contains(github.event.issue.labels.*.name, 'customer') }}" == "true" ]]; then
+            echo "::set-output name=source::Customer"
           else
             echo "::set-output name=source::GitHub"
           fi
 
+      - name: Check if team member
+        if: github.event.action == 'opened' && steps.set-ticket-type.outputs.type == 'Task'
+        id: is-team-member
+        run: |
+          TEAM=core-instrumentation
+          ROLE="$(hub api orgs/hashicorp/teams/${TEAM}/memberships/${{ github.actor }} | jq -r '.role | select(.!=null)')"
+          if [[ -n ${ROLE} ]]; then
+            echo "Actor ${{ github.actor }} is a ${TEAM} team member"
+            echo "::set-output name=message::true"
+          else
+            echo "Actor ${{ github.actor }} is NOT a ${TEAM} team member"
+            echo "::set-output name=message::false"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.JIRA_SYNC_GITHUB_TOKEN }}
+
       - name: Create ticket
-        if: github.event.action == 'opened'
+        if: ( github.event.action == 'opened' && steps.set-ticket-type.outputs.type != 'Task' ) || ( github.event.action == 'opened' && steps.set-ticket-type.outputs.type == 'Task' && steps.is-team-member.outputs.message == 'false' )
         uses: tomhjp/gh-action-jira-create@v0.1.3
         with:
-          project: DIAG
+          project: HCDIAG
           issuetype: "${{ steps.set-ticket-type.outputs.type }}"
           summary: "${{ github.event.repository.name }} [${{ steps.set-ticket-type.outputs.type }} #${{ github.event.issue.number || github.event.pull_request.number }}]: ${{ github.event.issue.title || github.event.pull_request.title }}"
           description: "${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"
@@ -71,7 +92,7 @@ jobs:
           comment: "${{ github.actor }} ${{ github.event.review.state || 'commented' }}:\n\n${{ github.event.comment.body || github.event.review.body }}\n\n${{ github.event.comment.html_url || github.event.review.html_url }}"
 
       - name: Close ticket
-        if: (github.event.action == 'closed' || github.event.action == 'deleted') && steps.search.outputs.issue
+        if: ( github.event.action == 'closed' || github.event.action == 'deleted' ) && steps.search.outputs.issue
         uses: atlassian/gajira-transition@v2.0.1
         with:
           issue: ${{ steps.search.outputs.issue }}
