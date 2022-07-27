@@ -1,0 +1,3 @@
+```release-note:improvement
+hcl: Add redact blocks to product, host, and runners in HCL.
+```
