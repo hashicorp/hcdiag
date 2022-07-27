@@ -9,7 +9,7 @@
 
 Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search
-  config.vm.box = "ubuntu/focal64"
+  config.vm.box = "ubuntu/jammy64"
 
   config.vm.network "forwarded_port", guest: 4646, host: 4646 # nomad
   config.vm.network "forwarded_port", guest: 8200, host: 8200 # vault
@@ -27,7 +27,7 @@ Vagrant.configure("2") do |config|
   config.vm.provision "install golang", type: "shell", inline: <<-SHELL
     go version 2>/dev/null && exit
     set -xe
-    version=1.17.7
+    version=1.18
     curl -LsSo go$version.tar.gz https://go.dev/dl/go$version.linux-amd64.tar.gz
     tar -C /usr/local -xzf go$version.tar.gz
     echo 'export PATH="/usr/local/go/bin:$PATH"' > /etc/profile.d/golang.sh
@@ -120,6 +120,9 @@ EOF
   SHELL
 
   config.vm.provision "build hcdiag", type: "shell", inline: <<-SHELL
+    sudo apt-get install -y build-essential
+    # git is super-careful because this is our repo, mounted into the VM
+    git config --global --add safe.directory /vagrant
     cd /vagrant
     make clean build
   SHELL

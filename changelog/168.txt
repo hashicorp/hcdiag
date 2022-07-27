@@ -1,0 +1,3 @@
+```release-note:improvement
+upgrade to 22.04, install gcc and use go 1.18 in vagrant VM
+```
