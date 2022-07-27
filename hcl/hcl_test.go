@@ -248,7 +248,6 @@ func TestMapDockerLogs(t *testing.T) {
 			config: []DockerLog{
 				{
 					Container: "testService",
-					Dest:      "/my/new-destination",
 					Since:     testDuration,
 				},
 			},
@@ -259,7 +258,6 @@ func TestMapDockerLogs(t *testing.T) {
 			config: []DockerLog{
 				{
 					Container: "testService",
-					Dest:      "/my/new-destination",
 					Since:     testDuration,
 				},
 				{
@@ -267,7 +265,6 @@ func TestMapDockerLogs(t *testing.T) {
 				},
 				{
 					Container: "testService2",
-					Dest:      "/my/wacky-destination",
 				},
 			},
 			expected: 3,
@@ -309,7 +306,6 @@ func TestMapJournaldLogs(t *testing.T) {
 			config: []JournaldLog{
 				{
 					Service: "testService",
-					Dest:    "/my/new-destination",
 					Since:   testDuration,
 				},
 			},
@@ -320,7 +316,6 @@ func TestMapJournaldLogs(t *testing.T) {
 			config: []JournaldLog{
 				{
 					Service: "testService",
-					Dest:    "/my/new-destination",
 					Since:   testDuration,
 				},
 				{
@@ -328,7 +323,6 @@ func TestMapJournaldLogs(t *testing.T) {
 				},
 				{
 					Service: "testService2",
-					Dest:    "/my/wacky-destination",
 				},
 			},
 			expected: 3,
