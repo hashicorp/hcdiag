@@ -62,13 +62,11 @@ type Copy struct {
 
 type DockerLog struct {
 	Container string `hcl:"container"`
-	Dest      string `hcl:"dest,optional"`
 	Since     string `hcl:"since,optional"`
 }
 
 type JournaldLog struct {
 	Service string `hcl:"service"`
-	Dest    string `hcl:"dest,optional"`
 	Since   string `hcl:"since,optional"`
 }
 
@@ -210,9 +208,6 @@ func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time) ([]runner.Run
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, d := range cfgs {
-		if d.Dest != "" {
-			dest = d.Dest
-		}
 		if d.Since != "" {
 			dur, err := time.ParseDuration(d.Since)
 			if err != nil {
@@ -231,9 +226,6 @@ func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time) ([
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, j := range cfgs {
-		if j.Dest != "" {
-			dest = j.Dest
-		}
 		if j.Since != "" {
 			dur, err := time.ParseDuration(j.Since)
 			if err != nil {
