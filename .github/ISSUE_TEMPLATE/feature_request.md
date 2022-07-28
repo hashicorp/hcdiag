@@ -11,7 +11,7 @@ assignees: aliciaclark1066
 Write a clear and concise description of the problem.
 
 **Who is the audience for this request?**  
-Clarify who the end user is, e.g., Customer Success architect, Terraform Enterprise customer, etc.
+Clarify who the end user is, e.g., Customer Success architect, Terraform Enterprise customer, etc.  
 (Please add appropriate support, field, internal, or customer label, if possible.)
 
 **What would the ideal solution look like?**  
