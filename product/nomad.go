@@ -49,7 +49,7 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	if cfg.HCL != nil {
-		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api)
+		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until)
 		if err != nil {
 			return nil, err
 		}
