@@ -35,19 +35,19 @@ func TestNewRegex(t *testing.T) {
 	}
 }
 
-func TestRegex_Redact(t *testing.T) {
+func TestRedact_Apply(t *testing.T) {
 	tcs := []struct {
 		name    string
 		matcher string
 		input   string
 		expect  string
 	}{
-		// {
-		// 	name:    "empty input",
-		// 	matcher: "/myRegex/",
-		// 	input:   "",
-		// 	expect:  "",
-		// },
+		{
+			name:    "empty input",
+			matcher: "/myRegex/",
+			input:   "",
+			expect:  "",
+		},
 		{
 			name:    "redacts once",
 			matcher: "myRegex",

@@ -37,6 +37,13 @@ func (x Redact) Apply(w io.Writer, r io.Reader) error {
 	if err != nil {
 		return err
 	}
+	if len(bts) == 0 {
+		_, err = w.Write(bts)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	newBts := x.matcher.ReplaceAll(bts, []byte(x.Replace))
 	_, err = w.Write(newBts)
 	if err != nil {
