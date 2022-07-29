@@ -18,7 +18,7 @@ type FSTab struct {
 func NewFSTab(os string) *FSTab {
 	return &FSTab{
 		OS:      os,
-		Sheller: runner.NewSheller("cat /etc/fstab"),
+		Sheller: runner.NewSheller("cat /etc/fstab", nil),
 	}
 }
 

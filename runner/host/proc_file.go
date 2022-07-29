@@ -37,7 +37,7 @@ func (p ProcFile) Run() op.Op {
 	}
 	m := make(map[string]interface{})
 	for _, c := range p.Commands {
-		sheller := runner.NewSheller(c).Run()
+		sheller := runner.NewSheller(c, nil).Run()
 		m[c] = sheller.Result
 		if sheller.Error != nil {
 			return op.New(p.ID(), m, op.Fail, sheller.Error, runner.Params(p))

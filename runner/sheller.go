@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/hashicorp/hcdiag/redact"
+
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/hcdiag/util"
@@ -11,14 +13,16 @@ import (
 
 // Sheller runs shell commands in a real unix shell.
 type Sheller struct {
-	Command string `json:"command"`
-	Shell   string `json:"shell"`
+	Command    string           `json:"command"`
+	Shell      string           `json:"shell"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewSheller provides a runner for arbitrary shell code.
-func NewSheller(command string) *Sheller {
+func NewSheller(command string, redactions []*redact.Redact) *Sheller {
 	return &Sheller{
-		Command: command,
+		Command:    command,
+		Redactions: redactions,
 	}
 }
 
