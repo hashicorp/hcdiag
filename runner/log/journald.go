@@ -40,7 +40,7 @@ func (j Journald) ID() string {
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func (j Journald) Run() op.Op {
-	o := runner.NewSheller("journalctl --version").Run()
+	o := runner.NewSheller("journalctl --version", nil).Run()
 	if o.Error != nil {
 		return op.New(j.ID(), o.Result, op.Skip, JournaldNotFound{
 			service: j.Service,
@@ -51,7 +51,7 @@ func (j Journald) Run() op.Op {
 
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
-	o = runner.NewCommander(cmd, "string").Run()
+	o = runner.NewCommander(cmd, "string", nil).Run()
 	if o.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.Service, "output", o.Result, "error", o.Error)
 		return op.New(j.ID(), o.Result, op.Skip, JournaldServiceNotEnabled{
@@ -65,7 +65,7 @@ func (j Journald) Run() op.Op {
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
-	o = runner.NewSheller(cmd).Run()
+	o = runner.NewSheller(cmd, nil).Run()
 	// permissions error detected
 	if o.Error == nil {
 		return op.New(j.ID(), o.Result, op.Fail, JournaldPermissionError{
@@ -78,7 +78,7 @@ func (j Journald) Run() op.Op {
 	}
 
 	cmd = j.LogsCmd()
-	s := runner.NewSheller(cmd)
+	s := runner.NewSheller(cmd, nil)
 	o = s.Run()
 
 	return op.New(j.ID(), o.Result, o.Status, o.Error, runner.Params(j))

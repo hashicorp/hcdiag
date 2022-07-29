@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/hcdiag/redact"
+
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/hcdiag/util"
@@ -15,22 +17,24 @@ var _ Runner = Copier{}
 
 // Copier copies files to temp dir based on a filter.
 type Copier struct {
-	SourceDir string    `json:"source_directory"`
-	Filter    string    `json:"filter"`
-	DestDir   string    `json:"destination_directory"`
-	Since     time.Time `json:"since"`
-	Until     time.Time `json:"until"`
+	SourceDir  string           `json:"source_directory"`
+	Filter     string           `json:"filter"`
+	DestDir    string           `json:"destination_directory"`
+	Since      time.Time        `json:"since"`
+	Until      time.Time        `json:"until"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewCopier provides a Runner for copying files to temp dir based on a filter.
-func NewCopier(path, destDir string, since, until time.Time) *Copier {
+func NewCopier(path, destDir string, since, until time.Time, redactions []*redact.Redact) *Copier {
 	sourceDir, filter := util.SplitFilepath(path)
 	return &Copier{
-		SourceDir: sourceDir,
-		Filter:    filter,
-		DestDir:   destDir,
-		Since:     since,
-		Until:     until,
+		SourceDir:  sourceDir,
+		Filter:     filter,
+		DestDir:    destDir,
+		Since:      since,
+		Until:      until,
+		Redactions: redactions,
 	}
 }
 

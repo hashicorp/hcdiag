@@ -64,14 +64,14 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 // nomadRunners generates a slice of runners to inspect nomad
 func nomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
-		runner.NewCommander("nomad version", "string"),
-		runner.NewCommander("nomad node status -self -json", "json"),
-		runner.NewCommander("nomad agent-info -json", "json"),
-		runner.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+		runner.NewCommander("nomad version", "string", nil),
+		runner.NewCommander("nomad node status -self -json", "json", nil),
+		runner.NewCommander("nomad agent-info -json", "json", nil),
+		runner.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", nil),
 
-		runner.NewHTTPer(api, "/v1/agent/members?stale=true"),
-		runner.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
-		runner.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
+		runner.NewHTTPer(api, "/v1/agent/members?stale=true", nil),
+		runner.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true", nil),
+		runner.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true", nil),
 
 		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -80,7 +80,7 @@ func nomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs", "nomad")
-		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until)
+		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until, nil)
 		runners = append([]runner.Runner{logCopier}, runners...)
 	}
 

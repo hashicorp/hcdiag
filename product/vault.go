@@ -51,12 +51,12 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 // vaultRunners provides a list of default runners to inspect vault.
 func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
-		runner.NewCommander("vault version", "string"),
-		runner.NewCommander("vault status -format=json", "json"),
-		runner.NewCommander("vault read sys/health -format=json", "json"),
-		runner.NewCommander("vault read sys/seal-status -format=json", "json"),
-		runner.NewCommander("vault read sys/host-info -format=json", "json"),
-		runner.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+		runner.NewCommander("vault version", "string", nil),
+		runner.NewCommander("vault status -format=json", "json", nil),
+		runner.NewCommander("vault read sys/health -format=json", "json", nil),
+		runner.NewCommander("vault read sys/seal-status -format=json", "json", nil),
+		runner.NewCommander("vault read sys/host-info -format=json", "json", nil),
+		runner.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", nil),
 
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -65,7 +65,7 @@ func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/vault")
-		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until)
+		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until, nil)
 		runners = append([]runner.Runner{logCopier}, runners...)
 	}
 
