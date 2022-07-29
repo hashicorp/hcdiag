@@ -76,6 +76,42 @@ func TestRedact_Apply(t *testing.T) {
 	}
 }
 
-func TestLiteral_Redact(t *testing.T) {
+func TestApplyMany(t *testing.T) {
+	var redactions []*Redact
+	matchers := []string{"myRegex", "test", "does not apply"}
+	for _, matcher := range matchers {
+		redact, err := New(matcher, "", "")
+		assert.NoError(t, err)
+		redactions = append(redactions, redact)
+	}
+	tcs := []struct {
+		name   string
+		input  string
+		expect string
+	}{
+		{
+			name:   "empty input",
+			input:  "",
+			expect: "",
+		},
+		{
+			name:   "redacts once",
+			input:  "myRegex",
+			expect: "<REDACTED>",
+		},
+		{
+			name:   "redacts many",
+			input:  "test test_test+test-test\n!test ??test",
+			expect: "<REDACTED> <REDACTED>_<REDACTED>+<REDACTED>-<REDACTED>\n!<REDACTED> ??<REDACTED>",
+		},
+	}
+	for _, tc := range tcs {
+		r := strings.NewReader(tc.input)
+		buf := new(bytes.Buffer)
+		err := ApplyMany(redactions, buf, r)
+		assert.NoError(t, err, tc.name)
 
+		result := buf.String()
+		assert.Equal(t, tc.expect, result, tc.name)
+	}
 }

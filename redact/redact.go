@@ -52,3 +52,32 @@ func (x Redact) Apply(w io.Writer, r io.Reader) error {
 
 	return nil
 }
+
+// ApplyMany takes a slice of redactions and a writer + reader, reading everything in and applying redactions in
+// sequential order before writing. Therefore, each Redact that appears earlier in the list takes precedence over later
+// Redacts. It is possible for redactions to collide with one another if a matcher can match with the Replace string
+// of an earlier Redact.
+func ApplyMany(redactions []*Redact, w io.Writer, r io.Reader) error {
+	var bts []byte
+	var err error
+
+	bts, err = io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	if len(bts) == 0 {
+		_, err = w.Write(bts)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	for _, redact := range redactions {
+		bts = redact.matcher.ReplaceAll(bts, []byte(redact.Replace))
+	}
+	_, err = w.Write(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
