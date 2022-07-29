@@ -3,15 +3,17 @@ package runner
 import (
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
 )
 
 // HTTPer hits APIs.
 type HTTPer struct {
-	Path   string            `json:"path"`
-	Client *client.APIClient `json:"client"`
+	Path       string            `json:"path"`
+	Client     *client.APIClient `json:"client"`
+	Redactions []*redact.Redact  `json:"redactions"`
 }
 
-func NewHTTPer(client *client.APIClient, path string) *HTTPer {
+func NewHTTPer(client *client.APIClient, path string, redactions []*redact.Redact) *HTTPer {
 	return &HTTPer{
 		Client: client,
 		Path:   path,

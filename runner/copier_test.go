@@ -19,6 +19,6 @@ func TestNewCopier(t *testing.T) {
 		Since:     since,
 		Until:     until,
 	}
-	copier := NewCopier(src, dest, since, until)
+	copier := NewCopier(src, dest, since, until, nil)
 	assert.Equal(t, expect, copier)
 }

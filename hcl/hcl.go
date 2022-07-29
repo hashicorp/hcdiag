@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
+	"github.com/hashicorp/hcdiag/redact"
 	"github.com/hashicorp/hcdiag/runner"
 	"github.com/hashicorp/hcdiag/runner/host"
 	"github.com/hashicorp/hcdiag/runner/log"
@@ -201,12 +202,11 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 func mapCommands(cfgs []Command, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
-		redacts := append(redactions, c.Redactions...)
-		err := ValidateRedactions(redacts)
+		redacts, err := mapRedacts(append(redactions, c.Redactions...))
 		if err != nil {
 			return nil, err
 		}
-		runners[i] = runner.NewCommander(c.Run, c.Format)
+		runners[i] = runner.NewCommander(c.Run, c.Format, redacts)
 	}
 	return runners, nil
 }
@@ -214,12 +214,11 @@ func mapCommands(cfgs []Command, redactions []Redact) ([]runner.Runner, error) {
 func mapShells(cfgs []Shell, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
-		redacts := append(redactions, c.Redactions...)
-		err := ValidateRedactions(redacts)
+		redacts, err := mapRedacts(append(redactions, c.Redactions...))
 		if err != nil {
 			return nil, err
 		}
-		runners[i] = runner.NewSheller(c.Run)
+		runners[i] = runner.NewSheller(c.Run, redacts)
 	}
 	return runners, nil
 }
@@ -228,8 +227,7 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		var since time.Time
-		redacts := append(redactions, c.Redactions...)
-		err := ValidateRedactions(redacts)
+		redacts, err := mapRedacts(append(redactions, c.Redactions...))
 		if err != nil {
 			return nil, err
 		}
@@ -244,7 +242,7 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 			// FIXME(mkcp): "Now" should be sourced from the agent to avoid clock sync issues
 			since = time.Now().Add(-sinceDur)
 		}
-		runners[i] = runner.NewCopier(c.Path, dest, since, time.Time{})
+		runners[i] = runner.NewCopier(c.Path, dest, since, time.Time{}, redacts)
 	}
 	return runners, nil
 }
@@ -252,12 +250,11 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 func mapProductGETs(cfgs []GET, redactions []Redact, c *client.APIClient) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
-		redacts := append(redactions, g.Redactions...)
-		err := ValidateRedactions(redacts)
+		redacts, err := mapRedacts(append(redactions, g.Redactions...))
 		if err != nil {
 			return nil, err
 		}
-		runners[i] = runner.NewHTTPer(c, g.Path)
+		runners[i] = runner.NewHTTPer(c, g.Path, redacts)
 	}
 	return runners, nil
 }
@@ -265,14 +262,13 @@ func mapProductGETs(cfgs []GET, redactions []Redact, c *client.APIClient) ([]run
 func mapHostGets(cfgs []GET, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
-		redacts := append(redactions, g.Redactions...)
-		err := ValidateRedactions(redacts)
+		redacts, err := mapRedacts(append(redactions, g.Redactions...))
 		if err != nil {
 			return nil, err
 		}
 
 		// TODO(mkcp): add redactions to host Get
-		runners[i] = host.NewGetter(g.Path)
+		runners[i] = host.NewGetter(g.Path, redacts)
 	}
 	return runners, nil
 }
@@ -322,6 +318,23 @@ func ProductsMap(products []*Product) map[string]*Product {
 		m[p.Name] = p
 	}
 	return m
+}
+
+func mapRedacts(redactions []Redact) ([]*redact.Redact, error) {
+	err := ValidateRedactions(redactions)
+	if err != nil {
+		return nil, err
+	}
+
+	s := make([]*redact.Redact, len(redactions))
+	for i, r := range redactions {
+		red, err := redact.New(r.Match, r.ID, r.Replace)
+		if err != nil {
+			return nil, err
+		}
+		s[i] = red
+	}
+	return s, nil
 }
 
 // ValidateRedactions takes a slice of redactions and ensures they match valid names.
