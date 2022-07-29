@@ -1,9 +1,7 @@
 package runner
 
 import (
-	"bytes"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/op"
@@ -31,7 +29,7 @@ func (h HTTPer) ID() string {
 // Run executes a GET request to the Path using the Client
 func (h HTTPer) Run() op.Op {
 	result, err := h.Client.Get(h.Path)
-	redResult, redErr := h.redact(fmt.Sprint(result))
+	redResult, redErr := redact.String(fmt.Sprint(result), h.Redactions)
 	if err != nil {
 		if redErr != nil {
 			return op.New(h.ID(), nil, op.Fail, redErr, Params(h))
@@ -39,14 +37,4 @@ func (h HTTPer) Run() op.Op {
 		return op.New(h.ID(), redResult, op.Unknown, err, Params(h))
 	}
 	return op.New(h.ID(), redResult, op.Success, nil, Params(h))
-}
-
-func (h HTTPer) redact(result string) (string, error) {
-	r := strings.NewReader(result)
-	buf := new(bytes.Buffer)
-	err := redact.ApplyMany(h.Redactions, buf, r)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
 }
