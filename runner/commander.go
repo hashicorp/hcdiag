@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os/exec"
