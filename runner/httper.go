@@ -17,8 +17,9 @@ type HTTPer struct {
 
 func NewHTTPer(client *client.APIClient, path string, redactions []*redact.Redact) *HTTPer {
 	return &HTTPer{
-		Client: client,
-		Path:   path,
+		Client:     client,
+		Path:       path,
+		Redactions: redactions,
 	}
 }
 
