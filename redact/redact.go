@@ -98,6 +98,18 @@ func String(result string, redactions []*Redact) (string, error) {
 	return buf.String(), nil
 }
 
+// Bytes takes a byte slice and a slice of redactions, and wraps it with a reader and writer to apply the
+// redactions, returning a string back.
+func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
+	r := bytes.NewReader(b)
+	buf := new(bytes.Buffer)
+	err := ApplyMany(redactions, buf, r)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 // File takes src, dest paths and a slice of redactions. It applies redactions line by line, reading from the source and
 // writing to the destination
 // redactions, returning a string back. Returns nil on success, otherwise an error.
