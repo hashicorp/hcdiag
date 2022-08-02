@@ -41,18 +41,21 @@ func (s Sheller) Run() op.Op {
 
 	// Run the command
 	args := []string{"-c", s.Command}
-	bts, err := exec.Command(s.Shell, args...).CombinedOutput()
-	if err != nil {
-		// Return the stdout result even on failure
-		// TODO(mkcp): This is a good place to switch on exec.Command errors and provide better guidance.
-		err1 := ShellExecError{
-			command: s.Command,
-			err:     err,
-		}
-		return op.New(s.ID(), string(bts), op.Unknown, err1, Params(s))
+	bts, cmdErr := exec.Command(s.Shell, args...).CombinedOutput()
+	// Store and redact the result before cmd error handling, so we can return it in error and success cases.
+	redResult, redErr := redact.String(string(bts), s.Redactions)
+	// Fail run if unable to redact
+	if redErr != nil {
+		return op.New(s.ID(), nil, op.Fail, err, Params(s))
 	}
-
-	return op.New(s.ID(), string(bts), op.Success, nil, Params(s))
+	if cmdErr != nil {
+		return op.New(s.ID(), redResult, op.Unknown,
+			ShellExecError{
+				command: s.Command,
+				err:     err,
+			}, Params(s))
+	}
+	return op.New(s.ID(), redResult, op.Success, nil, Params(s))
 }
 
 type ShellExecError struct {
