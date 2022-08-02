@@ -43,19 +43,19 @@ func (s Sheller) Run() op.Op {
 	args := []string{"-c", s.Command}
 	bts, cmdErr := exec.Command(s.Shell, args...).CombinedOutput()
 	// Store and redact the result before cmd error handling, so we can return it in error and success cases.
-	redResult, redErr := redact.String(string(bts), s.Redactions)
+	redBts, redErr := redact.Bytes(bts, s.Redactions)
 	// Fail run if unable to redact
 	if redErr != nil {
-		return op.New(s.ID(), nil, op.Fail, err, Params(s))
+		return op.New(s.ID(), nil, op.Fail, redErr, Params(s))
 	}
 	if cmdErr != nil {
-		return op.New(s.ID(), redResult, op.Unknown,
+		return op.New(s.ID(), string(redBts), op.Unknown,
 			ShellExecError{
 				command: s.Command,
-				err:     err,
+				err:     cmdErr,
 			}, Params(s))
 	}
-	return op.New(s.ID(), redResult, op.Success, nil, Params(s))
+	return op.New(s.ID(), string(redBts), op.Success, nil, Params(s))
 }
 
 type ShellExecError struct {
