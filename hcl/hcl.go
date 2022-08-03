@@ -2,23 +2,31 @@ package hcl
 
 import (
 	"fmt"
+	"regexp"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
+	"github.com/hashicorp/hcdiag/redact"
 	"github.com/hashicorp/hcdiag/runner"
 	"github.com/hashicorp/hcdiag/runner/host"
 	"github.com/hashicorp/hcdiag/runner/log"
 	"github.com/hashicorp/hcl/v2/hclsimple"
-	"regexp"
-	"time"
 )
 
 type HCL struct {
 	Host     *Host      `hcl:"host,block" json:"host"`
 	Products []*Product `hcl:"product,block" json:"products"`
+	Agent    *Agent     `hcl:"agent,block" json:"agent"`
 }
 
 type Blocks interface {
-	*Host | *Product
+	*Host | *Product | *Agent
+}
+
+// Currently just a vehicle to enable agent-level redactions
+type Agent struct {
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 type Host struct {
@@ -219,7 +227,8 @@ func mapShells(cfgs []Shell, redactions []Redact) ([]runner.Runner, error) {
 		if err != nil {
 			return nil, err
 		}
-		runners[i] = runner.NewSheller(c.Run)
+		mappedRedacts, err := mapRedactions(redacts)
+		runners[i] = runner.NewSheller(c.Run, mappedRedacts)
 	}
 	return runners, nil
 }
@@ -341,4 +350,18 @@ func ValidateRedactions(redactions []Redact) error {
 		}
 	}
 	return nil
+}
+
+// Maps HCL redactions to "real" redact.Redacts
+func mapRedactions(redactions []Redact) ([]*redact.Redact, error) {
+	// TODO(dcohen) we probably want to move calls to ValidateRedactions() in here
+	mappedRedactions := make([]*redact.Redact, len(redactions))
+	for i, r := range redactions {
+		redact, err := redact.New(r.Match, r.ID, r.Replace)
+		if err != nil {
+			return nil, err
+		}
+		mappedRedactions[i] = redact
+	}
+	return mappedRedactions, nil
 }

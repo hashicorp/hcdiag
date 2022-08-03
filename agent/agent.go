@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -61,9 +62,15 @@ type Agent struct {
 	Version     version.Version `json:"version"`
 	// ManifestOps holds a slice of ops with a subset of fields so we can safely render them in `manifest.json`
 	ManifestOps map[string][]ManifestOp `json:"ops"`
+	// Agent-level redactions are passed through to all products
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
+	redactions, err := redact.GetDefaultAgentRedactions()
+	if err != nil {
+		logger.Error("problem getting default agent redactions", err)
+	}
 	return &Agent{
 		l:           logger,
 		Config:      config,
@@ -71,6 +78,7 @@ func NewAgent(config Config, logger hclog.Logger) *Agent {
 		products:    make(map[product.Name]*product.Product),
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
+		Redactions:  redactions,
 	}
 }
 
@@ -488,6 +496,26 @@ func (a *Agent) Setup() error {
 	}
 	a.products[product.Host] = newHost
 
+	// Now that we have products built, add agent redactions to all products
+	//   TODO maybe a separate function for this?
+	//   TODO - maybe we don't need redactions on Product?
+	for _, product := range a.products {
+		// append, so that []Redact order is most specific (Runner) to least-specific (Agent)
+		// product.Redactions = append(product.Redactions, a.Redactions...)
+		for _, runner := range product.Runners {
+			// Add all the redactions, in the right order, to each runner
+			// ALL runners need redactions? (NewCommander(), NewSheller() etc.)
+
+			// hcl --> map functions (mapCommands() need to actually attach redacts to whatever runners they create)
+			// after all that is done, the agent (in agent.Setup()) needs to go in and append all agent- and product-level redactions to each runner.Redactions
+			// I'm doing it this way (from the outside) because runners don't have access (from the inside - i.e. Run()) to their products, or the agent
+			collectedRedactions := append(product.Redactions, a.Redactions...)
+			appendToRunnerRedactions(&runner, collectedRedactions)
+
+			// when a runner actually runs (e.g. commander.go --> Run()) we need to apply redactions (? is that the right place? Or later, on op.Result())
+
+		}
+	}
 	return nil
 }
 
@@ -564,4 +592,16 @@ func formatReportLine(cells ...string) string {
 	format += "\n"
 
 	return fmt.Sprintf(format, strValues...)
+}
+
+// A function that takes a pointer to a (generic) Runner type and adds Agent- and Product-level redactions to it
+// I've chosen pointer semantics so that we don't need to know our runner's type outside this function
+func appendToRunnerRedactions[R *runner.Runner](runner R, redactions []*redact.Redact) {
+	switch r := any(runner).(type) {
+	case *runner.Sheller:
+		r.Redactions = append(r.Redactions, redactions)
+		fmt.Println("DCOHENDELETE: Found a Sheller! Added redactions.")
+	default:
+		fmt.Println("DCOHENDELETE: We're looking at a non-Sheller runner; not adding any redactions yet!")
+	}
 }

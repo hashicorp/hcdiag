@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -39,12 +40,13 @@ type Config struct {
 }
 
 type Product struct {
-	l        hclog.Logger
-	Name     Name
-	Runners  []runner.Runner
-	Excludes []string
-	Selects  []string
-	Config   Config
+	l          hclog.Logger
+	Name       Name
+	Runners    []runner.Runner
+	Excludes   []string
+	Selects    []string
+	Config     Config
+	Redactions []*redact.Redact
 }
 
 // Run iterates over the list of runners in a product and returns a map of runner IDs to Ops.
