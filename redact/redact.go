@@ -1,12 +1,10 @@
 package redact
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/md5"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -188,33 +186,4 @@ func redactMap(m map[string]any, redactions []*Redact) (map[string]any, error) {
 		}
 	}
 	return m, nil
-}
-
-// File takes src, dest paths and a slice of redactions. It applies redactions line by line, reading from the source and
-// writing to the destination
-// redactions, returning a string back. Returns nil on success, otherwise an error.
-func File(src, dest string, redactions []*Redact) error {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-	destFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer destFile.Close()
-	scanner := bufio.NewScanner(srcFile)
-	// Scan, redact, and write each line of the src file
-	for scanner.Scan() {
-		res, err := String(scanner.Text(), redactions)
-		if err != nil {
-			return err
-		}
-		_, err = destFile.Write([]byte(res))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
