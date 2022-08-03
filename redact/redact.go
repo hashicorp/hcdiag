@@ -124,7 +124,7 @@ func JSON(a any, redactions []*Redact) (any, error) {
 		}
 		return r, nil
 	case []any:
-		r, err := redactArray(coll, redactions)
+		r, err := redactSlice(coll, redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +134,7 @@ func JSON(a any, redactions []*Redact) (any, error) {
 	}
 }
 
-func redactArray(a []any, redactions []*Redact) ([]any, error) {
+func redactSlice(a []any, redactions []*Redact) ([]any, error) {
 	for i, v := range a {
 		switch val := v.(type) {
 		case map[string]any:
@@ -144,7 +144,7 @@ func redactArray(a []any, redactions []*Redact) ([]any, error) {
 			}
 			a[i] = res
 		case []any:
-			res, err := redactArray(val, redactions)
+			res, err := redactSlice(val, redactions)
 			if err != nil {
 				return nil, err
 			}
@@ -172,7 +172,7 @@ func redactMap(m map[string]any, redactions []*Redact) (map[string]any, error) {
 			}
 			m[k] = res
 		case []any:
-			res, err := redactArray(val, redactions)
+			res, err := redactSlice(val, redactions)
 			if err != nil {
 				return nil, err
 			}
