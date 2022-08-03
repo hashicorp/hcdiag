@@ -73,7 +73,7 @@ func nomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),
 		runner.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true"),
 
-		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since),
+		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until),
 	}
 

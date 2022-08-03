@@ -438,6 +438,20 @@ func (a *Agent) Setup() error {
 	// Convert the slice of HCL products into a map we can read entries from directly
 	hclProducts := hcl.ProductsMap(a.Config.HCL.Products)
 
+	// Map agent redactions from HCL onto our defaults
+	redactions, err := hcl.MapRedactions(a.Config.HCL.Agent.Redactions)
+	if err != nil {
+		a.l.Error("problem mapping Agent redactions from HCL.")
+		redactions = make([]*redact.Redact, 0)
+	}
+	// Append agent defaults; HCL takes priority
+	a.Redactions = append(redactions, a.Redactions...)
+
+	fmt.Println("DCOHENDELETEME: finished ingesting default/HCL redactions in Agent.Setup():")
+	for _, r := range a.Redactions {
+		fmt.Printf("%s : %s\n", r.ID, r.Replace)
+	}
+
 	// Create the base config that we copy into each product
 	baseCfg := product.Config{
 		TmpDir:        a.tmpDir,

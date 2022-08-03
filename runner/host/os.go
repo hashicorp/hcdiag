@@ -32,6 +32,6 @@ func (o OS) ID() string {
 func (o OS) Run() op.Op {
 	// NOTE(mkcp): This runner can be made consistent between multiple operating systems if we parse the output of
 	//   systeminfo to match uname's scope of concerns.
-	c := runner.NewCommander(o.Command, "string").Run()
+	c := runner.NewCommander(o.Command, "string", dcohenNoRedacts).Run()
 	return op.New(o.ID(), c.Result, c.Status, c.Error, runner.Params(o))
 }

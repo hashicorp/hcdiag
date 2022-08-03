@@ -68,7 +68,7 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewHTTPer(api, "/v1/status/leader"),
 		runner.NewHTTPer(api, "/v1/status/peers"),
 
-		logs.NewDocker("consul", cfg.TmpDir, cfg.Since),
+		logs.NewDocker("consul", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until),
 	}
 
@@ -87,14 +87,17 @@ func getDefaultConsulRedactions() []*redact.Redact {
 	redactions := []struct {
 		name    string
 		matcher string
+		replace string
 	}{
 		{
 			name:    "consul",
 			matcher: "/consul/",
+			replace: "consul-product-default-redactions",
 		},
 		{
 			name:    "consul",
 			matcher: "consul",
+			replace: "consul-product-default-redactions",
 		},
 		{
 			name:    "consul",

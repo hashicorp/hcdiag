@@ -6,14 +6,17 @@ func GetDefaultAgentRedactions() ([]*Redact, error) {
 	redactions := []struct {
 		name    string
 		matcher string
+		replace string
 	}{
 		{
 			name:    "empty input",
 			matcher: "/myRegex/",
+			replace: "agentdefault-test-replace",
 		},
 		{
 			name:    "redacts once",
 			matcher: "myRegex",
+			replace: "agentdefault-test-replace",
 		},
 		{
 			name:    "redacts many",
@@ -21,7 +24,7 @@ func GetDefaultAgentRedactions() ([]*Redact, error) {
 		},
 	}
 	for _, redaction := range redactions {
-		redact, err := New(redaction.matcher, "", "")
+		redact, err := New(redaction.matcher, "", redaction.replace)
 		if err != nil {
 			// If there's an issue, return an empty slice so that we can just ignore agent redactions
 			return make([]*Redact, 0), err

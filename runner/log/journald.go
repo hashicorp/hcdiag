@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/runner"
 
@@ -12,6 +13,7 @@ import (
 )
 
 var _ runner.Runner = Journald{}
+var dcohenNoRedacts = make([]*redact.Redact, 0)
 
 // JournaldTimeLayout custom go time layouts must match the reference time Jan 2 15:04:05 2006 MST
 const JournaldTimeLayout = "2006-01-02 15:04:05"
@@ -40,7 +42,7 @@ func (j Journald) ID() string {
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func (j Journald) Run() op.Op {
-	o := runner.NewSheller("journalctl --version").Run()
+	o := runner.NewSheller("journalctl --version", dcohenNoRedacts).Run()
 	if o.Error != nil {
 		return op.New(j.ID(), o.Result, op.Skip, JournaldNotFound{
 			service: j.Service,
@@ -51,7 +53,7 @@ func (j Journald) Run() op.Op {
 
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
-	o = runner.NewCommander(cmd, "string").Run()
+	o = runner.NewCommander(cmd, "string", dcohenNoRedacts).Run()
 	if o.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.Service, "output", o.Result, "error", o.Error)
 		return op.New(j.ID(), o.Result, op.Skip, JournaldServiceNotEnabled{
@@ -65,7 +67,7 @@ func (j Journald) Run() op.Op {
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
-	o = runner.NewSheller(cmd).Run()
+	o = runner.NewSheller(cmd, dcohenNoRedacts).Run()
 	// permissions error detected
 	if o.Error == nil {
 		return op.New(j.ID(), o.Result, op.Fail, JournaldPermissionError{
@@ -78,7 +80,7 @@ func (j Journald) Run() op.Op {
 	}
 
 	cmd = j.LogsCmd()
-	s := runner.NewSheller(cmd)
+	s := runner.NewSheller(cmd, dcohenNoRedacts)
 	o = s.Run()
 
 	return op.New(j.ID(), o.Result, o.Status, o.Error, runner.Params(j))

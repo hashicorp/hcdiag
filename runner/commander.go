@@ -43,6 +43,11 @@ func (c Commander) Run() op.Op {
 
 	// TODO(mkcp): Add cross-platform commandExists() func to ensure there's a bin we can call
 
+	fmt.Println("DCOHENDELETEME: arrived at a Commander. Redactions:")
+	for _, r := range c.Redactions {
+		fmt.Printf("%s : %s\n", r.ID, r.Replace)
+	}
+
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {

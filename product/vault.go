@@ -51,14 +51,14 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 // vaultRunners provides a list of default runners to inspect vault.
 func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
-		runner.NewCommander("vault version", "string"),
-		runner.NewCommander("vault status -format=json", "json"),
-		runner.NewCommander("vault read sys/health -format=json", "json"),
-		runner.NewCommander("vault read sys/seal-status -format=json", "json"),
-		runner.NewCommander("vault read sys/host-info -format=json", "json"),
-		runner.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+		runner.NewCommander("vault version", "string", cfg.Redactions),
+		runner.NewCommander("vault status -format=json", "json", cfg.Redactions),
+		runner.NewCommander("vault read sys/health -format=json", "json", cfg.Redactions),
+		runner.NewCommander("vault read sys/seal-status -format=json", "json", cfg.Redactions),
+		runner.NewCommander("vault read sys/host-info -format=json", "json", cfg.Redactions),
+		runner.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
-		logs.NewDocker("vault", cfg.TmpDir, cfg.Since),
+		logs.NewDocker("vault", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until),
 	}
 

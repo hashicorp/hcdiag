@@ -36,7 +36,7 @@ func (r IPTables) Run() op.Op {
 	}
 	result := make(map[string]string)
 	for _, c := range r.Commands {
-		o := runner.NewCommander(c, "string").Run()
+		o := runner.NewCommander(c, "string", dcohenNoRedacts).Run()
 		result[c] = o.Result.(string)
 		if o.Error != nil {
 			return op.New(r.ID(), result, op.Fail, o.Error, runner.Params(r))

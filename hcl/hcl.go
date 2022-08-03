@@ -84,8 +84,9 @@ type Copy struct {
 }
 
 type DockerLog struct {
-	Container string `hcl:"container"`
-	Since     string `hcl:"since,optional"`
+	Container  string   `hcl:"container"`
+	Since      string   `hcl:"since,optional"`
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 type JournaldLog struct {
@@ -133,7 +134,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, copiers...)
 
 		// Build docker and journald logs
-		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since)
+		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +181,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, copiers...)
 
 		// Build docker and journald logs
-		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since)
+		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +215,7 @@ func mapCommands(cfgs []Command, redactions []Redact) ([]runner.Runner, error) {
 		if err != nil {
 			return nil, err
 		}
-		mappedRedacts, err := mapRedactions(redacts)
+		mappedRedacts, err := MapRedactions(redacts)
 		runners[i] = runner.NewCommander(c.Run, c.Format, mappedRedacts)
 	}
 	return runners, nil
@@ -228,7 +229,8 @@ func mapShells(cfgs []Shell, redactions []Redact) ([]runner.Runner, error) {
 		if err != nil {
 			return nil, err
 		}
-		mappedRedacts, err := mapRedactions(redacts)
+		// TODO(dcohen) error handling
+		mappedRedacts, _ := MapRedactions(redacts)
 		runners[i] = runner.NewSheller(c.Run, mappedRedacts)
 	}
 	return runners, nil
@@ -287,10 +289,11 @@ func mapHostGets(cfgs []GET, redactions []Redact) ([]runner.Runner, error) {
 	return runners, nil
 }
 
-func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time) ([]runner.Runner, error) {
+func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, d := range cfgs {
+		redacts := append(redactions, d.Redactions...)
 		if d.Since != "" {
 			dur, err := time.ParseDuration(d.Since)
 			if err != nil {
@@ -300,7 +303,14 @@ func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time) ([]runner.Run
 			//  bug: different runners have different now values but it's unlikely to ever cause an issues for users.
 			since = time.Now().Add(-dur)
 		}
-		runners[i] = log.NewDocker(d.Container, dest, since)
+
+		err := ValidateRedactions(redacts)
+		if err != nil {
+			return nil, err
+		}
+		// TODO(dcohen) error handling
+		mappedRedacts, _ := MapRedactions(redacts)
+		runners[i] = log.NewDocker(d.Container, dest, since, mappedRedacts)
 	}
 	return runners, nil
 }
@@ -354,7 +364,9 @@ func ValidateRedactions(redactions []Redact) error {
 }
 
 // Maps HCL redactions to "real" redact.Redacts
-func mapRedactions(redactions []Redact) ([]*redact.Redact, error) {
+// TODO(dcohen): I've made this public, so that agent.Setup() can use it to map HCL agent redactions
+// there must be a better way.
+func MapRedactions(redactions []Redact) ([]*redact.Redact, error) {
 	// TODO(dcohen) we probably want to move calls to ValidateRedactions() in here
 	mappedRedactions := make([]*redact.Redact, len(redactions))
 	for i, r := range redactions {

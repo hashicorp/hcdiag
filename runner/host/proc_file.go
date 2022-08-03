@@ -4,11 +4,13 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/runner"
 )
 
 var _ runner.Runner = ProcFile{}
+var dcohenNoRedacts = make([]*redact.Redact, 0)
 
 type ProcFile struct {
 	OS       string   `json:"os"`
@@ -37,7 +39,7 @@ func (p ProcFile) Run() op.Op {
 	}
 	m := make(map[string]interface{})
 	for _, c := range p.Commands {
-		sheller := runner.NewSheller(c).Run()
+		sheller := runner.NewSheller(c, dcohenNoRedacts).Run()
 		m[c] = sheller.Result
 		if sheller.Error != nil {
 			return op.New(p.ID(), m, op.Fail, sheller.Error, runner.Params(p))

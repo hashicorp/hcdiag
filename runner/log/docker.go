@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/runner"
 )
@@ -12,11 +13,12 @@ import (
 var _ runner.Runner = Docker{}
 
 // NewDocker returns a runner with an identifier and fully configured docker runner
-func NewDocker(container, destDir string, since time.Time) *Docker {
+func NewDocker(container, destDir string, since time.Time, redactions []*redact.Redact) *Docker {
 	return &Docker{
-		Container: container,
-		DestDir:   destDir,
-		Since:     since,
+		Container:  container,
+		DestDir:    destDir,
+		Since:      since,
+		Redactions: redactions,
 	}
 }
 
@@ -27,7 +29,8 @@ type Docker struct {
 	// DestDir is the directory we will write the logs to
 	DestDir string `json:"destDir"`
 	// Since marks the beginning of the time range to include logs
-	Since time.Time `json:"since"`
+	Since      time.Time        `json:"since"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 func (d Docker) ID() string {
@@ -37,7 +40,7 @@ func (d Docker) ID() string {
 // Run executes the runner
 func (d Docker) Run() op.Op {
 	// Check that docker exists
-	o := runner.NewSheller("docker version").Run()
+	o := runner.NewSheller("docker version", d.Redactions).Run()
 	if o.Error != nil {
 		return op.New(d.ID(), o.Result, op.Fail, DockerNotFoundError{
 			container: d.Container,
@@ -48,7 +51,7 @@ func (d Docker) Run() op.Op {
 
 	// Retrieve logs
 	cmd := DockerLogCmd(d.Container, d.DestDir, d.Since)
-	o = runner.NewSheller(cmd).Run()
+	o = runner.NewSheller(cmd, d.Redactions).Run()
 	// NOTE(mkcp): If the container does not exist, docker will exit non-zero and it'll surface as a ShellExecError.
 	//  The result actionably states that the container wasn't found. In the future we may want to scrub the result
 	//  and only return an actionable error message
