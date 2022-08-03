@@ -1,27 +1,31 @@
 package runner
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
 
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
 )
 
 var _ Runner = Commander{}
 
 // Commander runs shell commands.
 type Commander struct {
-	Command string `json:"command"`
-	Format  string `json:"format"`
+	Command    string           `json:"command"`
+	Format     string           `json:"format"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewCommander provides a runner for bin commands
-func NewCommander(command string, format string) *Commander {
+func NewCommander(command string, format string, redactions []*redact.Redact) *Commander {
 	return &Commander{
-		Command: command,
-		Format:  format,
+		Command:    command,
+		Format:     format,
+		Redactions: redactions,
 	}
 }
 
@@ -45,6 +49,11 @@ func (c Commander) Run() op.Op {
 		err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
 		return op.New(c.ID(), string(bts), op.Unknown, err1, Params(c))
 	}
+	// Let's Redact (maybe wrap this in a function? We're going to be repeating it a *lot*)
+	r := bytes.NewReader(bts)
+	w := bytes.NewBuffer(make([]byte, 0))
+	// TODO(dcohen) error handling, this is just a POC, nobody get excited
+	_ = redact.ApplyMany(c.Redactions, w, r)
 
 	// Parse result
 	// TODO(mkcp): This can be detected rather than branching on user input

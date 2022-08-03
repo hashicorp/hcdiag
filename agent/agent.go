@@ -446,6 +446,7 @@ func (a *Agent) Setup() error {
 		OS:            a.Config.OS,
 		DebugDuration: a.Config.DebugDuration,
 		DebugInterval: a.Config.DebugInterval,
+		Redactions:    a.Redactions,
 	}
 
 	// Build Consul and assign it to the product map.
@@ -496,26 +497,28 @@ func (a *Agent) Setup() error {
 	}
 	a.products[product.Host] = newHost
 
-	// Now that we have products built, add agent redactions to all products
-	//   TODO maybe a separate function for this?
-	//   TODO - maybe we don't need redactions on Product?
-	for _, product := range a.products {
-		// append, so that []Redact order is most specific (Runner) to least-specific (Agent)
-		// product.Redactions = append(product.Redactions, a.Redactions...)
-		for _, runner := range product.Runners {
-			// Add all the redactions, in the right order, to each runner
-			// ALL runners need redactions? (NewCommander(), NewSheller() etc.)
+	// Old approach (outside-in, once all runners are built)
+	// // Now that we have products built, add agent redactions to all products
+	// //   TODO maybe a separate function for this?
+	// //   TODO - maybe we don't need redactions on Product?
+	// for _, product := range a.products {
+	// 	// append, so that []Redact order is most specific (Runner) to least-specific (Agent)
+	// 	// product.Redactions = append(product.Redactions, a.Redactions...)
+	// 	for _, runner := range product.Runners {
+	// 		// Add all the redactions, in the right order, to each runner
+	// 		// ALL runners need redactions? (NewCommander(), NewSheller() etc.)
 
-			// hcl --> map functions (mapCommands() need to actually attach redacts to whatever runners they create)
-			// after all that is done, the agent (in agent.Setup()) needs to go in and append all agent- and product-level redactions to each runner.Redactions
-			// I'm doing it this way (from the outside) because runners don't have access (from the inside - i.e. Run()) to their products, or the agent
-			collectedRedactions := append(product.Redactions, a.Redactions...)
-			appendToRunnerRedactions(&runner, collectedRedactions)
+	// 		// hcl --> map functions (mapCommands() need to actually attach redacts to whatever runners they create)
+	// 		// after all that is done, the agent (in agent.Setup()) needs to go in and append all agent- and product-level redactions to each runner.Redactions
+	// 		// I'm doing it this way (from the outside) because runners don't have access (from the inside - i.e. Run()) to their products, or the agent
 
-			// when a runner actually runs (e.g. commander.go --> Run()) we need to apply redactions (? is that the right place? Or later, on op.Result())
+	// 		// collectedRedactions := append(product.Redactions, a.Redactions...)
+	// 		// appendToRunnerRedactions(&runner, collectedRedactions)
 
-		}
-	}
+	// 		// when a runner actually runs (e.g. commander.go --> Run()) we need to apply redactions (? is that the right place? Or later, on op.Result())
+
+	// 	}
+	// }
 	return nil
 }
 

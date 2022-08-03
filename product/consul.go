@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -30,6 +31,11 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 
+	// TODO(dcohen) read in product-specific redactions here, prepend(?) to cfg.Redactions
+	defaultRedactions := getDefaultConsulRedactions()
+	// Prepend our default reactions, so we run redactions from most-specific (runner) to least-specific (agent)
+	cfg.Redactions = append(defaultRedactions, cfg.Redactions...)
+
 	product.Runners, err = consulRunners(cfg, api)
 	if err != nil {
 		return nil, err
@@ -51,8 +57,8 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 // consulRunners generates a slice of runners to inspect consul.
 func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
-		runner.NewCommander("consul version", "string"),
-		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+		runner.NewCommander("consul version", "string", cfg.Redactions),
+		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
 		runner.NewHTTPer(api, "/v1/agent/self"),
 		runner.NewHTTPer(api, "/v1/agent/metrics"),
@@ -74,4 +80,35 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	}
 
 	return runners, nil
+}
+
+func getDefaultConsulRedactions() []*redact.Redact {
+	redactions := []struct {
+		name    string
+		matcher string
+	}{
+		{
+			name:    "empty input",
+			matcher: "/myRegex/",
+		},
+		{
+			name:    "redacts once",
+			matcher: "myRegex",
+		},
+		{
+			name:    "redacts many",
+			matcher: "test",
+		},
+	}
+
+	var defaultConsulRedactions = make([]*redact.Redact, len(redactions))
+	for i, redaction := range redactions {
+		redact, err := redact.New(redaction.matcher, "", "")
+		if err != nil {
+			// If there's an issue, return an empty slice so that we can just ignore agent redactions
+			return make([]*redact.Redact, 0)
+		}
+		defaultConsulRedactions[i] = redact
+	}
+	return defaultConsulRedactions
 }
