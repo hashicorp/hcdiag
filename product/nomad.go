@@ -64,10 +64,10 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 // nomadRunners generates a slice of runners to inspect nomad
 func nomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
-		runner.NewCommander("nomad version", "string"),
-		runner.NewCommander("nomad node status -self -json", "json"),
-		runner.NewCommander("nomad agent-info -json", "json"),
-		runner.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+		runner.NewCommander("nomad version", "string", cfg.Redactions),
+		runner.NewCommander("nomad node status -self -json", "json", cfg.Redactions),
+		runner.NewCommander("nomad agent-info -json", "json", cfg.Redactions),
+		runner.NewCommander(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
 		runner.NewHTTPer(api, "/v1/agent/members?stale=true"),
 		runner.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true"),

@@ -214,7 +214,8 @@ func mapCommands(cfgs []Command, redactions []Redact) ([]runner.Runner, error) {
 		if err != nil {
 			return nil, err
 		}
-		runners[i] = runner.NewCommander(c.Run, c.Format)
+		mappedRedacts, err := mapRedactions(redacts)
+		runners[i] = runner.NewCommander(c.Run, c.Format, mappedRedacts)
 	}
 	return runners, nil
 }

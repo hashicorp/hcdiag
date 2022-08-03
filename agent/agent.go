@@ -597,14 +597,14 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// A function that takes a pointer to a (generic) Runner type and adds Agent- and Product-level redactions to it
-// I've chosen pointer semantics so that we don't need to know our runner's type outside this function
-func appendToRunnerRedactions[R *runner.Runner](runner R, redactions []*redact.Redact) {
-	switch r := any(runner).(type) {
-	case *runner.Sheller:
-		r.Redactions = append(r.Redactions, redactions)
-		fmt.Println("DCOHENDELETE: Found a Sheller! Added redactions.")
-	default:
-		fmt.Println("DCOHENDELETE: We're looking at a non-Sheller runner; not adding any redactions yet!")
-	}
-}
+// // A function that takes a pointer to a (generic) Runner type and adds Agent- and Product-level redactions to it
+// // I've chosen pointer semantics so that we don't need to know our runner's type outside this function
+// func appendToRunnerRedactions[R *runner.Runner](runner R, redactions []*redact.Redact) {
+// 	switch r := any(runner).(type) {
+// 	case *runner.Sheller:
+// 		r.Redactions = append(r.Redactions, redactions)
+// 		fmt.Println("DCOHENDELETE: Found a Sheller! Added redactions.")
+// 	default:
+// 		fmt.Println("DCOHENDELETE: We're looking at a non-Sheller runner; not adding any redactions yet!")
+// 	}
+// }

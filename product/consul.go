@@ -31,7 +31,7 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 
-	// TODO(dcohen) read in product-specific redactions here, prepend(?) to cfg.Redactions
+	// Read in product-specific redactions here
 	defaultRedactions := getDefaultConsulRedactions()
 	// Prepend our default reactions, so we run redactions from most-specific (runner) to least-specific (agent)
 	cfg.Redactions = append(defaultRedactions, cfg.Redactions...)
@@ -82,33 +82,34 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	return runners, nil
 }
 
+// getDefaultConsulRedactions returns a slice of default redactions for this product
 func getDefaultConsulRedactions() []*redact.Redact {
 	redactions := []struct {
 		name    string
 		matcher string
 	}{
 		{
-			name:    "empty input",
-			matcher: "/myRegex/",
+			name:    "consul",
+			matcher: "/consul/",
 		},
 		{
-			name:    "redacts once",
-			matcher: "myRegex",
+			name:    "consul",
+			matcher: "consul",
 		},
 		{
-			name:    "redacts many",
-			matcher: "test",
+			name:    "consul",
+			matcher: "consultest",
 		},
 	}
 
 	var defaultConsulRedactions = make([]*redact.Redact, len(redactions))
-	for i, redaction := range redactions {
-		redact, err := redact.New(redaction.matcher, "", "")
+	for i, r := range redactions {
+		redaction, err := redact.New(r.matcher, "", "")
 		if err != nil {
 			// If there's an issue, return an empty slice so that we can just ignore agent redactions
 			return make([]*redact.Redact, 0)
 		}
-		defaultConsulRedactions[i] = redact
+		defaultConsulRedactions[i] = redaction
 	}
 	return defaultConsulRedactions
 }
