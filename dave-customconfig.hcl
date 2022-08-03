@@ -1,8 +1,8 @@
 // bin/hcdiag -autodetect=false -config=dave-customconfig.hcl
 agent {
   redact "literal" {
-    match = "agent"
-    replace = "l'agente, c'est bon!"
+    match = "shazam"
+    replace = "custom config (HCL): agent -> redact"
   }
 }
 
@@ -11,13 +11,18 @@ host {
     run = "ps aux | grep hcdiag"
     format = "string"
     redact "literal" {
-      match = "hcdiag"
-      replace = "fooblarbalurg"
+      match = "fooblarbalurg"
+      replace = "custom-config (HCL): host -> command -> redact"
     }
   }
 }
 
 product "consul" {
+  redact "literal" {
+    match = "schmergadillio"
+    replace = "custom-config (HCL): product-consul -> redact"
+  }
+
   command {
     run = "consul version"
     format = "json"

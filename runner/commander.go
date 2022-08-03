@@ -22,6 +22,10 @@ type Commander struct {
 
 // NewCommander provides a runner for bin commands
 func NewCommander(command string, format string, redactions []*redact.Redact) *Commander {
+	fmt.Println("DCOHENDELETEME: making a NewCommander(). Redactions:")
+	for _, r := range redactions {
+		fmt.Printf("%s : %s\n", r.ID, r.Replace)
+	}
 	return &Commander{
 		Command:    command,
 		Format:     format,
@@ -43,7 +47,7 @@ func (c Commander) Run() op.Op {
 
 	// TODO(mkcp): Add cross-platform commandExists() func to ensure there's a bin we can call
 
-	fmt.Println("DCOHENDELETEME: arrived at a Commander. Redactions:")
+	fmt.Println("DCOHENDELETEME: arrived at Commander.Run() Redactions:")
 	for _, r := range c.Redactions {
 		fmt.Printf("%s : %s\n", r.ID, r.Replace)
 	}

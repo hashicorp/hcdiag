@@ -31,17 +31,18 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 
-	// Read in product-specific redactions here
-	defaultRedactions := getDefaultConsulRedactions()
-	// Prepend our default reactions, so we run redactions from most-specific (runner) to least-specific (agent)
-	cfg.Redactions = append(defaultRedactions, cfg.Redactions...)
-
-	product.Runners, err = consulRunners(cfg, api)
-	if err != nil {
-		return nil, err
-	}
+	// Prepend product-specific redactions to agent-level redactions from cfg
+	cfg.Redactions = append(getDefaultConsulRedactions(), cfg.Redactions...)
 
 	if cfg.HCL != nil {
+		// Map product-specific redactions from our config
+		// TODO(dcohen) error handling
+		hclRedactions, _ := hcl.MapRedactions(cfg.HCL.Redactions)
+
+		// Prepend product HCL redactions to our product defaults
+		cfg.Redactions = append(hclRedactions, cfg.Redactions...)
+
+		// TODO(dcohen) buildrunners needs to take redactions
 		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until)
 		if err != nil {
 			return nil, err
@@ -50,6 +51,18 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		product.Excludes = cfg.HCL.Excludes
 		product.Selects = cfg.HCL.Selects
 	}
+
+	fmt.Println("DCOHENDELETEME: finished setting redactions in NewConsul():")
+	for _, r := range cfg.Redactions {
+		fmt.Printf("%s : %s\n", r.ID, r.Replace)
+	}
+
+	// Add built-in runners
+	builtInRunners, err := consulRunners(cfg, api)
+	if err != nil {
+		return nil, err
+	}
+	product.Runners = append(product.Runners, builtInRunners...)
 
 	return product, nil
 }
@@ -107,7 +120,7 @@ func getDefaultConsulRedactions() []*redact.Redact {
 
 	var defaultConsulRedactions = make([]*redact.Redact, len(redactions))
 	for i, r := range redactions {
-		redaction, err := redact.New(r.matcher, "", "")
+		redaction, err := redact.New(r.matcher, "", r.replace)
 		if err != nil {
 			// If there's an issue, return an empty slice so that we can just ignore agent redactions
 			return make([]*redact.Redact, 0)
