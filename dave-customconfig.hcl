@@ -26,6 +26,10 @@ product "consul" {
   command {
     run = "consul version"
     format = "json"
+    redact "literal" {
+      match = "fooblarbalurg"
+      replace = "custom-config (HCL): product -> command -> redact"
+    }
   }
 
   command {

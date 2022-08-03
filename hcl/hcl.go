@@ -210,7 +210,8 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 func mapCommands(cfgs []Command, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
-		redacts := append(redactions, c.Redactions...)
+		// NOTE(dcohen) prepending here is important for redaction-ordering (most-specific first)
+		redacts := append(c.Redactions, redactions...)
 		err := ValidateRedactions(redacts)
 		if err != nil {
 			return nil, err
@@ -224,7 +225,7 @@ func mapCommands(cfgs []Command, redactions []Redact) ([]runner.Runner, error) {
 func mapShells(cfgs []Shell, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
-		redacts := append(redactions, c.Redactions...)
+		redacts := append(c.Redactions, redactions...)
 		err := ValidateRedactions(redacts)
 		if err != nil {
 			return nil, err
@@ -240,7 +241,7 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		var since time.Time
-		redacts := append(redactions, c.Redactions...)
+		redacts := append(c.Redactions, redactions...)
 		err := ValidateRedactions(redacts)
 		if err != nil {
 			return nil, err
@@ -264,7 +265,7 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 func mapProductGETs(cfgs []GET, redactions []Redact, c *client.APIClient) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
-		redacts := append(redactions, g.Redactions...)
+		redacts := append(g.Redactions, redactions...)
 		err := ValidateRedactions(redacts)
 		if err != nil {
 			return nil, err
@@ -293,7 +294,7 @@ func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time, redactions []
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, d := range cfgs {
-		redacts := append(redactions, d.Redactions...)
+		redacts := append(d.Redactions, redactions...)
 		if d.Since != "" {
 			dur, err := time.ParseDuration(d.Since)
 			if err != nil {
