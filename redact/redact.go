@@ -88,6 +88,8 @@ func ApplyMany(redactions []*Redact, w io.Writer, r io.Reader) error {
 
 // String takes a string result and a slice of redactions, and wraps it with a reader and writer to apply the
 // redactions, returning a string back.
+// TODO(mkcp): Speed improvement & out of memory error: JSON responses can be really big, so we're going to have to
+//  chunk extremely large strings down.
 func String(result string, redactions []*Redact) (string, error) {
 	r := strings.NewReader(result)
 	buf := new(bytes.Buffer)
@@ -100,6 +102,8 @@ func String(result string, redactions []*Redact) (string, error) {
 
 // Bytes takes a byte slice and a slice of redactions, and wraps it with a reader and writer to apply the
 // redactions, returning a string back.
+// TODO(mkcp): Speed improvement & out of memory error: JSON responses can be really big, so we're going to have to
+//  chunk extremely large byte arrays down.
 func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
 	r := bytes.NewReader(b)
 	buf := new(bytes.Buffer)
@@ -108,6 +112,82 @@ func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// JSON accepts a json map or array and traverses the collections and redacts any strings we find.
+func JSON(a any, redactions []*Redact) (any, error) {
+	switch coll := a.(type) {
+	case map[string]any:
+		r, err := redactMap(coll, redactions)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
+	case []any:
+		r, err := redactArray(coll, redactions)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
+	default:
+		return nil, fmt.Errorf("json collection to redact is neither a map nor an array, coll=%v", coll)
+	}
+}
+
+func redactArray(a []any, redactions []*Redact) ([]any, error) {
+	for i, v := range a {
+		switch val := v.(type) {
+		case map[string]any:
+			res, err := redactMap(val, redactions)
+			if err != nil {
+				return nil, err
+			}
+			a[i] = res
+		case []any:
+			res, err := redactArray(val, redactions)
+			if err != nil {
+				return nil, err
+			}
+			a[i] = res
+		case string:
+			res, err := String(val, redactions)
+			if err != nil {
+				return nil, err
+			}
+			a[i] = res
+		default:
+			continue
+		}
+	}
+	return a, nil
+}
+
+func redactMap(m map[string]any, redactions []*Redact) (map[string]any, error) {
+	for k, v := range m {
+		switch val := v.(type) {
+		case map[string]any:
+			res, err := redactMap(val, redactions)
+			if err != nil {
+				return nil, err
+			}
+			m[k] = res
+		case []any:
+			res, err := redactArray(val, redactions)
+			if err != nil {
+				return nil, err
+			}
+			m[k] = res
+		case string:
+			res, err := String(val, redactions)
+			if err != nil {
+				return nil, err
+			}
+			m[k] = res
+		default:
+			continue
+		}
+	}
+	return m, nil
 }
 
 // File takes src, dest paths and a slice of redactions. It applies redactions line by line, reading from the source and
