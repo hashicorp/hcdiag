@@ -1,0 +1,6 @@
+```release-note:improvement
+redact: Add redact.JSON()
+```
+```release-note:improvement
+runner: Redact JSON and string results in Command.Run()
+```
