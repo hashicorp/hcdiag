@@ -47,33 +47,33 @@ func (c Copier) Run() op.Op {
 	// Ensure destination directory exists
 	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
-		return op.New(c.ID(), nil, op.Fail, MakeDirError{
-			path: c.DestDir,
-			err:  err,
-		},
-			Params(c))
+		return op.New(c.ID(), nil, op.Fail,
+			MakeDirError{
+				path: c.DestDir,
+				err:  err,
+			}, Params(c))
 	}
 
 	// Find all the files
 	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
-		return op.New(c.ID(), nil, op.Fail, FindFilesError{
-			path: c.SourceDir,
-			err:  err,
-		},
-			Params(c))
+		return op.New(c.ID(), nil, op.Fail,
+			FindFilesError{
+				path: c.SourceDir,
+				err:  err,
+			}, Params(c))
 	}
 
 	// Copy the files
 	for _, s := range files {
-		err = util.CopyDir(c.DestDir, s)
+		err = util.CopyDir(c.DestDir, s, c.Redactions)
 		if err != nil {
-			return op.New(c.ID(), nil, op.Fail, CopyFilesError{
-				dest:  c.DestDir,
-				files: files,
-				err:   err,
-			},
-				Params(c))
+			return op.New(c.ID(), nil, op.Fail,
+				CopyFilesError{
+					dest:  c.DestDir,
+					files: files,
+					err:   err,
+				}, Params(c))
 		}
 	}
 

@@ -62,7 +62,7 @@ func TestCopyDir(t *testing.T) {
 	defer os.RemoveAll(absTestDestination)
 
 	// this also implicitly tests CopyFile()
-	err = CopyDir(absTestDestination, absTestDir)
+	err = CopyDir(absTestDestination, absTestDir, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -80,7 +80,7 @@ func TestCopyDir(t *testing.T) {
 }
 
 func TestCopyDirNotExists(t *testing.T) {
-	err := CopyDir(testDestination, "not-a-real-dir")
+	err := CopyDir(testDestination, "not-a-real-dir", nil)
 	strErr := fmt.Sprintf("%s", err)
 	expect := "no such file or directory"
 	if !strings.Contains(strErr, expect) {
@@ -89,7 +89,7 @@ func TestCopyDirNotExists(t *testing.T) {
 }
 
 func TestCopyFileNotExists(t *testing.T) {
-	err := CopyFile(testDestination, "not-a-real-file")
+	err := CopyFile(testDestination, "not-a-real-file", nil)
 	strErr := fmt.Sprintf("%s", err)
 	expect := "no such file or directory"
 	if !strings.Contains(strErr, expect) {

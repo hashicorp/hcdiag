@@ -1,11 +1,14 @@
 package util
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -13,7 +16,7 @@ import (
 const directoryPerms = 0755
 
 // CopyDir copies a directory and all of its contents into a target directory.
-func CopyDir(to, src string) error {
+func CopyDir(to, src string, redactions []*redact.Redact) error {
 	// get the absolute path, so we can remove it
 	// to avoid copying the entire directory structure into the dest
 	absPath, err := filepath.Abs(src)
@@ -36,12 +39,12 @@ func CopyDir(to, src string) error {
 			hclog.L().Info("copying", "path", path, "to", target)
 			return os.MkdirAll(target, directoryPerms)
 		}
-		return CopyFile(target, path)
+		return CopyFile(target, path, redactions)
 	})
 }
 
 // CopyFile copies a file to a target file path.
-func CopyFile(to, src string) error {
+func CopyFile(to, src string, redactions []*redact.Redact) error {
 	hclog.L().Info("copying", "path", src, "to", to)
 
 	// Ensure directories
@@ -73,7 +76,25 @@ func CopyFile(to, src string) error {
 		}
 	}()
 
-	// Write source contents to destination
-	_, err = io.Copy(w, r)
-	return err
+	if 0 < len(redactions) {
+		scanner := bufio.NewScanner(r)
+		// Scan, redact, and write each line of the src file
+		for scanner.Scan() {
+			bts := scanner.Bytes()
+			bts = append(bts, '\n')
+			rBts, re := redact.Bytes(bts, redactions)
+			if re != nil {
+				return re
+			}
+			_, we := w.Write(rBts)
+			if we != nil {
+				return we
+			}
+		}
+		return nil
+	}
+
+	// No redactions, copy as normal
+	_, ce := io.Copy(w, r)
+	return ce
 }
