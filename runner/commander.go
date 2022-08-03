@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/hashicorp/hcdiag/redact"
+
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -13,15 +15,17 @@ var _ Runner = Commander{}
 
 // Commander runs shell commands.
 type Commander struct {
-	Command string `json:"command"`
-	Format  string `json:"format"`
+	Command    string           `json:"command"`
+	Format     string           `json:"format"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewCommander provides a runner for bin commands
-func NewCommander(command string, format string) *Commander {
+func NewCommander(command string, format string, redactions []*redact.Redact) *Commander {
 	return &Commander{
-		Command: command,
-		Format:  format,
+		Command:    command,
+		Format:     format,
+		Redactions: redactions,
 	}
 }
 

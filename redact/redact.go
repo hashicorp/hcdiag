@@ -1,10 +1,14 @@
 package redact
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/md5"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
+	"strings"
 )
 
 const DefaultReplace = "<REDACTED>"
@@ -78,6 +82,59 @@ func ApplyMany(redactions []*Redact, w io.Writer, r io.Reader) error {
 	_, err = w.Write(bts)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+// String takes a string result and a slice of redactions, and wraps it with a reader and writer to apply the
+// redactions, returning a string back.
+func String(result string, redactions []*Redact) (string, error) {
+	r := strings.NewReader(result)
+	buf := new(bytes.Buffer)
+	err := ApplyMany(redactions, buf, r)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// Bytes takes a byte slice and a slice of redactions, and wraps it with a reader and writer to apply the
+// redactions, returning a string back.
+func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
+	r := bytes.NewReader(b)
+	buf := new(bytes.Buffer)
+	err := ApplyMany(redactions, buf, r)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// File takes src, dest paths and a slice of redactions. It applies redactions line by line, reading from the source and
+// writing to the destination
+// redactions, returning a string back. Returns nil on success, otherwise an error.
+func File(src, dest string, redactions []*Redact) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+	destFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+	scanner := bufio.NewScanner(srcFile)
+	// Scan, redact, and write each line of the src file
+	for scanner.Scan() {
+		res, err := String(scanner.Text(), redactions)
+		if err != nil {
+			return err
+		}
+		_, err = destFile.Write([]byte(res))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

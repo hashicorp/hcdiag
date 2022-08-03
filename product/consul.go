@@ -51,16 +51,16 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 // consulRunners generates a slice of runners to inspect consul.
 func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
-		runner.NewCommander("consul version", "string"),
-		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string"),
+		runner.NewCommander("consul version", "string", nil),
+		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", nil),
 
-		runner.NewHTTPer(api, "/v1/agent/self"),
-		runner.NewHTTPer(api, "/v1/agent/metrics"),
-		runner.NewHTTPer(api, "/v1/catalog/datacenters"),
-		runner.NewHTTPer(api, "/v1/catalog/services"),
-		runner.NewHTTPer(api, "/v1/namespace"),
-		runner.NewHTTPer(api, "/v1/status/leader"),
-		runner.NewHTTPer(api, "/v1/status/peers"),
+		runner.NewHTTPer(api, "/v1/agent/self", nil),
+		runner.NewHTTPer(api, "/v1/agent/metrics", nil),
+		runner.NewHTTPer(api, "/v1/catalog/datacenters", nil),
+		runner.NewHTTPer(api, "/v1/catalog/services", nil),
+		runner.NewHTTPer(api, "/v1/namespace", nil),
+		runner.NewHTTPer(api, "/v1/status/leader", nil),
+		runner.NewHTTPer(api, "/v1/status/peers", nil),
 
 		logs.NewDocker("consul", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -69,7 +69,7 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/consul")
-		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until)
+		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until, nil)
 		runners = append([]runner.Runner{logCopier}, runners...)
 	}
 

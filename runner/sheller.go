@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/hashicorp/hcdiag/redact"
+
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/hcdiag/util"
@@ -11,14 +13,16 @@ import (
 
 // Sheller runs shell commands in a real unix shell.
 type Sheller struct {
-	Command string `json:"command"`
-	Shell   string `json:"shell"`
+	Command    string           `json:"command"`
+	Shell      string           `json:"shell"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewSheller provides a runner for arbitrary shell code.
-func NewSheller(command string) *Sheller {
+func NewSheller(command string, redactions []*redact.Redact) *Sheller {
 	return &Sheller{
-		Command: command,
+		Command:    command,
+		Redactions: redactions,
 	}
 }
 
@@ -37,18 +41,21 @@ func (s Sheller) Run() op.Op {
 
 	// Run the command
 	args := []string{"-c", s.Command}
-	bts, err := exec.Command(s.Shell, args...).CombinedOutput()
-	if err != nil {
-		// Return the stdout result even on failure
-		// TODO(mkcp): This is a good place to switch on exec.Command errors and provide better guidance.
-		err1 := ShellExecError{
-			command: s.Command,
-			err:     err,
-		}
-		return op.New(s.ID(), string(bts), op.Unknown, err1, Params(s))
+	bts, cmdErr := exec.Command(s.Shell, args...).CombinedOutput()
+	// Store and redact the result before cmd error handling, so we can return it in error and success cases.
+	redBts, redErr := redact.Bytes(bts, s.Redactions)
+	// Fail run if unable to redact
+	if redErr != nil {
+		return op.New(s.ID(), nil, op.Fail, redErr, Params(s))
 	}
-
-	return op.New(s.ID(), string(bts), op.Success, nil, Params(s))
+	if cmdErr != nil {
+		return op.New(s.ID(), string(redBts), op.Unknown,
+			ShellExecError{
+				command: s.Command,
+				err:     cmdErr,
+			}, Params(s))
+	}
+	return op.New(s.ID(), string(redBts), op.Success, nil, Params(s))
 }
 
 type ShellExecError struct {

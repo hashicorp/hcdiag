@@ -31,7 +31,7 @@ func (r EtcHosts) Run() op.Op {
 		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.OS)
 		return op.New(r.ID(), nil, op.Skip, err, runner.Params(r))
 	}
-	s := runner.NewSheller("cat /etc/hosts").Run()
+	s := runner.NewSheller("cat /etc/hosts", nil).Run()
 	if s.Error != nil {
 		return op.New(r.ID(), s.Result, op.Fail, s.Error, runner.Params(r))
 	}

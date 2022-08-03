@@ -19,7 +19,7 @@ func TestSheller(t *testing.T) {
 	os.Setenv("SHELL", "/bin/sh")
 
 	// features pipe "|" and file redirection ">"
-	c := NewSheller("echo hiii | grep hi > cooltestfile")
+	c := NewSheller("echo hiii | grep hi > cooltestfile", nil)
 	defer os.Remove("cooltestfile")
 	o := c.Run()
 	assert.Equal(t, "", o.Result)
