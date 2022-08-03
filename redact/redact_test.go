@@ -115,3 +115,125 @@ func TestApplyMany(t *testing.T) {
 		assert.Equal(t, tc.expect, result, tc.name)
 	}
 }
+
+func TestJSON(t *testing.T) {
+	tcs := []struct {
+		name    string
+		json    any
+		redacts func() ([]*Redact, error)
+		expect  any
+	}{
+		{
+			name:    "empty json",
+			json:    map[string]any{},
+			redacts: func() ([]*Redact, error) { return nil, nil },
+			expect:  map[string]any{},
+		},
+		{
+			name: "no redacts passes json map through undisturbed",
+			json: map[string]any{
+				"hello": "there",
+				"1":     2,
+				"array": []any{"one", "two", "three"},
+				"m":     map[string]any{"ello": "hthere"},
+			},
+			redacts: func() ([]*Redact, error) { return nil, nil },
+			expect: map[string]any{
+				"hello": "there",
+				"1":     2,
+				"array": []any{"one", "two", "three"},
+				"m":     map[string]any{"ello": "hthere"},
+			},
+		},
+		{
+			name: "no redacts passes json array through undisturbed",
+			json: []any{
+				"there",
+				2,
+				[]any{"one", "two", "three"},
+				map[string]any{"ello": "hthere"},
+			},
+			redacts: func() ([]*Redact, error) { return nil, nil },
+			expect: []any{
+				"there",
+				2,
+				[]any{"one", "two", "three"},
+				map[string]any{"ello": "hthere"},
+			},
+		},
+		{
+			name: "can redact arbitrarily nested strings in map",
+			json: map[string]any{
+				"hello": "there",
+				"1":     2,
+				"array": []any{"one", "two", "three", "there"},
+				"m":     map[string]any{"ello": "hthere"},
+			},
+			redacts: func() ([]*Redact, error) {
+				one, err := New("there", "", "")
+				if err != nil {
+					return nil, err
+				}
+				return []*Redact{
+					one,
+				}, nil
+			},
+			expect: map[string]any{
+				"hello": "<REDACTED>",
+				"1":     2,
+				"array": []any{"one", "two", "three", "<REDACTED>"},
+				"m":     map[string]any{"ello": "h<REDACTED>"},
+			},
+		},
+		{
+			name: "can redact arbitrarily nested strings in array",
+			json: []any{
+				"there",
+				2,
+				[]any{"one", "two", "three", "there"},
+				map[string]any{"ello": "hthere"},
+			},
+			redacts: func() ([]*Redact, error) {
+				one, err := New("there", "", "")
+				if err != nil {
+					return nil, err
+				}
+				return []*Redact{
+					one,
+				}, nil
+			},
+			expect: []any{
+				"<REDACTED>",
+				2,
+				[]any{"one", "two", "three", "<REDACTED>"},
+				map[string]any{"ello": "h<REDACTED>"},
+			},
+		},
+		{
+			name: "can redact arbitrarily nested arrays",
+			json: []any{
+				[]any{"one", "two", "three", []any{"there"}},
+			},
+			redacts: func() ([]*Redact, error) {
+				one, err := New("there", "", "")
+				if err != nil {
+					return nil, err
+				}
+				return []*Redact{
+					one,
+				}, nil
+			},
+			expect: []any{
+				[]any{"one", "two", "three", []any{"<REDACTED>"}},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		redactions, err := tc.redacts()
+		assert.NoError(t, err, tc.name)
+		result, err := JSON(tc.json, redactions)
+		assert.NoError(t, err, tc.name)
+		assert.Equal(t, tc.expect, result, tc.name)
+	}
+}
