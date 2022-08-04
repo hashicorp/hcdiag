@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/hcdiag/redact"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,6 +51,7 @@ func TestCopyDir(t *testing.T) {
 		file        string
 		content     string
 		contentFile string
+		redacts     func(*testing.T) []*redact.Redact
 	}{
 		{
 			name:     "can copy directory",
@@ -60,11 +63,16 @@ func TestCopyDir(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
+		var reds []*redact.Redact
 		// Init our params
 		absDest, err := filepath.Abs(tc.writeDir)
 		assert.NoError(t, err)
 		absSrc, err := filepath.Abs(tc.readDir)
 		assert.NoError(t, err)
+
+		if tc.redacts != nil {
+			reds = tc.redacts(t)
+		}
 
 		// Initialize our test directory, file, and its content
 		// TODO(mkcp): Decouple directory setup, from file setup, to content writing so these all can be dynamically
@@ -72,7 +80,7 @@ func TestCopyDir(t *testing.T) {
 		cleanup := setupFiles(t, absSrc, tc.file, tc.content)
 
 		// Copy the directory contents
-		ce := CopyDir(absDest, absSrc, nil)
+		ce := CopyDir(absDest, absSrc, reds)
 		assert.NoError(t, ce, tc.name)
 
 		// TODO(mkcp): Compare files in the future, not strings
@@ -121,9 +129,10 @@ func TestCopyFile(t *testing.T) {
 // TODO(mkcp): more cases
 func TestCopyFileErrors(t *testing.T) {
 	tcs := []struct {
-		name string
-		dest string
-		src  string
+		name       string
+		dest       string
+		src        string
+		redactions func(*testing.T) []*redact.Redact
 	}{
 		{
 			name: "empty src and dest",
@@ -135,7 +144,11 @@ func TestCopyFileErrors(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		err := CopyFile(tc.dest, tc.src, nil)
+		var reds []*redact.Redact
+		if tc.redactions != nil {
+			reds = tc.redactions(t)
+		}
+		err := CopyFile(tc.dest, tc.src, reds)
 		assert.Error(t, err, tc.name)
 	}
 }
