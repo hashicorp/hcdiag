@@ -36,7 +36,7 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 	if cfg.HCL != nil {
-		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until)
+		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, nil)
 		if err != nil {
 			return nil, err
 		}

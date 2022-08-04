@@ -25,7 +25,7 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 	// TODO(mkcp): Host can have an API client now and it would simplify quite a bit.
 	product.Runners = hostRunners(os)
 	if hcl2 != nil {
-		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until)
+		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, nil)
 		if err != nil {
 			return nil, err
 		}

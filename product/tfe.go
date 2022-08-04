@@ -25,7 +25,7 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	if cfg.HCL != nil {
-		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until)
+		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, nil)
 		if err != nil {
 			return nil, err
 		}
