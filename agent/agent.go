@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -61,6 +62,8 @@ type Agent struct {
 	Version     version.Version `json:"version"`
 	// ManifestOps holds a slice of ops with a subset of fields so we can safely render them in `manifest.json`
 	ManifestOps map[string][]ManifestOp `json:"ops"`
+	// Agent-level redactions are passed through to all products
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 func NewAgent(config Config, logger hclog.Logger) *Agent {
@@ -71,6 +74,7 @@ func NewAgent(config Config, logger hclog.Logger) *Agent {
 		products:    make(map[product.Name]*product.Product),
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
+		Redactions:  make([]*redact.Redact, 0),
 	}
 }
 
@@ -430,6 +434,9 @@ func (a *Agent) Setup() error {
 	// Convert the slice of HCL products into a map we can read entries from directly
 	hclProducts := hcl.ProductsMap(a.Config.HCL.Products)
 
+	// Set default redactions on the agent
+	setAgentRedactions(a)
+
 	// Create the base config that we copy into each product
 	baseCfg := product.Config{
 		TmpDir:        a.tmpDir,
@@ -438,6 +445,7 @@ func (a *Agent) Setup() error {
 		OS:            a.Config.OS,
 		DebugDuration: a.Config.DebugDuration,
 		DebugInterval: a.Config.DebugInterval,
+		Redactions:    a.Redactions,
 	}
 
 	// Build Consul and assign it to the product map.
@@ -564,4 +572,23 @@ func formatReportLine(cells ...string) string {
 	format += "\n"
 
 	return fmt.Sprintf(format, strValues...)
+}
+
+// setAgentRedactions mutates an Agent, setting agent-level redactions
+func setAgentRedactions(a *Agent) {
+	// Set default agent redactions
+	redactions, err := redact.GetDefaultAgentRedactions()
+	if err != nil {
+		a.l.Error("problem getting default agent redactions", err)
+	}
+	a.Redactions = append(a.Redactions, redactions...)
+
+	// Map agent redactions from HCL onto our defaults
+	redactions, err = hcl.MapRedacts(a.Config.HCL.Agent.Redactions)
+	if err != nil {
+		a.l.Error("problem mapping Agent redactions from HCL.")
+		redactions = make([]*redact.Redact, 0)
+	}
+	// HCL takes priority over Agent defaults
+	a.Redactions = append(redactions, a.Redactions...)
 }

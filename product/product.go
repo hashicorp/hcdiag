@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -36,6 +37,7 @@ type Config struct {
 	DebugDuration time.Duration
 	DebugInterval time.Duration
 	HCL           *hcl.Product
+	Redactions    []*redact.Redact
 }
 
 type Product struct {

@@ -2,6 +2,9 @@ package hcl
 
 import (
 	"fmt"
+	"regexp"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/redact"
@@ -9,17 +12,21 @@ import (
 	"github.com/hashicorp/hcdiag/runner/host"
 	"github.com/hashicorp/hcdiag/runner/log"
 	"github.com/hashicorp/hcl/v2/hclsimple"
-	"regexp"
-	"time"
 )
 
 type HCL struct {
 	Host     *Host      `hcl:"host,block" json:"host"`
 	Products []*Product `hcl:"product,block" json:"products"`
+	Agent    *Agent     `hcl:"agent,block" json:"agent"`
 }
 
 type Blocks interface {
-	*Host | *Product
+	*Host | *Product | *Agent
+}
+
+// NOTE(dcohen) this is currently a separate config block, as opposed to a parent block of the others
+type Agent struct {
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 type Host struct {
@@ -202,7 +209,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 func mapCommands(cfgs []Command, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
-		redacts, err := mapRedacts(append(redactions, c.Redactions...))
+		redacts, err := MapRedacts(append(redactions, c.Redactions...))
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +221,7 @@ func mapCommands(cfgs []Command, redactions []Redact) ([]runner.Runner, error) {
 func mapShells(cfgs []Shell, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
-		redacts, err := mapRedacts(append(redactions, c.Redactions...))
+		redacts, err := MapRedacts(append(redactions, c.Redactions...))
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +234,7 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		var since time.Time
-		redacts, err := mapRedacts(append(redactions, c.Redactions...))
+		redacts, err := MapRedacts(append(redactions, c.Redactions...))
 		if err != nil {
 			return nil, err
 		}
@@ -250,7 +257,7 @@ func mapCopies(cfgs []Copy, redactions []Redact, dest string) ([]runner.Runner, 
 func mapProductGETs(cfgs []GET, redactions []Redact, c *client.APIClient) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
-		redacts, err := mapRedacts(append(redactions, g.Redactions...))
+		redacts, err := MapRedacts(append(redactions, g.Redactions...))
 		if err != nil {
 			return nil, err
 		}
@@ -262,7 +269,7 @@ func mapProductGETs(cfgs []GET, redactions []Redact, c *client.APIClient) ([]run
 func mapHostGets(cfgs []GET, redactions []Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
-		redacts, err := mapRedacts(append(redactions, g.Redactions...))
+		redacts, err := MapRedacts(append(redactions, g.Redactions...))
 		if err != nil {
 			return nil, err
 		}
@@ -320,7 +327,9 @@ func ProductsMap(products []*Product) map[string]*Product {
 	return m
 }
 
-func mapRedacts(redactions []Redact) ([]*redact.Redact, error) {
+// MapRedacts maps HCL redactions to "real" `redact.Redact`s
+// 	This is a public function so it can be used to map Agent redactions in agent.go
+func MapRedacts(redactions []Redact) ([]*redact.Redact, error) {
 	err := ValidateRedactions(redactions)
 	if err != nil {
 		return nil, err
