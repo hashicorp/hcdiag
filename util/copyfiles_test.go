@@ -97,10 +97,9 @@ func TestCopyDirErrors(t *testing.T) {
 		dest string
 		src  string
 	}{
-		// FIXME(mkcp): This panics: ensure zero values work smoothly.
-		// {
-		// 	name: "empty src and dest",
-		// },
+		{
+			name: "empty src and dest",
+		},
 		{
 			name: "dir does not exist",
 			dest: testDestination,

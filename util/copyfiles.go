@@ -17,6 +17,9 @@ const directoryPerms = 0755
 
 // CopyDir copies a directory and all of its contents into a target directory.
 func CopyDir(to, src string, redactions []*redact.Redact) error {
+	if src == "" {
+		return fmt.Errorf("no source directory given, src=%s, to=%s", src, to)
+	}
 	// get the absolute path, so we can remove it
 	// to avoid copying the entire directory structure into the dest
 	absPath, err := filepath.Abs(src)
