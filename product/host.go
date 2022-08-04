@@ -4,6 +4,7 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -13,6 +14,9 @@ import (
 
 // NewHost takes a logger, config, and HCL, and it creates a Product with all the host's default runners.
 func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
+	// Prepend product-specific redactions to agent-level redactions from cfg
+	cfg.Redactions = append(getDefaultHostRedactions(), cfg.Redactions...)
+
 	product := &Product{
 		l:      logger.Named("product"),
 		Name:   Host,
@@ -22,10 +26,18 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 	if cfg.OS == "auto" {
 		os = runtime.GOOS
 	}
-	// TODO(mkcp): Host can have an API client now and it would simplify quite a bit.
-	product.Runners = hostRunners(os)
+
 	if hcl2 != nil {
-		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, nil)
+		// Map product-specific redactions from our config
+		hclProductRedactions, err := hcl.MapRedacts(hcl2.Redactions)
+		if err != nil {
+			product.l.Error("problem mapping Host redactions from HCL config")
+		}
+
+		// Prepend product HCL redactions to our product defaults
+		cfg.Redactions = append(hclProductRedactions, cfg.Redactions...)
+
+		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -33,11 +45,18 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 		product.Excludes = hcl2.Excludes
 		product.Selects = hcl2.Selects
 	}
+
+	// TODO(mkcp): Host can have an API client now and it would simplify quite a bit.
+	// Add built-in runners
+	builtInRunners := hostRunners(os, cfg.Redactions)
+	product.Runners = append(product.Runners, builtInRunners...)
+
 	return product, nil
 }
 
 // hostRunners generates a slice of runners to inspect the host.
-func hostRunners(os string) []runner.Runner {
+func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
+	// TODO(dcohen) Looks like none of these runners do redactions yet
 	return []runner.Runner{
 		host.NewOS(os),
 		host.NewDisk(),
@@ -50,4 +69,30 @@ func hostRunners(os string) []runner.Runner {
 		host.NewProcFile(os),
 		host.NewFSTab(os),
 	}
+}
+
+// getDefaultHostRedactions returns a slice of default redactions for this product
+func getDefaultHostRedactions() []*redact.Redact {
+	redactions := []struct {
+		name    string
+		matcher string
+		replace string
+	}{
+		{
+			name:    "host-product-default",
+			matcher: "/host/",
+			replace: "host-product-default-redaction",
+		},
+	}
+
+	var defaultHostRedactions = make([]*redact.Redact, len(redactions))
+	for i, r := range redactions {
+		redaction, err := redact.New(r.matcher, "", r.replace)
+		if err != nil {
+			// If there's an issue, return an empty slice so that we can just ignore these redactions
+			return make([]*redact.Redact, 0)
+		}
+		defaultHostRedactions[i] = redaction
+	}
+	return defaultHostRedactions
 }

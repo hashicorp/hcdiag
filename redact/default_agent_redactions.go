@@ -27,7 +27,7 @@ func GetDefaultAgentRedactions() ([]*Redact, error) {
 	for _, redaction := range redactions {
 		redact, err := New(redaction.matcher, redaction.name, redaction.replace)
 		if err != nil {
-			// If there's an issue, return an empty slice so that we can just ignore agent redactions
+			// If there's an issue, return an empty slice so that we can just ignore these redactions
 			return make([]*Redact, 0), err
 		}
 		defaultAgentRedactions = append(defaultAgentRedactions, redact)
