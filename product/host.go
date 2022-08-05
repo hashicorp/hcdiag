@@ -56,7 +56,6 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 
 // hostRunners generates a slice of runners to inspect the host.
 func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
-	// TODO(dcohen) Looks like none of these runners do redactions yet
 	return []runner.Runner{
 		host.NewOS(os),
 		host.NewDisk(),

@@ -435,7 +435,7 @@ func (a *Agent) Setup() error {
 	hclProducts := hcl.ProductsMap(a.Config.HCL.Products)
 
 	// Set default redactions on the agent
-	setAgentRedactions(a)
+	a.setAgentRedactions()
 
 	// Create the base config that we copy into each product
 	baseCfg := product.Config{
@@ -574,21 +574,45 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// setAgentRedactions mutates an Agent, setting agent-level redactions
-func setAgentRedactions(a *Agent) {
+// setAgentRedactions mutates the Agent receiver, setting agent-level redactions from defaults and custom HCL
+func (a *Agent) setAgentRedactions() error {
 	// Set default agent redactions
-	redactions, err := redact.GetDefaultAgentRedactions()
-	if err != nil {
-		a.l.Error("problem getting default agent redactions", err)
-	}
+	redactions := getDefaultAgentRedactions()
 	a.Redactions = append(a.Redactions, redactions...)
 
 	// Map agent redactions from HCL onto our defaults
-	redactions, err = hcl.MapRedacts(a.Config.HCL.Agent.Redactions)
+	redactions, err := hcl.MapRedacts(a.Config.HCL.Agent.Redactions)
 	if err != nil {
 		a.l.Error("problem mapping Agent redactions from HCL.")
 		redactions = make([]*redact.Redact, 0)
 	}
 	// HCL takes priority over Agent defaults
 	a.Redactions = append(redactions, a.Redactions...)
+	return nil
+}
+
+// GetDefaultAgentRedactions returns the default agent-level redactions that we ship with hcdiag
+func getDefaultAgentRedactions() []*redact.Redact {
+	redactions := []struct {
+		name    string
+		matcher string
+		replace string
+	}{
+		{
+			name:    "regex",
+			matcher: "/myRegex/",
+			replace: "agentdefault-redaction",
+		},
+	}
+
+	var defaultAgentRedactions = make([]*redact.Redact, len(redactions))
+	for i, r := range redactions {
+		redaction, err := redact.New(r.matcher, "", r.replace)
+		if err != nil {
+			// If there's an issue, return an empty slice so that we can just ignore these redactions
+			return make([]*redact.Redact, 0)
+		}
+		defaultAgentRedactions[i] = redaction
+	}
+	return defaultAgentRedactions
 }
