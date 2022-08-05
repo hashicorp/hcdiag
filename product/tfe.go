@@ -51,5 +51,12 @@ func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewHTTPer(api, "/api/v2/admin/twilio-settings"),
 		// page size 1 because we only actually care about total workspace count in the `meta` field
 		runner.NewHTTPer(api, "/api/v2/admin/workspaces?page[size]=1"),
+
+		runner.NewCommander("docker -v", "string"),
+		runner.NewCommander("replicatedctl app status --output json", "json"),
+		runner.NewCommander("lsblk --json", "json"),
+
+		runner.NewSheller("getenforce"),
+		runner.NewSheller("echo $proxy_ip"),
 	}, nil
 }
