@@ -1,0 +1,3 @@
+```release-note:improvement
+util: copyfiles now accepts redactions and scans files line by line to apply many redactions at once.
+```

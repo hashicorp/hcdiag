@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/hashicorp/hcdiag/redact"
+
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -13,15 +15,17 @@ var _ Runner = Commander{}
 
 // Commander runs shell commands.
 type Commander struct {
-	Command string `json:"command"`
-	Format  string `json:"format"`
+	Command    string           `json:"command"`
+	Format     string           `json:"format"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewCommander provides a runner for bin commands
-func NewCommander(command string, format string) *Commander {
+func NewCommander(command string, format string, redactions []*redact.Redact) *Commander {
 	return &Commander{
-		Command: command,
-		Format:  format,
+		Command:    command,
+		Format:     format,
+		Redactions: redactions,
 	}
 }
 
@@ -31,8 +35,6 @@ func (c Commander) ID() string {
 
 // Run executes the Command
 func (c Commander) Run() op.Op {
-	var result interface{}
-
 	bits := strings.Split(c.Command, " ")
 	cmd := bits[0]
 	args := bits[1:]
@@ -46,32 +48,48 @@ func (c Commander) Run() op.Op {
 		return op.New(c.ID(), string(bts), op.Unknown, err1, Params(c))
 	}
 
-	// Parse result
+	// Parse result format
 	// TODO(mkcp): This can be detected rather than branching on user input
 	switch {
 	case c.Format == "string":
-		result = strings.TrimSuffix(string(bts), "\n")
+		redBts, err := redact.Bytes(bts, c.Redactions)
+		if err != nil {
+			return op.New(c.ID(), nil, op.Fail, err, Params(c))
+		}
+		redResult := strings.TrimSuffix(string(redBts), "\n")
+		return op.New(c.ID(), redResult, op.Success, nil, Params(c))
 
 	case c.Format == "json":
-		if err := json.Unmarshal(bts, &result); err != nil {
-			// Return the command's response even if we can't parse it as json
-			return op.New(c.ID(), string(bts), op.Unknown,
+		var obj any
+		marshErr := json.Unmarshal(bts, &obj)
+		if marshErr != nil {
+			// Redact the string to return the failed-to-parse JSON
+			redBts, redErr := redact.Bytes(bts, c.Redactions)
+			if redErr != nil {
+				return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+			}
+			return op.New(c.ID(), string(redBts), op.Unknown,
 				UnmarshalError{
 					command: c.Command,
-					err:     err,
-				},
-				Params(c))
+					err:     marshErr,
+				}, Params(c))
 		}
-
+		redResult, redErr := redact.JSON(obj, c.Redactions)
+		if redErr != nil {
+			return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+		}
+		return op.New(c.ID(), redResult, op.Success, nil, Params(c))
 	default:
-		return op.New(c.ID(), result, op.Fail, FormatUnknownError{
-			command: c.Command,
-			format:  c.Format,
-		},
-			Params(c))
+		redBts, redErr := redact.Bytes(bts, c.Redactions)
+		if redErr != nil {
+			return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+		}
+		return op.New(c.ID(), string(redBts), op.Fail,
+			FormatUnknownError{
+				command: c.Command,
+				format:  c.Format,
+			}, Params(c))
 	}
-
-	return op.New(c.ID(), result, op.Success, nil, Params(c))
 }
 
 type CommandExecError struct {
