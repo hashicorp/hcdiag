@@ -70,7 +70,11 @@ func realMain() (returnCode int) {
 	l.Debug("merged cfg", "cfg", fmt.Sprintf("%+v", cfg))
 
 	// Create agent
-	a := agent.NewAgent(cfg, l)
+	a, err := agent.NewAgent(cfg, l)
+	if err != nil {
+		l.Error("problem creating agent", err)
+		return 1
+	}
 
 	// Run the agent
 	// NOTE(mkcp): Are there semantic returnCodes we can send based on the agent error type?

@@ -22,7 +22,7 @@ const (
 // NewConsul takes a logger and product config, and it creates a Product with all of Consul's default runners.
 func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
-	cfg.Redactions = append(getDefaultConsulRedactions(), cfg.Redactions...)
+	cfg.Redactions = redact.Flatten(getDefaultConsulRedactions(), cfg.Redactions)
 
 	product := &Product{
 		l:      logger.Named("product"),
@@ -39,10 +39,10 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		// Map product-specific redactions from our config
 		hclProductRedactions, err := hcl.MapRedacts(cfg.HCL.Redactions)
 		if err != nil {
-			product.l.Error("problem mapping Consul redactions from HCL config")
+			return nil, err
 		}
 		// Prepend product HCL redactions to our product defaults
-		cfg.Redactions = append(hclProductRedactions, cfg.Redactions...)
+		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
 		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {

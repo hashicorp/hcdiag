@@ -218,3 +218,12 @@ func File(src, dest string, redactions []*Redact) error {
 	}
 	return nil
 }
+
+// Flatten takes any number of slices of redacts and returns one slice containing all redacts in argument order
+func Flatten(redacts ...[]*Redact) []*Redact {
+	flattened := make([]*Redact, 0)
+	for _, rslice := range redacts {
+		flattened = append(flattened, rslice...)
+	}
+	return flattened
+}

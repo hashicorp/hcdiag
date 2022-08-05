@@ -15,7 +15,7 @@ import (
 // NewHost takes a logger, config, and HCL, and it creates a Product with all the host's default runners.
 func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
-	cfg.Redactions = append(getDefaultHostRedactions(), cfg.Redactions...)
+	cfg.Redactions = redact.Flatten(getDefaultHostRedactions(), cfg.Redactions)
 
 	product := &Product{
 		l:      logger.Named("product"),
@@ -31,11 +31,11 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 		// Map product-specific redactions from our config
 		hclProductRedactions, err := hcl.MapRedacts(hcl2.Redactions)
 		if err != nil {
-			product.l.Error("problem mapping Host redactions from HCL config")
+			return nil, err
 		}
 
 		// Prepend product HCL redactions to our product defaults
-		cfg.Redactions = append(hclProductRedactions, cfg.Redactions...)
+		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
 		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {

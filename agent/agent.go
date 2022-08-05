@@ -66,7 +66,17 @@ type Agent struct {
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-func NewAgent(config Config, logger hclog.Logger) *Agent {
+func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
+	hclRedacts, err := hcl.MapRedacts(config.HCL.Agent.Redactions)
+	if err != nil {
+		return nil, err
+	}
+	agentDefaults := getDefaultAgentRedactions()
+	if err != nil {
+		return nil, err
+	}
+	redacts := redact.Flatten(hclRedacts, agentDefaults)
+
 	return &Agent{
 		l:           logger,
 		Config:      config,
@@ -74,8 +84,8 @@ func NewAgent(config Config, logger hclog.Logger) *Agent {
 		products:    make(map[product.Name]*product.Product),
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
-		Redactions:  make([]*redact.Redact, 0),
-	}
+		Redactions:  redacts,
+	}, nil
 }
 
 // Run manages the Agent's lifecycle. We create our temp directory, copy files, run their ops, write the results,
@@ -434,9 +444,6 @@ func (a *Agent) Setup() error {
 	// Convert the slice of HCL products into a map we can read entries from directly
 	hclProducts := hcl.ProductsMap(a.Config.HCL.Products)
 
-	// Set default redactions on the agent
-	a.setAgentRedactions()
-
 	// Create the base config that we copy into each product
 	baseCfg := product.Config{
 		TmpDir:        a.tmpDir,
@@ -572,23 +579,6 @@ func formatReportLine(cells ...string) string {
 	format += "\n"
 
 	return fmt.Sprintf(format, strValues...)
-}
-
-// setAgentRedactions mutates the Agent receiver, setting agent-level redactions from defaults and custom HCL
-func (a *Agent) setAgentRedactions() error {
-	// Set default agent redactions
-	redactions := getDefaultAgentRedactions()
-	a.Redactions = append(a.Redactions, redactions...)
-
-	// Map agent redactions from HCL onto our defaults
-	redactions, err := hcl.MapRedacts(a.Config.HCL.Agent.Redactions)
-	if err != nil {
-		a.l.Error("problem mapping Agent redactions from HCL.")
-		redactions = make([]*redact.Redact, 0)
-	}
-	// HCL takes priority over Agent defaults
-	a.Redactions = append(redactions, a.Redactions...)
-	return nil
 }
 
 // GetDefaultAgentRedactions returns the default agent-level redactions that we ship with hcdiag
