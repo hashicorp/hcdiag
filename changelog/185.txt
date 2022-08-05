@@ -1,0 +1,3 @@
+```release-note:improvement
+util: migrate copyfiles_test.go to test tables.
+```
