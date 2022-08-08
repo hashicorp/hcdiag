@@ -57,7 +57,6 @@ func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewCommander("lsblk --json", "json", nil),
 
 		runner.NewSheller("getenforce", nil),
-		runner.NewSheller("echo $HTTP_PROXY", nil),
-		runner.NewSheller("echo $HTTPS_PROXY", nil),
+		runner.NewSheller("env | grep -i proxy", nil),
 	}, nil
 }
