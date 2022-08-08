@@ -67,15 +67,16 @@ type Agent struct {
 }
 
 func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
-	hclRedacts, err := hcl.MapRedacts(config.HCL.Agent.Redactions)
-	if err != nil {
-		return nil, err
+	redacts := getDefaultAgentRedactions()
+
+	// Is there an HCL Agent config that contains redactions?
+	if config.HCL.Agent != nil && len(config.HCL.Agent.Redactions) > 0 {
+		hclRedacts, err := hcl.MapRedacts(config.HCL.Agent.Redactions)
+		if err != nil {
+			return nil, err
+		}
+		redacts = redact.Flatten(hclRedacts, redacts)
 	}
-	agentDefaults := getDefaultAgentRedactions()
-	if err != nil {
-		return nil, err
-	}
-	redacts := redact.Flatten(hclRedacts, agentDefaults)
 
 	return &Agent{
 		l:           logger,

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/product"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -23,13 +24,17 @@ var update = flag.Bool("update", false, "update golden files")
 // so mocks can be used instead of actually writing files?
 // that would also allow us to run these tests in parallel if we wish.
 
-func TestNewAgent(t *testing.T) {
-	a := NewAgent(Config{}, hclog.Default())
-	assert.NotNil(t, a)
+// Wraps NewAgent(Config{}, hclog.Default()) for testing
+func newTestAgent(t *testing.T) *Agent {
+	t.Helper()
+	a, err := NewAgent(Config{}, hclog.Default())
+	require.NoError(t, err, "Error new test Agent")
+	require.NotNil(t, a)
+	return a
 }
 
 func TestStartAndEnd(t *testing.T) {
-	a := NewAgent(Config{}, hclog.Default())
+	a := newTestAgent(t)
 
 	// Start and End fields should be zero at first,
 	// and Duration should be empty ""
@@ -45,7 +50,7 @@ func TestStartAndEnd(t *testing.T) {
 }
 
 func TestCreateTemp(t *testing.T) {
-	a := NewAgent(Config{}, hclog.Default())
+	a := newTestAgent(t)
 	defer cleanupHelper(t, a)
 
 	if err := a.CreateTemp(); err != nil {
@@ -63,7 +68,7 @@ func TestCreateTemp(t *testing.T) {
 
 func TestCreateTempAndCleanup(t *testing.T) {
 	var err error
-	a := NewAgent(Config{}, hclog.Default())
+	a := newTestAgent(t)
 
 	if err = a.CreateTemp(); err != nil {
 		t.Errorf("Error creating tmpDir: %s", err)
@@ -110,8 +115,9 @@ func TestCopyIncludes(t *testing.T) {
 	}
 
 	cfg := Config{Includes: includeStr}
-	a := NewAgent(cfg, hclog.Default())
-	err := a.CreateTemp()
+	a, err := NewAgent(cfg, hclog.Default())
+	assert.NoError(t, err, "Error creating agent")
+	err = a.CreateTemp()
 	assert.NoError(t, err, "Error creating tmpDir")
 	defer cleanupHelper(t, a)
 
@@ -135,7 +141,8 @@ func TestRunProducts(t *testing.T) {
 	l := hclog.Default()
 	pCfg := product.Config{OS: "auto"}
 	p := make(map[product.Name]*product.Product)
-	a := NewAgent(Config{}, hclog.Default())
+	a := newTestAgent(t)
+
 	a.products = p
 	h, err := product.NewHost(l, pCfg, &hcl.Host{})
 	assert.NoError(t, err)
@@ -154,7 +161,8 @@ func TestAgent_RecordManifest(t *testing.T) {
 		testResults := map[string]op.Op{
 			"": {},
 		}
-		a := NewAgent(Config{}, hclog.Default())
+		a := newTestAgent(t)
+
 		a.results[testProduct] = testResults
 		assert.NotEmptyf(t, a.results[testProduct], "test setup failure, no ops available")
 
@@ -165,7 +173,7 @@ func TestAgent_RecordManifest(t *testing.T) {
 }
 
 func TestWriteOutput(t *testing.T) {
-	a := NewAgent(Config{}, hclog.Default())
+	a := newTestAgent(t)
 
 	testOut := "."
 	resultsDest := a.TempDir() + ".tar.gz"
@@ -229,8 +237,10 @@ func TestSetup(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := NewAgent(tc.cfg, hclog.Default())
-			err := a.Setup()
+			a, err := NewAgent(tc.cfg, hclog.Default())
+			assert.NoError(t, err, "Error creating agent")
+
+			err = a.Setup()
 			assert.NoError(t, err)
 			assert.Len(t, a.products, tc.expectedLen)
 		})
@@ -248,7 +258,7 @@ func TestAgent_WriteSummary(t *testing.T) {
 	}{
 		{
 			name:  "Test Header Only",
-			agent: NewAgent(Config{}, hclog.Default()),
+			agent: newTestAgent(t),
 		},
 		{
 			name: "Test with Products",
