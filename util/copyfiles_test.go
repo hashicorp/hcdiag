@@ -98,7 +98,6 @@ func TestCopyDir(t *testing.T) {
 	}
 }
 
-// TODO(mkcp): test tables and more cases
 func TestCopyDirErrors(t *testing.T) {
 	tcs := []struct {
 		name string
