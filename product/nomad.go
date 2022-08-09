@@ -109,11 +109,11 @@ func getDefaultNomadRedactions() []*redact.Redact {
 		matcher string
 		replace string
 	}{
-		{
-			name:    "nomad-product-default",
-			matcher: "/nomad/",
-			replace: "nomad-product-default-redaction",
-		},
+		// {
+		// 	name:    "nomad-product-default",
+		// 	matcher: "/nomad/",
+		// 	replace: "nomad-product-default-redaction",
+		// },
 	}
 
 	var defaultNomadRedactions = make([]*redact.Redact, len(redactions))

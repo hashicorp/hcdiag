@@ -589,11 +589,11 @@ func getDefaultAgentRedactions() []*redact.Redact {
 		matcher string
 		replace string
 	}{
-		{
-			name:    "regex",
-			matcher: "/myRegex/",
-			replace: "agentdefault-redaction",
-		},
+		// {
+		// 	name:    "regex",
+		// 	matcher: "/myRegex/",
+		// 	replace: "agentdefault-redaction",
+		// },
 	}
 
 	var defaultAgentRedactions = make([]*redact.Redact, len(redactions))

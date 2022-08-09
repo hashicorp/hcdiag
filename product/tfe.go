@@ -75,11 +75,11 @@ func getDefaultTFERedactions() []*redact.Redact {
 		matcher string
 		replace string
 	}{
-		{
-			name:    "TFE-product-default",
-			matcher: "/tfe/",
-			replace: "TFE-product-default-redaction",
-		},
+		// {
+		// 	name:    "TFE-product-default",
+		// 	matcher: "/tfe/",
+		// 	replace: "TFE-product-default-redaction",
+		// },
 	}
 
 	var defaultTFERedactions = make([]*redact.Redact, len(redactions))

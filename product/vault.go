@@ -94,11 +94,11 @@ func getDefaultVaultRedactions() []*redact.Redact {
 		matcher string
 		replace string
 	}{
-		{
-			name:    "Vault-product-default",
-			matcher: "/vault/",
-			replace: "Vault-product-default-redaction",
-		},
+		// {
+		// 	name:    "Vault-product-default",
+		// 	matcher: "/vault/",
+		// 	replace: "Vault-product-default-redaction",
+		// },
 	}
 
 	var defaultVaultRedactions = make([]*redact.Redact, len(redactions))

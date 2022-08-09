@@ -98,11 +98,11 @@ func getDefaultConsulRedactions() []*redact.Redact {
 		matcher string
 		replace string
 	}{
-		{
-			name:    "consul-product-default",
-			matcher: "/consul/",
-			replace: "consul-product-default-redaction",
-		},
+		// {
+		// 	name:    "consul-product-default",
+		// 	matcher: "/consul/",
+		// 	replace: "consul-product-default-redaction",
+		// },
 	}
 
 	var defaultConsulRedactions = make([]*redact.Redact, len(redactions))
