@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewRegex(t *testing.T) {
@@ -236,4 +237,105 @@ func TestJSON(t *testing.T) {
 		assert.NoError(t, err, tc.name)
 		assert.Equal(t, tc.expect, result, tc.name)
 	}
+}
+
+// test redact.Flatten()
+func TestFlatten(t *testing.T) {
+	// Set up test redacts
+	var nilSlice []*Redact
+	var emptySlice = []*Redact{}
+	singleRedact := []*Redact{newTestRedact(t, "matchredact", "foobar")}
+	multiRedact := []*Redact{
+		newTestRedact(t, "foobar", "baz"),
+		newTestRedact(t, "baz", "<REDACTED>"),
+	}
+
+	tcs := []struct {
+		name   string
+		input  [][]*Redact
+		expect []*Redact
+	}{
+		// Nil slice alone, first, last, middle
+		{
+			name:   "Flatten should return empty redact slice for nil slice input",
+			input:  [][]*Redact{nilSlice},
+			expect: make([]*Redact, 0),
+		},
+		{
+			name:   "Flatten should treat a nil slice (first arg) correctly",
+			input:  [][]*Redact{nilSlice, singleRedact},
+			expect: singleRedact,
+		},
+		{
+			name:   "Flatten should treat mixed args (multiRedact, singleRedact, nil slice) correctly",
+			input:  [][]*Redact{multiRedact, singleRedact, nilSlice},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		{
+			name:   "Flatten should treat mixed args (multiRedact, nil slice, singleRedact) correctly",
+			input:  [][]*Redact{multiRedact, nilSlice, singleRedact},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		// Single arg
+		{
+			name:   "Flatten should treat a single redact input correctly",
+			input:  [][]*Redact{singleRedact},
+			expect: singleRedact,
+		},
+		// Multi-arg
+		{
+			name:   "Flatten should treat a multi-redact slice input correctly",
+			input:  [][]*Redact{multiRedact},
+			expect: multiRedact,
+		},
+		{
+			name:   "Flatten should treat mixed-length inputs correctly (1)",
+			input:  [][]*Redact{multiRedact, singleRedact},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		{
+			name:   "Flatten should treat mixed-length inputs correctly (2)",
+			input:  [][]*Redact{singleRedact, multiRedact},
+			expect: []*Redact{singleRedact[0], multiRedact[0], multiRedact[1]},
+		},
+		// empty slice alone, first, last, middle
+		{
+			name:   "Flatten should return empty redact slice for empty redact slice input",
+			input:  [][]*Redact{emptySlice},
+			expect: make([]*Redact, 0),
+		},
+		{
+			name:   "Flatten should treat an empty slice (first arg) correctly",
+			input:  [][]*Redact{emptySlice, singleRedact},
+			expect: singleRedact,
+		},
+		{
+			name:   "Flatten should treat mixed args (multiRedact, singleRedact, empty slice) correctly",
+			input:  [][]*Redact{multiRedact, singleRedact, emptySlice},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		{
+			name:   "Flatten should treat mixed args (multiRedact, empty slice, singleRedact) correctly",
+			input:  [][]*Redact{multiRedact, emptySlice, singleRedact},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		{
+			name:   "Flatten should treat mixed args (nil slice, multiRedact, empty slice, singleRedact) correctly",
+			input:  [][]*Redact{nilSlice, multiRedact, emptySlice, singleRedact},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+	}
+	// Run assertions
+	for _, tc := range tcs {
+		result := Flatten(tc.input...)
+		assert.Equal(t, tc.expect, result, tc.name)
+	}
+}
+
+// newTestRedact wraps redaction creation and fails the test if there's an error
+func newTestRedact(t *testing.T, matcher string, replace string) *Redact {
+	t.Helper()
+	r, err := New(matcher, "", replace)
+	require.NoError(t, err, "error creating test redaction")
+	return r
 }
