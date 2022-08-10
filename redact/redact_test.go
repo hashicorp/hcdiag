@@ -29,7 +29,12 @@ func TestNewRegex(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		reg, err := New(tc.matcher, tc.id, tc.replace)
+		cfg := Config{
+			Matcher: tc.matcher,
+			ID:      tc.id,
+			Replace: tc.replace,
+		}
+		reg, err := New(cfg)
 		assert.NoError(t, err, tc.name)
 		assert.NotEqual(t, "", reg.ID, tc.name)
 		assert.NotEqual(t, "", reg.Replace, tc.name)
@@ -63,7 +68,12 @@ func TestRedact_Apply(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		redactor, err := New(tc.matcher, "", "")
+		cfg := Config{
+			Matcher: tc.matcher,
+			ID:      "",
+			Replace: "",
+		}
+		redactor, err := New(cfg)
 		assert.NoError(t, err, tc.name)
 
 		r := strings.NewReader(tc.input)
@@ -81,7 +91,12 @@ func TestApplyMany(t *testing.T) {
 	var redactions []*Redact
 	matchers := []string{"myRegex", "test", "does not apply"}
 	for _, matcher := range matchers {
-		redact, err := New(matcher, "", "")
+		cfg := Config{
+			Matcher: matcher,
+			ID:      "",
+			Replace: "",
+		}
+		redact, err := New(cfg)
 		assert.NoError(t, err)
 		redactions = append(redactions, redact)
 	}
@@ -171,7 +186,7 @@ func TestJSON(t *testing.T) {
 				"m":     map[string]any{"ello": "hthere"},
 			},
 			redacts: func() ([]*Redact, error) {
-				one, err := New("there", "", "")
+				one, err := New(Config{"", "there", ""})
 				if err != nil {
 					return nil, err
 				}
@@ -195,7 +210,7 @@ func TestJSON(t *testing.T) {
 				map[string]any{"ello": "hthere"},
 			},
 			redacts: func() ([]*Redact, error) {
-				one, err := New("there", "", "")
+				one, err := New(Config{"", "there", ""})
 				if err != nil {
 					return nil, err
 				}
@@ -216,7 +231,7 @@ func TestJSON(t *testing.T) {
 				[]any{"one", "two", "three", []any{"there"}},
 			},
 			redacts: func() ([]*Redact, error) {
-				one, err := New("there", "", "")
+				one, err := New(Config{"", "there", ""})
 				if err != nil {
 					return nil, err
 				}
@@ -334,10 +349,57 @@ func TestFlatten(t *testing.T) {
 	}
 }
 
+// test redact.MapNew()
+func TestMapNew(t *testing.T) {
+	// Set up test redacts
+	var nilSlice []Config
+	var emptySlice = []Config{}
+
+	tcs := []struct {
+		name      string
+		input     []Config
+		expectLen int
+	}{
+		{
+			name:      "MakeMany should return empty redact slice for empty slice input",
+			input:     emptySlice,
+			expectLen: 0,
+		},
+		{
+			name:      "MakeMany should return empty redact slice for nil slice input",
+			input:     nilSlice,
+			expectLen: 0,
+		},
+		{
+			name:      "MakeMany should treat single-config slices correctly",
+			input:     []Config{{"", "something", "repl"}},
+			expectLen: 1,
+		},
+		{
+			name:      "MakeMany should treat multi-config slices correctly",
+			input:     []Config{{"", "something", "repl"}, {"", "otherthing", ""}},
+			expectLen: 2,
+		},
+	}
+	// Run assertions
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			result, _ := MapNew(tc.input)
+			resultLen := len(result)
+			assert.Equal(t, tc.expectLen, resultLen, tc.name)
+		})
+	}
+}
+
 // newTestRedact wraps redaction creation and fails the test if there's an error
 func newTestRedact(t *testing.T, matcher string, replace string) *Redact {
 	t.Helper()
-	r, err := New(matcher, "", replace)
+	cfg := Config{
+		Matcher: matcher,
+		ID:      "",
+		Replace: replace,
+	}
+	r, err := New(cfg)
 	require.NoError(t, err, "error creating test redaction")
 	return r
 }

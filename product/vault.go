@@ -89,20 +89,11 @@ func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 
 // getDefaultVaultRedactions returns a slice of default redactions for this product
 func getDefaultVaultRedactions() []*redact.Redact {
-	redactions := []struct {
-		name    string
-		matcher string
-		replace string
-	}{}
+	configs := []redact.Config{}
 
-	var defaultVaultRedactions = make([]*redact.Redact, len(redactions))
-	for i, r := range redactions {
-		redaction, err := redact.New(r.matcher, "", r.replace)
-		if err != nil {
-			// If there's an issue, return an empty slice so that we can just ignore these redactions
-			return make([]*redact.Redact, 0)
-		}
-		defaultVaultRedactions[i] = redaction
+	redactions, err := redact.MapNew(configs)
+	if err != nil {
+		panic("error getting default vault redactions")
 	}
-	return defaultVaultRedactions
+	return redactions
 }

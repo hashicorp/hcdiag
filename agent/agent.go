@@ -584,20 +584,11 @@ func formatReportLine(cells ...string) string {
 
 // GetDefaultAgentRedactions returns the default agent-level redactions that we ship with hcdiag
 func getDefaultAgentRedactions() []*redact.Redact {
-	redactions := []struct {
-		name    string
-		matcher string
-		replace string
-	}{}
+	configs := []redact.Config{}
 
-	var defaultAgentRedactions = make([]*redact.Redact, len(redactions))
-	for i, r := range redactions {
-		redaction, err := redact.New(r.matcher, "", r.replace)
-		if err != nil {
-			// If there's an issue, return an empty slice so that we can just ignore these redactions
-			return make([]*redact.Redact, 0)
-		}
-		defaultAgentRedactions[i] = redaction
+	redactions, err := redact.MapNew(configs)
+	if err != nil {
+		panic("error getting default agent redactions")
 	}
-	return defaultAgentRedactions
+	return redactions
 }

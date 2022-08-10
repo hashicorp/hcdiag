@@ -17,15 +17,24 @@ type Redact struct {
 	Replace string `json:"replace"`
 }
 
+type Config struct {
+	ID      string
+	Matcher string
+	Replace string
+}
+
 // New takes the matcher as a string and returned a compiled and ready-to-use redactor. ID and Replace are
 // optional and can be left empty.
-func New(matcher, id, replace string) (*Redact, error) {
-	r, err := regexp.Compile(matcher)
+func New(cfg Config) (*Redact, error) {
+	id := cfg.ID
+	replace := cfg.Replace
+
+	r, err := regexp.Compile(cfg.Matcher)
 	if err != nil {
 		return nil, err
 	}
 	if id == "" {
-		genID := md5.Sum([]byte(matcher))
+		genID := md5.Sum([]byte(cfg.Matcher))
 		id = fmt.Sprint(genID)
 	}
 	if replace == "" {
@@ -195,4 +204,17 @@ func Flatten(redacts ...[]*Redact) []*Redact {
 		flattened = append(flattened, rslice...)
 	}
 	return flattened
+}
+
+// MapNew takes a slice of RedactConfig and return a slice of redact.Redact
+func MapNew(configs []Config) ([]*Redact, error) {
+	var redactions = make([]*Redact, len(configs))
+	for i, cfg := range configs {
+		r, err := New(cfg)
+		if err != nil {
+			return nil, err
+		}
+		redactions[i] = r
+	}
+	return redactions, nil
 }

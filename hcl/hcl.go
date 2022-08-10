@@ -350,7 +350,12 @@ func MapRedacts(redactions []Redact) ([]*redact.Redact, error) {
 
 	s := make([]*redact.Redact, len(redactions))
 	for i, r := range redactions {
-		red, err := redact.New(r.Match, r.ID, r.Replace)
+		cfg := redact.Config{
+			Matcher: r.Match,
+			ID:      r.ID,
+			Replace: r.Replace,
+		}
+		red, err := redact.New(cfg)
 		if err != nil {
 			return nil, err
 		}
