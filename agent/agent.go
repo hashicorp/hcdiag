@@ -67,7 +67,10 @@ type Agent struct {
 }
 
 func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
-	redacts := getDefaultAgentRedactions()
+	redacts, err := getDefaultAgentRedactions()
+	if err != nil {
+		return nil, err
+	}
 
 	// Is there an HCL Agent config that contains redactions?
 	if config.HCL.Agent != nil && len(config.HCL.Agent.Redactions) > 0 {
@@ -583,12 +586,11 @@ func formatReportLine(cells ...string) string {
 }
 
 // GetDefaultAgentRedactions returns the default agent-level redactions that we ship with hcdiag
-func getDefaultAgentRedactions() []*redact.Redact {
+func getDefaultAgentRedactions() ([]*redact.Redact, error) {
 	configs := []redact.Config{}
-
 	redactions, err := redact.MapNew(configs)
 	if err != nil {
-		panic("error getting default agent redactions")
+		return nil, err
 	}
-	return redactions
+	return redactions, nil
 }

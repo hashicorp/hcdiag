@@ -23,7 +23,11 @@ const (
 // NewVault takes a product config and creates a Product containing all of Vault's runners.
 func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
-	cfg.Redactions = redact.Flatten(getDefaultVaultRedactions(), cfg.Redactions)
+	defaultRedactions, err := getDefaultVaultRedactions()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Redactions = redact.Flatten(defaultRedactions, cfg.Redactions)
 
 	product := &Product{
 		l:      logger.Named("product"),
@@ -88,12 +92,11 @@ func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 }
 
 // getDefaultVaultRedactions returns a slice of default redactions for this product
-func getDefaultVaultRedactions() []*redact.Redact {
+func getDefaultVaultRedactions() ([]*redact.Redact, error) {
 	configs := []redact.Config{}
-
 	redactions, err := redact.MapNew(configs)
 	if err != nil {
-		panic("error getting default vault redactions")
+		return nil, err
 	}
-	return redactions
+	return redactions, nil
 }
