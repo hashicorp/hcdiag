@@ -7,12 +7,14 @@ assignees: aliciaclark1066
 
 ---
 
-**What problem would you like `hcdiag` to address?**  
+**What problem would you like to address?**  
 Write a clear and concise description of the problem.
 
 **Who is the audience for this request?**  
-Clarify who the end user is, e.g., Customer Success architect, Terraform Enterprise customer, etc.  
-(Please add appropriate support, field, internal, or customer label, if possible.)
+Clarify who the end user is, e.g., Customer Success architect, Vault Enterprise customer, etc.
+
+**Which HashiCorp products does this affect?**  
+Select appropriate GitHub labels when applicable, e.g., terraform, vault, consul, nomad, etc.
 
 **What would the ideal solution look like?**  
 Describe what you want to happen.
@@ -20,8 +22,11 @@ Describe what you want to happen.
 **What alternatives have you considered?**  
 Share any alternative solutions or features considered.
 
-**What is the impact?**  
+**How does this impact you?**  
 Explain the impact to your work or process, e.g., We cannot do [...].
+
+**Are there any deadlines?**  
+Disclose any deadlines impacting the required completion date of the request.
 
 **Is there any additional context?**  
 Add any other context or mockups for the feature request.

@@ -32,22 +32,22 @@ jobs:
             echo "::set-output name=type::Task"
           fi
 
-      - name: Set ticket source
+      - name: Set ticket labels
         if: github.event.action == 'opened'
-        id: set-ticket-source
+        id: set-ticket-labels
         run: |
-          if [[ "${{ contains(github.event.issue.labels.*.name, 'support') }}" == "true" ]]; then
-            echo "::set-output name=source::Support"
-          elif [[ "${{ contains(github.event.issue.labels.*.name, 'field') }}" == "true" ]]; then
-            echo "::set-output name=source::Field"
-          elif [[ "${{ contains(github.event.issue.labels.*.name, 'internal') }}" == "true" ]]; then
-            echo "::set-output name=source::Internal"
-          elif [[ "${{ contains(github.event.issue.labels.*.name, 'customer') }}" == "true" ]]; then
-            echo "::set-output name=source::Customer"
-          else
-            echo "::set-output name=source::GitHub"
-          fi
-
+          LABELS="["
+          if [[ "${{ contains(github.event.issue.labels.*.name, 'terraform') }}" == "true" ]]; then LABELS+="\"terraform\", "; fi
+          if [[ "${{ contains(github.event.issue.labels.*.name, 'vault') }}" == "true" ]]; then LABELS+="\"vault\", "; fi
+          if [[ "${{ contains(github.event.issue.labels.*.name, 'consul') }}" == "true" ]]; then LABELS+="\"consul\", "; fi
+          if [[ "${{ contains(github.event.issue.labels.*.name, 'nomad') }}" == "true" ]]; then LABELS+="\"nomad\", "; fi
+          if [[ "${{ contains(github.event.issue.labels.*.name, 'packer') }}" == "true" ]]; then LABELS+="\"packer\", "; fi
+          if [[ "${{ contains(github.event.issue.labels.*.name, 'vagrant') }}" == "true" ]]; then LABELS+="\"vagrant\", "; fi          
+          if [[ "${{ contains(github.event.issue.labels.*.name, 'boundary') }}" == "true" ]]; then LABELS+="\"boundary\", "; fi
+          if [[ "${{ contains(github.event.issue.labels.*.name, 'waypoint') }}" == "true" ]]; then LABELS+="\"waypoint\", "; fi
+          LABELS=${LABELS::-2}"]"
+          echo "::set-output name=labels::${LABELS}"
+          
       - name: Check if team member
         if: github.event.action == 'opened' && steps.set-ticket-type.outputs.type == 'Task'
         id: is-team-member
@@ -74,7 +74,8 @@ jobs:
           description: "${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"
           # customfield_10089 is "Issue Link", customfield_10371 is "Source" (use JIRA API to retrieve)
           extraFields: '{ "customfield_10089": "${{ github.event.issue.html_url || github.event.pull_request.html_url }}",
-                          "customfield_10371": { "value": "${{ steps.set-ticket-source.outputs.source }}" } }'
+                          "customfield_10371": { "value": "GitHub" },
+                          "labels": ${{ steps.set-ticket-labels.outputs.labels }} }'
 
       - name: Search
         if: github.event.action != 'opened'
@@ -96,7 +97,7 @@ jobs:
         uses: atlassian/gajira-transition@v2.0.1
         with:
           issue: ${{ steps.search.outputs.issue }}
-          transition: Done
+          transition: "Closed"
 
       - name: Reopen ticket
         if: github.event.action == 'reopened' && steps.search.outputs.issue
