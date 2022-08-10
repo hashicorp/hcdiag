@@ -11,7 +11,7 @@ import (
 // NewTFE takes a logger and product config, and it creates a Product with all of TFE's default runners.
 func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
-	defaultRedactions, err := getDefaultTFERedactions()
+	defaultRedactions, err := tfeRedactions()
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +79,8 @@ func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	}, nil
 }
 
-// getDefaultTFERedactions returns a slice of default redactions for this product
-func getDefaultTFERedactions() ([]*redact.Redact, error) {
+// tfeRedactions returns a slice of default redactions for this product
+func tfeRedactions() ([]*redact.Redact, error) {
 	configs := []redact.Config{}
 	redactions, err := redact.MapNew(configs)
 	if err != nil {

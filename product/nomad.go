@@ -25,7 +25,7 @@ const (
 // NewNomad takes a logger and product config, and it creates a Product with all of Nomad's default runners.
 func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
-	defaultRedactions, err := getDefaultNomadRedactions()
+	defaultRedactions, err := nomadRedactions()
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +106,8 @@ func nomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	return runners, nil
 }
 
-// getDefaultNomadRedactions returns a slice of default redactions for this product
-func getDefaultNomadRedactions() ([]*redact.Redact, error) {
+// nomadRedactions returns a slice of default redactions for this product
+func nomadRedactions() ([]*redact.Redact, error) {
 	configs := []redact.Config{}
 	redactions, err := redact.MapNew(configs)
 	if err != nil {

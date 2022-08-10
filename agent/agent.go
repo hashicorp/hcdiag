@@ -67,7 +67,7 @@ type Agent struct {
 }
 
 func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
-	redacts, err := getDefaultAgentRedactions()
+	redacts, err := agentRedactions()
 	if err != nil {
 		return nil, err
 	}
@@ -585,8 +585,8 @@ func formatReportLine(cells ...string) string {
 	return fmt.Sprintf(format, strValues...)
 }
 
-// GetDefaultAgentRedactions returns the default agent-level redactions that we ship with hcdiag
-func getDefaultAgentRedactions() ([]*redact.Redact, error) {
+// agentRedactions returns the default agent-level redactions that we ship with hcdiag
+func agentRedactions() ([]*redact.Redact, error) {
 	configs := []redact.Config{}
 	redactions, err := redact.MapNew(configs)
 	if err != nil {
