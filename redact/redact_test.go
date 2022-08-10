@@ -361,22 +361,22 @@ func TestMapNew(t *testing.T) {
 		expectLen int
 	}{
 		{
-			name:      "MakeMany should return empty redact slice for empty slice input",
+			name:      "MapNew should return empty redact slice for empty slice input",
 			input:     emptySlice,
 			expectLen: 0,
 		},
 		{
-			name:      "MakeMany should return empty redact slice for nil slice input",
+			name:      "MapNew should return empty redact slice for nil slice input",
 			input:     nilSlice,
 			expectLen: 0,
 		},
 		{
-			name:      "MakeMany should treat single-config slices correctly",
+			name:      "MapNew should treat single-config slices correctly",
 			input:     []Config{{"", "something", "repl"}},
 			expectLen: 1,
 		},
 		{
-			name:      "MakeMany should treat multi-config slices correctly",
+			name:      "MapNew should treat multi-config slices correctly",
 			input:     []Config{{"", "something", "repl"}, {"", "otherthing", ""}},
 			expectLen: 2,
 		},
