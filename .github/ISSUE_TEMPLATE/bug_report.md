@@ -10,6 +10,12 @@ assignees: aliciaclark1066
 **What is the bug?**  
 Write a clear and concise description of the bug.
 
+**What version are you using?**  
+Provide the version of `hcdiag` used to produce the error.
+
+**Which HashiCorp products does this affect?**  
+Select appropriate GitHub labels when applicable, e.g., terraform, vault, consul, nomad, etc.
+
 **When does the error occur?**  
 Share steps to reproduce the behavior, e.g.,
 
@@ -24,11 +30,11 @@ Describe what you expected to happen.
 **Is there a workaround?**  
 Reveal any temporary fixes you're using to address the issue.
 
-**What is the impact?**  
+**How does this impact you?**  
 Explain the impact to your work or process, e.g., We cannot do [...].
 
-**What version are you using?**  
-Provide the version of `hcdiag` used to produce the error.
+**Are there any deadlines?**  
+Disclose any deadlines impacting the required resolution date of the request.
 
 **Is there any additional context?**  
 Add any other context or screenshots about the bug.
