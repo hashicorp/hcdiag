@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewRegex(t *testing.T) {
@@ -28,7 +29,12 @@ func TestNewRegex(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		reg, err := New(tc.matcher, tc.id, tc.replace)
+		cfg := Config{
+			Matcher: tc.matcher,
+			ID:      tc.id,
+			Replace: tc.replace,
+		}
+		reg, err := New(cfg)
 		assert.NoError(t, err, tc.name)
 		assert.NotEqual(t, "", reg.ID, tc.name)
 		assert.NotEqual(t, "", reg.Replace, tc.name)
@@ -62,7 +68,12 @@ func TestRedact_Apply(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		redactor, err := New(tc.matcher, "", "")
+		cfg := Config{
+			Matcher: tc.matcher,
+			ID:      "",
+			Replace: "",
+		}
+		redactor, err := New(cfg)
 		assert.NoError(t, err, tc.name)
 
 		r := strings.NewReader(tc.input)
@@ -80,7 +91,12 @@ func TestApplyMany(t *testing.T) {
 	var redactions []*Redact
 	matchers := []string{"myRegex", "test", "does not apply"}
 	for _, matcher := range matchers {
-		redact, err := New(matcher, "", "")
+		cfg := Config{
+			Matcher: matcher,
+			ID:      "",
+			Replace: "",
+		}
+		redact, err := New(cfg)
 		assert.NoError(t, err)
 		redactions = append(redactions, redact)
 	}
@@ -170,7 +186,7 @@ func TestJSON(t *testing.T) {
 				"m":     map[string]any{"ello": "hthere"},
 			},
 			redacts: func() ([]*Redact, error) {
-				one, err := New("there", "", "")
+				one, err := New(Config{"", "there", ""})
 				if err != nil {
 					return nil, err
 				}
@@ -194,7 +210,7 @@ func TestJSON(t *testing.T) {
 				map[string]any{"ello": "hthere"},
 			},
 			redacts: func() ([]*Redact, error) {
-				one, err := New("there", "", "")
+				one, err := New(Config{"", "there", ""})
 				if err != nil {
 					return nil, err
 				}
@@ -215,7 +231,7 @@ func TestJSON(t *testing.T) {
 				[]any{"one", "two", "three", []any{"there"}},
 			},
 			redacts: func() ([]*Redact, error) {
-				one, err := New("there", "", "")
+				one, err := New(Config{"", "there", ""})
 				if err != nil {
 					return nil, err
 				}
@@ -236,4 +252,154 @@ func TestJSON(t *testing.T) {
 		assert.NoError(t, err, tc.name)
 		assert.Equal(t, tc.expect, result, tc.name)
 	}
+}
+
+// test redact.Flatten()
+func TestFlatten(t *testing.T) {
+	// Set up test redacts
+	var nilSlice []*Redact
+	var emptySlice = []*Redact{}
+	singleRedact := []*Redact{newTestRedact(t, "matchredact", "foobar")}
+	multiRedact := []*Redact{
+		newTestRedact(t, "foobar", "baz"),
+		newTestRedact(t, "baz", "<REDACTED>"),
+	}
+
+	tcs := []struct {
+		name   string
+		input  [][]*Redact
+		expect []*Redact
+	}{
+		// Nil slice alone, first, last, middle
+		{
+			name:   "Flatten should return empty redact slice for nil slice input",
+			input:  [][]*Redact{nilSlice},
+			expect: make([]*Redact, 0),
+		},
+		{
+			name:   "Flatten should treat a nil slice (first arg) correctly",
+			input:  [][]*Redact{nilSlice, singleRedact},
+			expect: singleRedact,
+		},
+		{
+			name:   "Flatten should treat mixed args (multiRedact, singleRedact, nil slice) correctly",
+			input:  [][]*Redact{multiRedact, singleRedact, nilSlice},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		{
+			name:   "Flatten should treat mixed args (multiRedact, nil slice, singleRedact) correctly",
+			input:  [][]*Redact{multiRedact, nilSlice, singleRedact},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		// Single arg
+		{
+			name:   "Flatten should treat a single redact input correctly",
+			input:  [][]*Redact{singleRedact},
+			expect: singleRedact,
+		},
+		// Multi-arg
+		{
+			name:   "Flatten should treat a multi-redact slice input correctly",
+			input:  [][]*Redact{multiRedact},
+			expect: multiRedact,
+		},
+		{
+			name:   "Flatten should treat mixed-length inputs correctly (1)",
+			input:  [][]*Redact{multiRedact, singleRedact},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		{
+			name:   "Flatten should treat mixed-length inputs correctly (2)",
+			input:  [][]*Redact{singleRedact, multiRedact},
+			expect: []*Redact{singleRedact[0], multiRedact[0], multiRedact[1]},
+		},
+		// empty slice alone, first, last, middle
+		{
+			name:   "Flatten should return empty redact slice for empty redact slice input",
+			input:  [][]*Redact{emptySlice},
+			expect: make([]*Redact, 0),
+		},
+		{
+			name:   "Flatten should treat an empty slice (first arg) correctly",
+			input:  [][]*Redact{emptySlice, singleRedact},
+			expect: singleRedact,
+		},
+		{
+			name:   "Flatten should treat mixed args (multiRedact, singleRedact, empty slice) correctly",
+			input:  [][]*Redact{multiRedact, singleRedact, emptySlice},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		{
+			name:   "Flatten should treat mixed args (multiRedact, empty slice, singleRedact) correctly",
+			input:  [][]*Redact{multiRedact, emptySlice, singleRedact},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+		{
+			name:   "Flatten should treat mixed args (nil slice, multiRedact, empty slice, singleRedact) correctly",
+			input:  [][]*Redact{nilSlice, multiRedact, emptySlice, singleRedact},
+			expect: []*Redact{multiRedact[0], multiRedact[1], singleRedact[0]},
+		},
+	}
+	// Run assertions
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			result := Flatten(tc.input...)
+			assert.Equal(t, tc.expect, result, tc.name)
+		})
+	}
+}
+
+// test redact.MapNew()
+func TestMapNew(t *testing.T) {
+	// Set up test redacts
+	var nilSlice []Config
+	var emptySlice = []Config{}
+
+	tcs := []struct {
+		name      string
+		input     []Config
+		expectLen int
+	}{
+		{
+			name:      "MapNew should return empty redact slice for empty slice input",
+			input:     emptySlice,
+			expectLen: 0,
+		},
+		{
+			name:      "MapNew should return empty redact slice for nil slice input",
+			input:     nilSlice,
+			expectLen: 0,
+		},
+		{
+			name:      "MapNew should treat single-config slices correctly",
+			input:     []Config{{"", "something", "repl"}},
+			expectLen: 1,
+		},
+		{
+			name:      "MapNew should treat multi-config slices correctly",
+			input:     []Config{{"", "something", "repl"}, {"", "otherthing", ""}},
+			expectLen: 2,
+		},
+	}
+	// Run assertions
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			result, _ := MapNew(tc.input)
+			resultLen := len(result)
+			assert.Equal(t, tc.expectLen, resultLen, tc.name)
+		})
+	}
+}
+
+// newTestRedact wraps redaction creation and fails the test if there's an error
+func newTestRedact(t *testing.T, matcher string, replace string) *Redact {
+	t.Helper()
+	cfg := Config{
+		Matcher: matcher,
+		ID:      "",
+		Replace: replace,
+	}
+	r, err := New(cfg)
+	require.NoError(t, err, "error creating test redaction")
+	return r
 }

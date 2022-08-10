@@ -1,0 +1,12 @@
+```release-note:improvement
+redact: Add redaction flow.
+```
+```release-note:improvement
+agent: Add agent redactions.
+```
+```release-note:improvement
+hcl: Add custom (HCL) agent redactions.
+```
+```release-note:improvement
+product: Add product redactions and pass redactions into runners.
+```

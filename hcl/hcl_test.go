@@ -206,14 +206,14 @@ func TestBuildRunners(t *testing.T) {
 			if 0 < len(products) {
 				runners := make([]runner.Runner, 0)
 				for _, product := range products {
-					pRunners, err := BuildRunners(product, tc.tmpDir, tc.client, tc.since, tc.until)
+					pRunners, err := BuildRunners(product, tc.tmpDir, tc.client, tc.since, tc.until, nil)
 					assert.NoError(t, err)
 					runners = append(runners, pRunners...)
 				}
 				assert.Len(t, runners, tc.expect)
 			}
 			if host != nil {
-				hostRunners, err := BuildRunners(host, tc.tmpDir, tc.client, tc.since, tc.until)
+				hostRunners, err := BuildRunners(host, tc.tmpDir, tc.client, tc.since, tc.until, nil)
 				assert.NoError(t, err)
 				assert.Len(t, hostRunners, tc.expect)
 			}

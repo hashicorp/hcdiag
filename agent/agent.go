@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -61,9 +62,25 @@ type Agent struct {
 	Version     version.Version `json:"version"`
 	// ManifestOps holds a slice of ops with a subset of fields so we can safely render them in `manifest.json`
 	ManifestOps map[string][]ManifestOp `json:"ops"`
+	// Agent-level redactions are passed through to all products
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
-func NewAgent(config Config, logger hclog.Logger) *Agent {
+func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
+	redacts, err := agentRedactions()
+	if err != nil {
+		return nil, err
+	}
+
+	// Is there an HCL Agent config that contains redactions?
+	if config.HCL.Agent != nil && len(config.HCL.Agent.Redactions) > 0 {
+		hclRedacts, err := hcl.MapRedacts(config.HCL.Agent.Redactions)
+		if err != nil {
+			return nil, err
+		}
+		redacts = redact.Flatten(hclRedacts, redacts)
+	}
+
 	return &Agent{
 		l:           logger,
 		Config:      config,
@@ -71,7 +88,8 @@ func NewAgent(config Config, logger hclog.Logger) *Agent {
 		products:    make(map[product.Name]*product.Product),
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
-	}
+		Redactions:  redacts,
+	}, nil
 }
 
 // Run manages the Agent's lifecycle. We create our temp directory, copy files, run their ops, write the results,
@@ -438,6 +456,7 @@ func (a *Agent) Setup() error {
 		OS:            a.Config.OS,
 		DebugDuration: a.Config.DebugDuration,
 		DebugInterval: a.Config.DebugInterval,
+		Redactions:    a.Redactions,
 	}
 
 	// Build Consul and assign it to the product map.
@@ -564,4 +583,14 @@ func formatReportLine(cells ...string) string {
 	format += "\n"
 
 	return fmt.Sprintf(format, strValues...)
+}
+
+// agentRedactions returns the default agent-level redactions that we ship with hcdiag
+func agentRedactions() ([]*redact.Redact, error) {
+	configs := []redact.Config{}
+	redactions, err := redact.MapNew(configs)
+	if err != nil {
+		return nil, err
+	}
+	return redactions, nil
 }

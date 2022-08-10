@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -20,6 +21,13 @@ const (
 
 // NewConsul takes a logger and product config, and it creates a Product with all of Consul's default runners.
 func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
+	// Prepend product-specific redactions to agent-level redactions from cfg
+	defaultRedactions, err := consulRedactions()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Redactions = redact.Flatten(defaultRedactions, cfg.Redactions)
+
 	product := &Product{
 		l:      logger.Named("product"),
 		Name:   Consul,
@@ -30,13 +38,17 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		return nil, err
 	}
 
-	product.Runners, err = consulRunners(cfg, api)
-	if err != nil {
-		return nil, err
-	}
-
+	// HCL handling goes first, because it could add redactions to our built-in runners
 	if cfg.HCL != nil {
-		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until)
+		// Map product-specific redactions from our config
+		hclProductRedactions, err := hcl.MapRedacts(cfg.HCL.Redactions)
+		if err != nil {
+			return nil, err
+		}
+		// Prepend product HCL redactions to our product defaults
+		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
+
+		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -45,22 +57,29 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		product.Selects = cfg.HCL.Selects
 	}
 
+	// Add built-in runners
+	builtInRunners, err := consulRunners(cfg, api)
+	if err != nil {
+		return nil, err
+	}
+	product.Runners = append(product.Runners, builtInRunners...)
+
 	return product, nil
 }
 
 // consulRunners generates a slice of runners to inspect consul.
 func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
-		runner.NewCommander("consul version", "string", nil),
-		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", nil),
+		runner.NewCommander("consul version", "string", cfg.Redactions),
+		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
-		runner.NewHTTPer(api, "/v1/agent/self", nil),
-		runner.NewHTTPer(api, "/v1/agent/metrics", nil),
-		runner.NewHTTPer(api, "/v1/catalog/datacenters", nil),
-		runner.NewHTTPer(api, "/v1/catalog/services", nil),
-		runner.NewHTTPer(api, "/v1/namespace", nil),
-		runner.NewHTTPer(api, "/v1/status/leader", nil),
-		runner.NewHTTPer(api, "/v1/status/peers", nil),
+		runner.NewHTTPer(api, "/v1/agent/self", cfg.Redactions),
+		runner.NewHTTPer(api, "/v1/agent/metrics", cfg.Redactions),
+		runner.NewHTTPer(api, "/v1/catalog/datacenters", cfg.Redactions),
+		runner.NewHTTPer(api, "/v1/catalog/services", cfg.Redactions),
+		runner.NewHTTPer(api, "/v1/namespace", cfg.Redactions),
+		runner.NewHTTPer(api, "/v1/status/leader", cfg.Redactions),
+		runner.NewHTTPer(api, "/v1/status/peers", cfg.Redactions),
 
 		logs.NewDocker("consul", cfg.TmpDir, cfg.Since),
 		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until),
@@ -69,9 +88,19 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	// try to detect log location to copy
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/consul")
-		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until, nil)
+		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
 		runners = append([]runner.Runner{logCopier}, runners...)
 	}
 
 	return runners, nil
+}
+
+// consulRedactions returns a slice of default redactions for this product
+func consulRedactions() ([]*redact.Redact, error) {
+	configs := []redact.Config{}
+	redactions, err := redact.MapNew(configs)
+	if err != nil {
+		return nil, err
+	}
+	return redactions, nil
 }
