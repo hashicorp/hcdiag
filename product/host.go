@@ -76,13 +76,7 @@ func getDefaultHostRedactions() []*redact.Redact {
 		name    string
 		matcher string
 		replace string
-	}{
-		// {
-		// 	name:    "host-product-default",
-		// 	matcher: "/host/",
-		// 	replace: "host-product-default-redaction",
-		// },
-	}
+	}{}
 
 	var defaultHostRedactions = make([]*redact.Redact, len(redactions))
 	for i, r := range redactions {

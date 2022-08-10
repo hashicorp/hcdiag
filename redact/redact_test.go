@@ -327,8 +327,10 @@ func TestFlatten(t *testing.T) {
 	}
 	// Run assertions
 	for _, tc := range tcs {
-		result := Flatten(tc.input...)
-		assert.Equal(t, tc.expect, result, tc.name)
+		t.Run(tc.name, func(t *testing.T) {
+			result := Flatten(tc.input...)
+			assert.Equal(t, tc.expect, result, tc.name)
+		})
 	}
 }
 

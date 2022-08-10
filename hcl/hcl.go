@@ -342,7 +342,6 @@ func ProductsMap(products []*Product) map[string]*Product {
 }
 
 // MapRedacts maps HCL redactions to "real" `redact.Redact`s
-// 	This is a public function so it can be used to map redactions from the Agent and Products
 func MapRedacts(redactions []Redact) ([]*redact.Redact, error) {
 	err := ValidateRedactions(redactions)
 	if err != nil {
