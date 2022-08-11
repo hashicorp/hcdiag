@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
@@ -25,7 +24,7 @@ func TestSheller(t *testing.T) {
 	assert.Equal(t, "", o.Result)
 	assert.NoError(t, o.Error)
 
-	bts, err := ioutil.ReadFile("cooltestfile")
+	bts, err := os.ReadFile("cooltestfile")
 	assert.Equal(t, "hiii\n", string(bts))
 	assert.NoError(t, err)
 }

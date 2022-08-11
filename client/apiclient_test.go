@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -22,7 +22,7 @@ type mockHTTP struct {
 func (m *mockHTTP) Do(r *http.Request) (*http.Response, error) {
 	m.called = append(m.called, r)
 	return &http.Response{
-		Body:       ioutil.NopCloser(strings.NewReader(m.resp)),
+		Body:       io.NopCloser(strings.NewReader(m.resp)),
 		StatusCode: 200,
 	}, nil
 }
