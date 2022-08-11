@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/runner"
 )
@@ -15,10 +16,10 @@ type FSTab struct {
 	Sheller runner.Runner `json:"sheller"`
 }
 
-func NewFSTab(os string) *FSTab {
+func NewFSTab(os string, redactions []*redact.Redact) *FSTab {
 	return &FSTab{
 		OS:      os,
-		Sheller: runner.NewSheller("cat /etc/fstab", nil),
+		Sheller: runner.NewSheller("cat /etc/fstab", redactions),
 	}
 }
 
