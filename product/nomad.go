@@ -92,8 +92,8 @@ func nomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true", cfg.Redactions),
 		runner.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true", cfg.Redactions),
 
-		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since),
-		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until),
+		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since, cfg.Redactions),
+		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 	}
 
 	// try to detect log location to copy

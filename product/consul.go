@@ -81,8 +81,8 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewHTTPer(api, "/v1/status/leader", cfg.Redactions),
 		runner.NewHTTPer(api, "/v1/status/peers", cfg.Redactions),
 
-		logs.NewDocker("consul", cfg.TmpDir, cfg.Since),
-		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until),
+		logs.NewDocker("consul", cfg.TmpDir, cfg.Since, cfg.Redactions),
+		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 	}
 
 	// try to detect log location to copy

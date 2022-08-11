@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/runner"
 
@@ -17,19 +18,21 @@ var _ runner.Runner = Journald{}
 const JournaldTimeLayout = "2006-01-02 15:04:05"
 
 type Journald struct {
-	Service string    `json:"service"`
-	DestDir string    `json:"destDir"`
-	Since   time.Time `json:"since"`
-	Until   time.Time `json:"until"`
+	Service    string           `json:"service"`
+	DestDir    string           `json:"destDir"`
+	Since      time.Time        `json:"since"`
+	Until      time.Time        `json:"until"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewJournald sets the defaults for the journald runner
-func NewJournald(service, destDir string, since, until time.Time) *Journald {
+func NewJournald(service, destDir string, since, until time.Time, redactions []*redact.Redact) *Journald {
 	return &Journald{
-		Service: service,
-		DestDir: destDir,
-		Since:   since,
-		Until:   until,
+		Service:    service,
+		DestDir:    destDir,
+		Since:      since,
+		Until:      until,
+		Redactions: redactions,
 	}
 }
 
@@ -40,7 +43,7 @@ func (j Journald) ID() string {
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func (j Journald) Run() op.Op {
-	o := runner.NewSheller("journalctl --version", nil).Run()
+	o := runner.NewSheller("journalctl --version", j.Redactions).Run()
 	if o.Error != nil {
 		return op.New(j.ID(), o.Result, op.Skip, JournaldNotFound{
 			service: j.Service,
@@ -51,7 +54,7 @@ func (j Journald) Run() op.Op {
 
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
-	o = runner.NewCommander(cmd, "string", nil).Run()
+	o = runner.NewCommander(cmd, "string", j.Redactions).Run()
 	if o.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.Service, "output", o.Result, "error", o.Error)
 		return op.New(j.ID(), o.Result, op.Skip, JournaldServiceNotEnabled{
@@ -65,7 +68,7 @@ func (j Journald) Run() op.Op {
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
-	o = runner.NewSheller(cmd, nil).Run()
+	o = runner.NewSheller(cmd, j.Redactions).Run()
 	// permissions error detected
 	if o.Error == nil {
 		return op.New(j.ID(), o.Result, op.Fail, JournaldPermissionError{
@@ -78,8 +81,7 @@ func (j Journald) Run() op.Op {
 	}
 
 	cmd = j.LogsCmd()
-	s := runner.NewSheller(cmd, nil)
-	o = s.Run()
+	o = runner.NewSheller(cmd, j.Redactions).Run()
 
 	return op.New(j.ID(), o.Result, o.Status, o.Error, runner.Params(j))
 }
