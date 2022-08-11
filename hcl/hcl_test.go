@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/hcdiag/redact"
 	"github.com/hashicorp/hcdiag/runner"
 
 	"github.com/hashicorp/hcdiag/client"
@@ -272,7 +273,7 @@ func TestMapDockerLogs(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		runners, err := mapDockerLogs(tc.config, defaultDest, defaultSince)
+		runners, err := mapDockerLogs(tc.config, defaultDest, defaultSince, nil)
 		assert.NoError(t, err)
 		assert.Len(t, runners, tc.expected)
 	}
@@ -285,21 +286,24 @@ func TestMapJournaldLogs(t *testing.T) {
 	testDuration := "48h"
 
 	cases := []struct {
-		name     string
-		config   []JournaldLog
-		expected int
+		name       string
+		config     []JournaldLog
+		expected   int
+		redactions []*redact.Redact
 	}{
 		{
-			name:     "none",
-			config:   []JournaldLog{},
-			expected: 0,
+			name:       "none",
+			config:     []JournaldLog{},
+			expected:   0,
+			redactions: make([]*redact.Redact, 0),
 		},
 		{
 			name: "only service name",
 			config: []JournaldLog{
 				{Service: "testService"},
 			},
-			expected: 1,
+			expected:   1,
+			redactions: []*redact.Redact{},
 		},
 		{
 			name: "all attrs",
@@ -309,7 +313,8 @@ func TestMapJournaldLogs(t *testing.T) {
 					Since:   testDuration,
 				},
 			},
-			expected: 1,
+			expected:   1,
+			redactions: nil,
 		},
 		{
 			name: "multi-runners with multi-attrs",
@@ -319,18 +324,20 @@ func TestMapJournaldLogs(t *testing.T) {
 					Since:   testDuration,
 				},
 				{
-					Service: "testService",
+					Service:    "testService",
+					Redactions: []Redact{},
 				},
 				{
 					Service: "testService2",
 				},
 			},
-			expected: 3,
+			expected:   3,
+			redactions: nil,
 		},
 	}
 
 	for _, tc := range cases {
-		runners, err := mapJournaldLogs(tc.config, defaultDest, defaultSince, defaultUntil)
+		runners, err := mapJournaldLogs(tc.config, defaultDest, defaultSince, defaultUntil, tc.redactions)
 		assert.NoError(t, err)
 		assert.Len(t, runners, tc.expected)
 	}

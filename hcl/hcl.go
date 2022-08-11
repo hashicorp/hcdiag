@@ -84,13 +84,15 @@ type Copy struct {
 }
 
 type DockerLog struct {
-	Container string `hcl:"container"`
-	Since     string `hcl:"since,optional"`
+	Container  string   `hcl:"container"`
+	Since      string   `hcl:"since,optional"`
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 type JournaldLog struct {
-	Service string `hcl:"service"`
-	Since   string `hcl:"since,optional"`
+	Service    string   `hcl:"service"`
+	Since      string   `hcl:"since,optional"`
+	Redactions []Redact `hcl:"redact,block"`
 }
 
 // Parse takes a file path and decodes the file from disk into HCL types.
@@ -134,13 +136,13 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, copiers...)
 
 		// Build docker and journald logs
-		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since)
+		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since, redactions)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, dockerLogs...)
 
-		journaldLogs, err := mapJournaldLogs(cfg.JournaldLogs, dest, since, until)
+		journaldLogs, err := mapJournaldLogs(cfg.JournaldLogs, dest, since, until, redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -182,13 +184,13 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, copiers...)
 
 		// Build docker and journald logs
-		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since)
+		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since, redactions)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, dockerLogs...)
 
-		journaldLogs, err := mapJournaldLogs(cfg.JournaldLogs, dest, since, until)
+		journaldLogs, err := mapJournaldLogs(cfg.JournaldLogs, dest, since, until, redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -294,10 +296,17 @@ func mapHostGets(cfgs []GET, redactions []*redact.Redact) ([]runner.Runner, erro
 	return runners, nil
 }
 
-func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time) ([]runner.Runner, error) {
+func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, d := range cfgs {
+		runnerRedacts, err := MapRedacts(d.Redactions)
+		if err != nil {
+			return nil, err
+		}
+		// Prepend runner-level redactions to those passed in
+		runnerRedacts = append(runnerRedacts, redactions...)
+
 		if d.Since != "" {
 			dur, err := time.ParseDuration(d.Since)
 			if err != nil {
@@ -307,15 +316,22 @@ func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time) ([]runner.Run
 			//  bug: different runners have different now values but it's unlikely to ever cause an issues for users.
 			since = time.Now().Add(-dur)
 		}
-		runners[i] = log.NewDocker(d.Container, dest, since)
+		runners[i] = log.NewDocker(d.Container, dest, since, runnerRedacts)
 	}
 	return runners, nil
 }
 
-func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time) ([]runner.Runner, error) {
+func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, j := range cfgs {
+		runnerRedacts, err := MapRedacts(j.Redactions)
+		if err != nil {
+			return nil, err
+		}
+		// Prepend runner-level redactions to those passed in
+		runnerRedacts = append(runnerRedacts, redactions...)
+
 		if j.Since != "" {
 			dur, err := time.ParseDuration(j.Since)
 			if err != nil {
@@ -327,7 +343,7 @@ func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time) ([
 			since = now.Add(dur)
 			until = time.Time{}
 		}
-		runners[i] = log.NewJournald(j.Service, dest, since, until)
+		runners[i] = log.NewJournald(j.Service, dest, since, until, runnerRedacts)
 	}
 	return runners, nil
 }

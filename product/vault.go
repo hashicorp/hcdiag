@@ -77,8 +77,8 @@ func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewCommander("vault read sys/host-info -format=json", "json", cfg.Redactions),
 		runner.NewCommander(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
-		logs.NewDocker("vault", cfg.TmpDir, cfg.Since),
-		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until),
+		logs.NewDocker("vault", cfg.TmpDir, cfg.Since, cfg.Redactions),
+		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 	}
 
 	// try to detect log location to copy
