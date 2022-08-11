@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/runner"
 )
@@ -12,17 +13,19 @@ import (
 var _ runner.Runner = IPTables{}
 
 type IPTables struct {
-	Commands []string `json:"commands"`
+	Commands   []string         `json:"commands"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewIPTables returns a runner configured to run several iptables commands
-func NewIPTables() *IPTables {
+func NewIPTables(redactions []*redact.Redact) *IPTables {
 	return &IPTables{
 		Commands: []string{
 			"iptables -L -n -v",
 			"iptables -L -n -v -t nat",
 			"iptables -L -n -v -t mangle",
 		},
+		Redactions: redactions,
 	}
 }
 
@@ -36,7 +39,7 @@ func (r IPTables) Run() op.Op {
 	}
 	result := make(map[string]string)
 	for _, c := range r.Commands {
-		o := runner.NewCommander(c, "string", nil).Run()
+		o := runner.NewCommander(c, "string", r.Redactions).Run()
 		result[c] = o.Result.(string)
 		if o.Error != nil {
 			return op.New(r.ID(), result, op.Fail, o.Error, runner.Params(r))
