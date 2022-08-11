@@ -1,0 +1,3 @@
+```release-note:improvement
+runner: add redactions pass-through for higher-order host runners.
+```
