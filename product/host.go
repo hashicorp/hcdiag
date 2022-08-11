@@ -62,7 +62,7 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
 	return []runner.Runner{
 		host.NewOS(os, redactions),
-		host.NewDisk(),
+		host.NewDisk(redactions),
 		host.Info{},
 		host.Memory{},
 		host.Process{},
