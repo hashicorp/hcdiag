@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -127,7 +126,7 @@ func InterfaceToJSON(mapVar interface{}) ([]byte, error) {
 
 // JSONToFile accepts JSON and an output file path to create a JSON file.
 func JSONToFile(JSON []byte, outFile string) error {
-	err := ioutil.WriteFile(outFile, JSON, 0644)
+	err := os.WriteFile(outFile, JSON, 0644)
 	if err != nil {
 		hclog.L().Error("JSONToFile", "error during json to file", err)
 	}

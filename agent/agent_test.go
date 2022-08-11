@@ -3,7 +3,6 @@ package agent
 import (
 	"bytes"
 	"flag"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -300,13 +299,13 @@ func TestAgent_WriteSummary(t *testing.T) {
 			golden := filepath.Join("testdata/WriteSummary", tc.name+".golden")
 
 			if *update {
-				writeErr := ioutil.WriteFile(golden, b.Bytes(), 0644)
+				writeErr := os.WriteFile(golden, b.Bytes(), 0644)
 				if writeErr != nil {
 					t.Errorf("Error writing golden file (%s): %s", golden, writeErr)
 				}
 			}
 
-			expected, readErr := ioutil.ReadFile(golden)
+			expected, readErr := os.ReadFile(golden)
 			if readErr != nil {
 				t.Errorf("Error reading golden file (%s): %s", golden, readErr)
 			}

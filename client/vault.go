@@ -4,7 +4,6 @@ package client
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"strconv"
 
@@ -39,7 +38,7 @@ func NewVaultAPI() (*APIClient, error) {
 		if err != nil {
 			break
 		}
-		bts, err := ioutil.ReadFile(path)
+		bts, err := os.ReadFile(path)
 		if err != nil {
 			break
 		}

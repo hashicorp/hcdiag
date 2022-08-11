@@ -1,7 +1,6 @@
 package util
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -87,7 +86,7 @@ func TestCopyDir(t *testing.T) {
 		if tc.content != "" {
 			// confirm the file exists in the right place and has the right contents
 			expectedLocation := filepath.Join(absSrc, tc.file)
-			result, err := ioutil.ReadFile(expectedLocation)
+			result, err := os.ReadFile(expectedLocation)
 			assert.NoError(t, err, tc.name)
 			assert.Equal(t, tc.content, string(result), tc.name)
 		}
