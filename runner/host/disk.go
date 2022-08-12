@@ -12,6 +12,8 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
+// PartitionInfo includes details about a disk partition. This serves as the basis for the results produced by
+// the Disk runner.
 type PartitionInfo struct {
 	Device     string   `json:"device"`
 	Mountpoint string   `json:"mountpoint"`
