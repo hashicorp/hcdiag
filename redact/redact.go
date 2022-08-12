@@ -98,7 +98,7 @@ func ApplyMany(redactions []*Redact, w io.Writer, r io.Reader) error {
 // TODO(mkcp): Speed improvement & out of memory error: JSON responses can be really big, so we're going to have to
 //  chunk extremely large strings down.
 func String(result string, redactions []*Redact) (string, error) {
-	if (redactions == nil) || (len(redactions) == 0) {
+	if len(redactions) == 0 {
 		return result, nil
 	}
 
@@ -116,7 +116,7 @@ func String(result string, redactions []*Redact) (string, error) {
 // TODO(mkcp): Speed improvement & out of memory error: JSON responses can be really big, so we're going to have to
 //  chunk extremely large byte arrays down.
 func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
-	if (redactions == nil) || (len(redactions) == 0) {
+	if len(redactions) == 0 {
 		return b, nil
 	}
 
@@ -131,7 +131,7 @@ func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
 
 // JSON accepts a json map or array and traverses the collections and redacts any strings we find.
 func JSON(a any, redactions []*Redact) (any, error) {
-	if (redactions == nil) || (len(redactions) == 0) {
+	if len(redactions) == 0 {
 		return a, nil
 	}
 
