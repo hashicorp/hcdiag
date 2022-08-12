@@ -98,6 +98,10 @@ func ApplyMany(redactions []*Redact, w io.Writer, r io.Reader) error {
 // TODO(mkcp): Speed improvement & out of memory error: JSON responses can be really big, so we're going to have to
 //  chunk extremely large strings down.
 func String(result string, redactions []*Redact) (string, error) {
+	if (redactions == nil) || (len(redactions) == 0) {
+		return result, nil
+	}
+
 	r := strings.NewReader(result)
 	buf := new(bytes.Buffer)
 	err := ApplyMany(redactions, buf, r)
@@ -112,6 +116,10 @@ func String(result string, redactions []*Redact) (string, error) {
 // TODO(mkcp): Speed improvement & out of memory error: JSON responses can be really big, so we're going to have to
 //  chunk extremely large byte arrays down.
 func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
+	if (redactions == nil) || (len(redactions) == 0) {
+		return b, nil
+	}
+
 	r := bytes.NewReader(b)
 	buf := new(bytes.Buffer)
 	err := ApplyMany(redactions, buf, r)
@@ -123,6 +131,10 @@ func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
 
 // JSON accepts a json map or array and traverses the collections and redacts any strings we find.
 func JSON(a any, redactions []*Redact) (any, error) {
+	if (redactions == nil) || (len(redactions) == 0) {
+		return a, nil
+	}
+
 	switch coll := a.(type) {
 	case map[string]any:
 		r, err := redactMap(coll, redactions)
