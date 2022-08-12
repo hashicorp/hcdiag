@@ -12,6 +12,13 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
+type PartitionInfo struct {
+	Device     string   `json:"device"`
+	Mountpoint string   `json:"mountpoint"`
+	Fstype     string   `json:"fstype"`
+	Opts       []string `json:"opts"`
+}
+
 var _ runner.Runner = Disk{}
 
 type Disk struct {
@@ -30,34 +37,60 @@ func (d Disk) ID() string {
 
 func (d Disk) Run() op.Op {
 	// third party
-	diskInfo, err := disk.Partitions(true)
+	var diskInfo []PartitionInfo
+
+	dp, err := disk.Partitions(true)
 	if err != nil {
 		hclog.L().Trace("runner/host.Disk.Run()", "error", err)
 		err1 := fmt.Errorf("error getting disk information err=%w", err)
 		return op.New(d.ID(), diskInfo, op.Unknown, err1, nil)
 	}
 
-	if (d.Redactions != nil) && (len(d.Redactions) > 0) {
-		var redactedDisk []RedactedPartitionStat
-		for _, di := range diskInfo {
-			rd := RedactedPartitionStat{
-				Device:     redact.NewRedactedString(di.Device, d.Redactions),
-				Mountpoint: redact.NewRedactedString(di.Mountpoint, d.Redactions),
-				Fstype:     redact.NewRedactedString(di.Fstype, d.Redactions),
-				Opts:       redact.NewRedactedStringSlice(di.Opts, d.Redactions),
-			}
-			redactedDisk = append(redactedDisk, rd)
-		}
-
-		return op.New(d.ID(), redactedDisk, op.Success, nil, nil)
+	diskInfo, err = d.convertPartitions(dp)
+	if err != nil {
+		hclog.L().Trace("runner/host.Disk.Run() failed to convert partition info", "error", err)
+		err1 := fmt.Errorf("error converting partition information err=%w", err)
+		return op.New(d.ID(), diskInfo, op.Fail, err1, nil)
 	}
 
 	return op.New(d.ID(), diskInfo, op.Success, nil, nil)
 }
 
-type RedactedPartitionStat struct {
-	Device     redact.RedactedString   `json:"device"`
-	Mountpoint redact.RedactedString   `json:"mountpoint"`
-	Fstype     redact.RedactedString   `json:"fstype"`
-	Opts       []redact.RedactedString `json:"opts"`
+func (d Disk) convertPartitions(inputPartitions []disk.PartitionStat) ([]PartitionInfo, error) {
+	var outputPartitions []PartitionInfo
+
+	for _, inPartition := range inputPartitions {
+		var outPartition PartitionInfo
+		dev, err := redact.String(inPartition.Device, d.Redactions)
+		if err != nil {
+			return outputPartitions, err
+		}
+		outPartition.Device = dev
+
+		mp, err := redact.String(inPartition.Mountpoint, d.Redactions)
+		if err != nil {
+			return outputPartitions, err
+		}
+		outPartition.Mountpoint = mp
+
+		fst, err := redact.String(inPartition.Fstype, d.Redactions)
+		if err != nil {
+			return outputPartitions, err
+		}
+		outPartition.Fstype = fst
+
+		var opts []string
+		for _, opt := range inPartition.Opts {
+			redactedOpt, err := redact.String(opt, d.Redactions)
+			if err != nil {
+				return outputPartitions, err
+			}
+			opts = append(opts, redactedOpt)
+		}
+		outPartition.Opts = opts
+
+		outputPartitions = append(outputPartitions, outPartition)
+	}
+
+	return outputPartitions, nil
 }
