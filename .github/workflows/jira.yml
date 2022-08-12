@@ -45,7 +45,7 @@ jobs:
           if [[ "${{ contains(github.event.issue.labels.*.name, 'vagrant') }}" == "true" ]]; then LABELS+="\"vagrant\", "; fi          
           if [[ "${{ contains(github.event.issue.labels.*.name, 'boundary') }}" == "true" ]]; then LABELS+="\"boundary\", "; fi
           if [[ "${{ contains(github.event.issue.labels.*.name, 'waypoint') }}" == "true" ]]; then LABELS+="\"waypoint\", "; fi
-          LABELS=${LABELS::-2}"]"
+          if [[ ${#LABELS} != 1 ]]; then LABELS=${LABELS::-2}"]"; else LABELS+="]"; fi
           echo "::set-output name=labels::${LABELS}"
           
       - name: Check if team member
