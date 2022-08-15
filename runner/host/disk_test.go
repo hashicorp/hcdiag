@@ -11,9 +11,6 @@ import (
 )
 
 func TestDisk_convertPartitions(t *testing.T) {
-	redaction, err := redact.New(redact.Config{Matcher: "1"})
-	require.NoError(t, err)
-
 	testCases := []struct {
 		name       string
 		disk       Disk
@@ -52,7 +49,7 @@ func TestDisk_convertPartitions(t *testing.T) {
 		{
 			name: "Test Conversion with Redactions",
 			disk: Disk{
-				Redactions: []*redact.Redact{redaction},
+				Redactions: createRedactionSlice(t, redact.Config{Matcher: "1"}),
 			},
 			partitions: []disk.PartitionStat{
 				{
