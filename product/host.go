@@ -63,7 +63,7 @@ func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
 	return []runner.Runner{
 		host.NewOS(os, redactions),
 		host.NewDisk(redactions),
-		host.Info{},
+		host.NewInfo(redactions),
 		host.Memory{},
 		host.Process{},
 		host.Network{},
