@@ -1,0 +1,3 @@
+```release-note:improvement
+redaction: Enable redaction on host runners.
+```
