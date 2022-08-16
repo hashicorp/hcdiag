@@ -81,7 +81,8 @@ func (d Disk) convertPartitions(inputPartitions []disk.PartitionStat) ([]Partiti
 		}
 		outPartition.Fstype = fst
 
-		var opts []string
+		// Make a slice rather than an empty var declaration to avoid later marshalling null instead of empty array
+		opts := make([]string, 0)
 		for _, opt := range inPartition.Opts {
 			redactedOpt, err := redact.String(opt, d.Redactions)
 			if err != nil {

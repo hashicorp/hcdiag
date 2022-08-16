@@ -12,12 +12,14 @@ import (
 
 var _ runner.Runner = &Network{}
 
-// InterfaceAddr represents an interface address and is used within the output of Network.Run.
+// InterfaceAddr represents an interface address. This serves as an input into the results produced by
+// the Network runner.
 type InterfaceAddr struct {
 	Addr string `json:"addr"`
 }
 
-// InterfaceInfo represents interface information and is used within the output of Network.Run.
+// InterfaceInfo represents details about a network interface. This serves as the basis for the results produced
+// by the Network runner.
 type InterfaceInfo struct {
 	Index        int             `json:"index"`
 	MTU          int             `json:"mtu"`
@@ -80,7 +82,8 @@ func (n Network) convertInterfaceInfo(interfaceStat net.InterfaceStat) (Interfac
 	}
 	interfaceInfo.HardwareAddr = hwAddr
 
-	var flags []string
+	// Make a slice rather than an empty var declaration to avoid later marshalling null instead of empty array
+	flags := make([]string, 0)
 	for _, f := range interfaceStat.Flags {
 		flag, err := redact.String(f, n.Redactions)
 		if err != nil {
@@ -90,7 +93,8 @@ func (n Network) convertInterfaceInfo(interfaceStat net.InterfaceStat) (Interfac
 	}
 	interfaceInfo.Flags = flags
 
-	var addrs []InterfaceAddr
+	// Make a slice rather than an empty var declaration to avoid later marshalling null instead of empty array
+	addrs := make([]InterfaceAddr, 0)
 	for _, a := range interfaceStat.Addrs {
 		addr, err := redact.String(a.Addr, n.Redactions)
 		if err != nil {
