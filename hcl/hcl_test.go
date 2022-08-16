@@ -354,24 +354,21 @@ func TestValidateRedactions(t *testing.T) {
 			redactions: []Redact{},
 		},
 		{
-			name: "one literal",
+			name: "one redaction",
 			redactions: []Redact{
 				{
-					Label: "literal",
 					Match: "something",
 				},
 			},
 		},
 		{
-			name: "many literals",
+			name: "many redactions",
 			redactions: []Redact{
 				{
-					Label: "literal",
 					ID:    "one",
 					Match: "something",
 				},
 				{
-					Label: "literal",
 					ID:    "two",
 					Match: "something else",
 				},
@@ -381,7 +378,6 @@ func TestValidateRedactions(t *testing.T) {
 			name: "one regex",
 			redactions: []Redact{
 				{
-					Label: "regex",
 					ID:    "reg1",
 					Match: "just a regex",
 				},
@@ -391,52 +387,25 @@ func TestValidateRedactions(t *testing.T) {
 			name: "many regexes",
 			redactions: []Redact{
 				{
-					Label: "regex",
 					ID:    "reg1",
 					Match: "just a regex",
 				},
 				{
-					Label: "regex",
 					ID:    "reg2",
 					Match: "/just a fancy regex/",
 				},
 				{
-					Label: "regex",
 					ID:    "reg3",
 					Match: "^a very fancy (.) regex?",
-				},
-			},
-		},
-		{
-			name: "both regexes and literals",
-			redactions: []Redact{
-				{
-					Label: "regex",
-					ID:    "reg",
-					Match: "just a regex",
-				},
-				{
-					Label: "literal",
-					ID:    "lit",
-					Match: "something",
 				},
 			},
 		},
 	}
 	shouldErr := []testCase{
 		{
-			name: "bad label",
-			redactions: []Redact{
-				{
-					Label: "shouldNotMatchAnyRegexLabel",
-				},
-			},
-		},
-		{
 			name: "one bad regex",
 			redactions: []Redact{
 				{
-					Label: "regex",
 					ID:    "bad-reg-perl-stuff",
 					Match: "\"^/(?!/)(.*?)\"",
 				},
@@ -446,12 +415,10 @@ func TestValidateRedactions(t *testing.T) {
 			name: "good and bad regexes",
 			redactions: []Redact{
 				{
-					Label: "regex",
 					ID:    "the good stuff",
 					Match: "/hello/",
 				},
 				{
-					Label: "regex",
 					ID:    "bad-reg-perl-stuff",
 					Match: "\"^/(?!/)(.*?)\"",
 				},

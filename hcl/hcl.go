@@ -55,7 +55,6 @@ type Product struct {
 }
 
 type Redact struct {
-	Label   string `hcl:"name,label"`
 	ID      string `hcl:"id,optional"`
 	Match   string `hcl:"match"`
 	Replace string `hcl:"replace,optional"`
@@ -384,16 +383,9 @@ func MapRedacts(redactions []Redact) ([]*redact.Redact, error) {
 func ValidateRedactions(redactions []Redact) error {
 	hclog.L().Trace("hcl.ValidateRedactions()", "redactions", redactions)
 	for _, r := range redactions {
-		switch r.Label {
-		case "regex":
-			_, err := regexp.Compile(r.Match)
-			if err != nil {
-				return fmt.Errorf("could not compile regex, matcher=%s, err=%s", r.Match, err)
-			}
-		case "literal":
-			continue
-		default:
-			return fmt.Errorf("invalid redact name, name=%s", r.Label)
+		_, err := regexp.Compile(r.Match)
+		if err != nil {
+			return fmt.Errorf("could not compile regex, matcher=%s, err=%s", r.Match, err)
 		}
 	}
 	return nil
