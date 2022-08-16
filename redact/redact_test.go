@@ -41,52 +41,6 @@ func TestNewRegex(t *testing.T) {
 	}
 }
 
-func TestRedact_Apply(t *testing.T) {
-	tcs := []struct {
-		name    string
-		matcher string
-		input   string
-		expect  string
-	}{
-		{
-			name:    "empty input",
-			matcher: "/myRegex/",
-			input:   "",
-			expect:  "",
-		},
-		{
-			name:    "redacts once",
-			matcher: "myRegex",
-			input:   "myRegex",
-			expect:  "<REDACTED>",
-		},
-		{
-			name:    "redacts many",
-			matcher: "test",
-			input:   "test test_test+test-test\n!test ??test",
-			expect:  "<REDACTED> <REDACTED>_<REDACTED>+<REDACTED>-<REDACTED>\n!<REDACTED> ??<REDACTED>",
-		},
-	}
-	for _, tc := range tcs {
-		cfg := Config{
-			Matcher: tc.matcher,
-			ID:      "",
-			Replace: "",
-		}
-		redactor, err := New(cfg)
-		assert.NoError(t, err, tc.name)
-
-		r := strings.NewReader(tc.input)
-		buf := new(bytes.Buffer)
-		err = redactor.Apply(buf, r)
-		assert.NoError(t, err, tc.name)
-
-		result := buf.String()
-
-		assert.Equal(t, tc.expect, result, tc.name)
-	}
-}
-
 func TestApplyMany(t *testing.T) {
 	var redactions []*Redact
 	matchers := []string{"myRegex", "test", "does not apply"}
