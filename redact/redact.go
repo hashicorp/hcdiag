@@ -43,32 +43,11 @@ func New(cfg Config) (*Redact, error) {
 	return &Redact{id, r, replace}, nil
 }
 
-func (x Redact) Apply(w io.Writer, r io.Reader) error {
-	bts, err := io.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	if len(bts) == 0 {
-		_, err = w.Write(bts)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	newBts := x.matcher.ReplaceAll(bts, []byte(x.Replace))
-	_, err = w.Write(newBts)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ApplyMany takes a slice of redactions and a writer + reader, reading everything in and applying redactions in
+// Apply takes a slice of redactions and a writer + reader, reading everything in and applying redactions in
 // sequential order before writing. Therefore, each Redact that appears earlier in the list takes precedence over later
 // Redacts. It is possible for redactions to collide with one another if a matcher can match with the Replace string
 // of an earlier Redact.
-func ApplyMany(redactions []*Redact, w io.Writer, r io.Reader) error {
+func Apply(redactions []*Redact, w io.Writer, r io.Reader) error {
 	var bts []byte
 	var err error
 
@@ -104,7 +83,7 @@ func String(result string, redactions []*Redact) (string, error) {
 
 	r := strings.NewReader(result)
 	buf := new(bytes.Buffer)
-	err := ApplyMany(redactions, buf, r)
+	err := Apply(redactions, buf, r)
 	if err != nil {
 		return "", err
 	}
@@ -122,7 +101,7 @@ func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
 
 	r := bytes.NewReader(b)
 	buf := new(bytes.Buffer)
-	err := ApplyMany(redactions, buf, r)
+	err := Apply(redactions, buf, r)
 	if err != nil {
 		return nil, err
 	}
