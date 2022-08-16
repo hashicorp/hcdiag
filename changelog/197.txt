@@ -1,0 +1,3 @@
+```release-note:improvement
+redact: Add unit tests to document regular expression capture groups being used in redaction replacement strings.
+```
