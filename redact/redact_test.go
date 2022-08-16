@@ -55,9 +55,10 @@ func TestApply(t *testing.T) {
 		redactions = append(redactions, redact)
 	}
 	tcs := []struct {
-		name   string
-		input  string
-		expect string
+		name       string
+		input      string
+		expect     string
+		redactions []*Redact
 	}{
 		{
 			name:   "empty input",
@@ -74,11 +75,80 @@ func TestApply(t *testing.T) {
 			input:  "test test_test+test-test\n!test ??test",
 			expect: "<REDACTED> <REDACTED>_<REDACTED>+<REDACTED>-<REDACTED>\n!<REDACTED> ??<REDACTED>",
 		},
+		{
+			name: "redacts with grouping",
+			redactions: []*Redact{
+				func() *Redact {
+					r, err := New(Config{
+						Matcher: `(SECRET=)[^ ]+`,
+						Replace: "${1}REDACTED"})
+					if err != nil {
+						t.Errorf("unable to create new *Redact from config: %v", err)
+					}
+					return r
+				}(),
+			},
+			input:  "SECRET=my-secret-password",
+			expect: "SECRET=REDACTED",
+		},
+		{
+			name: "redacts with named grouping",
+			redactions: []*Redact{
+				func() *Redact {
+					r, err := New(Config{
+						Matcher: `(?P<MyGroup>SECRET=)[^ ]+`,
+						Replace: "${MyGroup}REDACTED"})
+					if err != nil {
+						t.Errorf("unable to create new *Redact from config: %v", err)
+					}
+					return r
+				}(),
+			},
+			input:  "SECRET=my-secret-password",
+			expect: "SECRET=REDACTED",
+		},
+		{
+			name: "case-insensitive redaction with grouping",
+			redactions: []*Redact{
+				func() *Redact {
+					r, err := New(Config{
+						Matcher: `(?i)(SECRET=)[^ ]+`,
+						Replace: "${1}REDACTED"})
+					if err != nil {
+						t.Errorf("unable to create new *Redact from config: %v", err)
+					}
+					return r
+				}(),
+			},
+			input:  "secret=my-secret-password",
+			expect: "secret=REDACTED",
+		},
+		{
+			name: "multi-group surround redaction",
+			redactions: []*Redact{
+				func() *Redact {
+					r, err := New(Config{
+						Matcher: `(\s+")[a-zA-Z0-9]{8}("\s+)`,
+						Replace: "${1}REDACTED${2}"})
+					if err != nil {
+						t.Errorf("unable to create new *Redact from config: %v", err)
+					}
+					return r
+				}(),
+			},
+			input:  "\"begin \"12345678\" end\"",
+			expect: "\"begin \"REDACTED\" end\"",
+		},
 	}
 	for _, tc := range tcs {
 		r := strings.NewReader(tc.input)
 		buf := new(bytes.Buffer)
-		err := Apply(redactions, buf, r)
+
+		tcRedactions := redactions
+		if tc.redactions != nil {
+			tcRedactions = tc.redactions
+		}
+		err := Apply(tcRedactions, buf, r)
 		assert.NoError(t, err, tc.name)
 
 		result := buf.String()
