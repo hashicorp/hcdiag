@@ -41,7 +41,7 @@ func TestNewRegex(t *testing.T) {
 	}
 }
 
-func TestApplyMany(t *testing.T) {
+func TestApply(t *testing.T) {
 	var redactions []*Redact
 	matchers := []string{"myRegex", "test", "does not apply"}
 	for _, matcher := range matchers {
@@ -78,7 +78,7 @@ func TestApplyMany(t *testing.T) {
 	for _, tc := range tcs {
 		r := strings.NewReader(tc.input)
 		buf := new(bytes.Buffer)
-		err := ApplyMany(redactions, buf, r)
+		err := Apply(redactions, buf, r)
 		assert.NoError(t, err, tc.name)
 
 		result := buf.String()
