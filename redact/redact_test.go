@@ -78,15 +78,7 @@ func TestApply(t *testing.T) {
 		{
 			name: "redacts with grouping",
 			redactions: []*Redact{
-				func() *Redact {
-					r, err := New(Config{
-						Matcher: `(SECRET=)[^ ]+`,
-						Replace: "${1}REDACTED"})
-					if err != nil {
-						t.Errorf("unable to create new *Redact from config: %v", err)
-					}
-					return r
-				}(),
+				newTestRedact(t, `(SECRET=)[^ ]+`, "${1}REDACTED"),
 			},
 			input:  "SECRET=my-secret-password",
 			expect: "SECRET=REDACTED",
@@ -94,15 +86,7 @@ func TestApply(t *testing.T) {
 		{
 			name: "redacts with named grouping",
 			redactions: []*Redact{
-				func() *Redact {
-					r, err := New(Config{
-						Matcher: `(?P<MyGroup>SECRET=)[^ ]+`,
-						Replace: "${MyGroup}REDACTED"})
-					if err != nil {
-						t.Errorf("unable to create new *Redact from config: %v", err)
-					}
-					return r
-				}(),
+				newTestRedact(t, `(?P<MyGroup>SECRET=)[^ ]+`, "${MyGroup}REDACTED"),
 			},
 			input:  "SECRET=my-secret-password",
 			expect: "SECRET=REDACTED",
@@ -110,15 +94,7 @@ func TestApply(t *testing.T) {
 		{
 			name: "case-insensitive redaction with grouping",
 			redactions: []*Redact{
-				func() *Redact {
-					r, err := New(Config{
-						Matcher: `(?i)(SECRET=)[^ ]+`,
-						Replace: "${1}REDACTED"})
-					if err != nil {
-						t.Errorf("unable to create new *Redact from config: %v", err)
-					}
-					return r
-				}(),
+				newTestRedact(t, `(?i)(SECRET=)[^ ]+`, "${1}REDACTED"),
 			},
 			input:  "secret=my-secret-password",
 			expect: "secret=REDACTED",
@@ -126,20 +102,13 @@ func TestApply(t *testing.T) {
 		{
 			name: "multi-group surround redaction",
 			redactions: []*Redact{
-				func() *Redact {
-					r, err := New(Config{
-						Matcher: `(\s+")[a-zA-Z0-9]{8}("\s+)`,
-						Replace: "${1}REDACTED${2}"})
-					if err != nil {
-						t.Errorf("unable to create new *Redact from config: %v", err)
-					}
-					return r
-				}(),
+				newTestRedact(t, `(\s+")[a-zA-Z0-9]{8}("\s+)`, "${1}REDACTED${2}"),
 			},
 			input:  "\"begin \"12345678\" end\"",
 			expect: "\"begin \"REDACTED\" end\"",
 		},
 	}
+
 	for _, tc := range tcs {
 		r := strings.NewReader(tc.input)
 		buf := new(bytes.Buffer)
