@@ -1,0 +1,3 @@
+```release-note:improvement
+redact: Improve testing around redaction of strings and byte slices.
+```
