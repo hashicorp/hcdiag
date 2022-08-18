@@ -12,21 +12,15 @@ import (
 
 var _ runner.Runner = &Network{}
 
-// InterfaceAddr represents an interface address. This serves as an input into the results produced by
-// the Network runner.
-type InterfaceAddr struct {
-	Addr string `json:"addr"`
-}
-
-// InterfaceInfo represents details about a network interface. This serves as the basis for the results produced
+// NetworkInterface represents details about a network interface. This serves as the basis for the results produced
 // by the Network runner.
-type InterfaceInfo struct {
-	Index        int             `json:"index"`
-	MTU          int             `json:"mtu"`
-	Name         string          `json:"name"`
-	HardwareAddr string          `json:"hardwareAddr"`
-	Flags        []string        `json:"flags"`
-	Addrs        []InterfaceAddr `json:"addrs"`
+type NetworkInterface struct {
+	Index        int      `json:"index"`
+	MTU          int      `json:"mtu"`
+	Name         string   `json:"name"`
+	HardwareAddr string   `json:"hardwareAddr"`
+	Flags        []string `json:"flags"`
+	Addrs        []string `json:"addrs"`
 }
 
 type Network struct {
@@ -44,65 +38,65 @@ func (n Network) ID() string {
 }
 
 func (n Network) Run() op.Op {
-	var interfaceInfoList []InterfaceInfo
-	netInterfaces, err := net.Interfaces()
+	var interfaces []NetworkInterface
+	netIfs, err := net.Interfaces()
 	if err != nil {
 		hclog.L().Trace("runner/host.Network.Run()", "error", err)
-		return op.New(n.ID(), nil, op.Fail, err, nil)
+		return op.New(n.ID(), interfaces, op.Fail, err, nil)
 	}
 
-	for _, netInterface := range netInterfaces {
-		interfaceInfo, err := n.convertInterfaceInfo(netInterface)
+	for _, netIf := range netIfs {
+		ifce, err := n.networkInterface(netIf)
 		if err != nil {
 			hclog.L().Trace("runner/host.Network.Run()", "error", err)
 			err1 := fmt.Errorf("error converting network information err=%w", err)
-			return op.New(n.ID(), interfaceInfoList, op.Fail, err1, nil)
+			return op.New(n.ID(), interfaces, op.Fail, err1, nil)
 		}
-		interfaceInfoList = append(interfaceInfoList, interfaceInfo)
+		interfaces = append(interfaces, ifce)
 	}
 
-	return op.New(n.ID(), interfaceInfoList, op.Success, nil, nil)
+	return op.New(n.ID(), interfaces, op.Success, nil, nil)
 }
 
-func (n Network) convertInterfaceInfo(interfaceStat net.InterfaceStat) (InterfaceInfo, error) {
-	interfaceInfo := InterfaceInfo{
-		Index: interfaceStat.Index,
-		MTU:   interfaceStat.MTU,
+func (n Network) networkInterface(nis net.InterfaceStat) (NetworkInterface, error) {
+	netIf := NetworkInterface{
+		Index: nis.Index,
+		MTU:   nis.MTU,
 	}
 
-	name, err := redact.String(interfaceStat.Name, n.Redactions)
+	name, err := redact.String(nis.Name, n.Redactions)
 	if err != nil {
-		return InterfaceInfo{}, err
+		return NetworkInterface{}, err
 	}
-	interfaceInfo.Name = name
+	netIf.Name = name
 
-	hwAddr, err := redact.String(interfaceStat.HardwareAddr, n.Redactions)
+	hwAddr, err := redact.String(nis.HardwareAddr, n.Redactions)
 	if err != nil {
-		return InterfaceInfo{}, err
+		return NetworkInterface{}, err
 	}
-	interfaceInfo.HardwareAddr = hwAddr
+	netIf.HardwareAddr = hwAddr
 
 	// Make a slice rather than an empty var declaration to avoid later marshalling null instead of empty array
 	flags := make([]string, 0)
-	for _, f := range interfaceStat.Flags {
+	for _, f := range nis.Flags {
 		flag, err := redact.String(f, n.Redactions)
 		if err != nil {
-			return InterfaceInfo{}, err
+			return NetworkInterface{}, err
 		}
 		flags = append(flags, flag)
 	}
-	interfaceInfo.Flags = flags
+	netIf.Flags = flags
 
 	// Make a slice rather than an empty var declaration to avoid later marshalling null instead of empty array
-	addrs := make([]InterfaceAddr, 0)
-	for _, a := range interfaceStat.Addrs {
+	addrs := make([]string, 0)
+	for _, a := range nis.Addrs {
 		addr, err := redact.String(a.Addr, n.Redactions)
 		if err != nil {
-			return InterfaceInfo{}, err
+			return NetworkInterface{}, err
 		}
-		addrs = append(addrs, InterfaceAddr{Addr: addr})
+		addrs = append(addrs, addr)
 	}
-	interfaceInfo.Addrs = addrs
+	netIf.Addrs = addrs
 
-	return interfaceInfo, nil
+	return netIf, nil
 }

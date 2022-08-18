@@ -10,16 +10,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNetwork_convertInterfaceInfo(t *testing.T) {
+func TestNetwork_networkInterface(t *testing.T) {
 	testCases := []struct {
 		name               string
 		network            Network
 		inputInterfaceStat net.InterfaceStat
-		expected           InterfaceInfo
+		expected           NetworkInterface
 		expectErr          bool
 	}{
 		{
-			name:    "Test Interface",
+			name:    "Test NetworkInterface",
 			network: Network{},
 			inputInterfaceStat: net.InterfaceStat{
 				Index:        10,
@@ -40,7 +40,7 @@ func TestNetwork_convertInterfaceInfo(t *testing.T) {
 					},
 				},
 			},
-			expected: InterfaceInfo{
+			expected: NetworkInterface{
 				Index:        10,
 				MTU:          1500,
 				Name:         "eth0",
@@ -50,18 +50,14 @@ func TestNetwork_convertInterfaceInfo(t *testing.T) {
 					"loopback",
 					"multicast",
 				},
-				Addrs: []InterfaceAddr{
-					{
-						Addr: "192.168.255.1/24",
-					},
-					{
-						Addr: "fe80::1/64",
-					},
+				Addrs: []string{
+					"192.168.255.1/24",
+					"fe80::1/64",
 				},
 			},
 		},
 		{
-			name: "Test Interface Redactions",
+			name: "Test NetworkInterface Redactions",
 			network: Network{
 				Redactions: createRedactionSlice(
 					t,
@@ -87,7 +83,7 @@ func TestNetwork_convertInterfaceInfo(t *testing.T) {
 					},
 				},
 			},
-			expected: InterfaceInfo{
+			expected: NetworkInterface{
 				Index:        10,
 				MTU:          1500,
 				Name:         "eth0",
@@ -97,13 +93,9 @@ func TestNetwork_convertInterfaceInfo(t *testing.T) {
 					"loopback",
 					"multicast",
 				},
-				Addrs: []InterfaceAddr{
-					{
-						Addr: fmt.Sprintf("%s/24", redact.DefaultReplace),
-					},
-					{
-						Addr: "fe80::1/64",
-					},
+				Addrs: []string{
+					fmt.Sprintf("%s/24", redact.DefaultReplace),
+					"fe80::1/64",
 				},
 			},
 		},
@@ -111,7 +103,7 @@ func TestNetwork_convertInterfaceInfo(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			interfaceInfo, err := tc.network.convertInterfaceInfo(tc.inputInterfaceStat)
+			interfaceInfo, err := tc.network.networkInterface(tc.inputInterfaceStat)
 			if tc.expectErr {
 				require.Error(t, err, "an error was expected, but was not returned")
 			} else {
