@@ -1,0 +1,3 @@
+```release-note:improvement
+runner/host: Enable redaction on host.Disk, host.Info, host.Network, and host.Process runners.
+```

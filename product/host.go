@@ -62,11 +62,11 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
 	return []runner.Runner{
 		host.NewOS(os, redactions),
-		host.NewDisk(),
-		host.Info{},
+		host.NewDisk(redactions),
+		host.NewInfo(redactions),
 		host.Memory{},
-		host.Process{},
-		host.Network{},
+		host.NewProcess(redactions),
+		host.NewNetwork(redactions),
 		host.NewEtcHosts(redactions),
 		host.NewIPTables(redactions),
 		host.NewProcFile(os, redactions),
