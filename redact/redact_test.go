@@ -125,6 +125,94 @@ func TestApply(t *testing.T) {
 	}
 }
 
+func TestString(t *testing.T) {
+	tcs := []struct {
+		name    string
+		in      string
+		redacts []*Redact
+		expect  string
+	}{
+		{
+			name:   "Test no redactions leaves string unchanged",
+			in:     "an input string with a secret value",
+			expect: "an input string with a secret value",
+		},
+		{
+			name:   "Test no redactions leaves string unchanged with unicode",
+			in:     "an input string with a secret value 😬",
+			expect: "an input string with a secret value 😬",
+		},
+		{
+			name: "Test redactions",
+			redacts: []*Redact{
+				newTestRedact(t, "secret", "REDACTED"),
+			},
+			in:     "an input string with a secret value",
+			expect: "an input string with a REDACTED value",
+		},
+		{
+			name: "Test redactions with unicode",
+			redacts: []*Redact{
+				newTestRedact(t, "😬", "REDACTED"),
+			},
+			in:     "an input string with a secret value 😬",
+			expect: "an input string with a secret value REDACTED",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := String(tc.in, tc.redacts)
+			assert.NoError(t, err, "encountered unexpected error in redaction")
+			assert.Equal(t, tc.expect, result, tc.name)
+		})
+	}
+}
+
+func TestBytes(t *testing.T) {
+	tcs := []struct {
+		name    string
+		in      []byte
+		redacts []*Redact
+		expect  []byte
+	}{
+		{
+			name:   "Test no redactions leaves string unchanged",
+			in:     []byte("an input string with a secret value"),
+			expect: []byte("an input string with a secret value"),
+		},
+		{
+			name:   "Test no redactions leaves string unchanged with unicode",
+			in:     []byte("an input string with a secret value 😬"),
+			expect: []byte("an input string with a secret value 😬"),
+		},
+		{
+			name: "Test redactions",
+			redacts: []*Redact{
+				newTestRedact(t, "secret", "REDACTED"),
+			},
+			in:     []byte("an input string with a secret value"),
+			expect: []byte("an input string with a REDACTED value"),
+		},
+		{
+			name: "Test redactions with unicode",
+			redacts: []*Redact{
+				newTestRedact(t, "😬", "REDACTED"),
+			},
+			in:     []byte("an input string with a secret value 😬"),
+			expect: []byte("an input string with a secret value REDACTED"),
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := Bytes(tc.in, tc.redacts)
+			assert.NoError(t, err, "encountered unexpected error in redaction")
+			assert.Equal(t, tc.expect, result, tc.name)
+		})
+	}
+}
+
 func TestJSON(t *testing.T) {
 	tcs := []struct {
 		name    string
@@ -395,4 +483,84 @@ func newTestRedact(t *testing.T, matcher string, replace string) *Redact {
 	r, err := New(cfg)
 	require.NoError(t, err, "error creating test redaction")
 	return r
+}
+
+func BenchmarkStringUnchanged(b *testing.B) {
+	input := "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla sodales dolor, quis eleifend."
+	var redactions []*Redact
+
+	for n := 0; n < b.N; n++ {
+		result, err := String(input, redactions)
+		if err != nil {
+			b.Errorf("redaction caused error: %#v", err)
+		}
+
+		if result != input {
+			b.Errorf("string was changed unexpectedly;\ninput: %s\nresult: %s", input, result)
+		}
+	}
+}
+
+func BenchmarkStringRedacted(b *testing.B) {
+	input := "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla sodales dolor, quis eleifend."
+	redactions := []*Redact{
+		func() *Redact {
+			red, err := New(Config{Matcher: `.*`, Replace: "REDACTED"})
+			if err != nil {
+				b.Fatalf("error creating redaction: %#v", err)
+			}
+			return red
+		}(),
+	}
+
+	for n := 0; n < b.N; n++ {
+		result, err := String(input, redactions)
+		if err != nil {
+			b.Errorf("redaction caused error: %#v", err)
+		}
+
+		if result != "REDACTED" {
+			b.Errorf("string was changed unexpectedly;\ninput: %s\nresult: %s", input, result)
+		}
+	}
+}
+
+func BenchmarkBytesUnchanged(b *testing.B) {
+	input := []byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla sodales dolor, quis eleifend.")
+	var redactions []*Redact
+
+	for n := 0; n < b.N; n++ {
+		result, err := Bytes(input, redactions)
+		if err != nil {
+			b.Errorf("redaction caused error: %#v", err)
+		}
+
+		if string(result) != string(input) {
+			b.Errorf("input was changed unexpectedly;\ninput: %s\nresult: %s", string(input), result)
+		}
+	}
+}
+
+func BenchmarkBytesRedacted(b *testing.B) {
+	input := []byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla sodales dolor, quis eleifend.")
+	redactions := []*Redact{
+		func() *Redact {
+			red, err := New(Config{Matcher: `.*`, Replace: "REDACTED"})
+			if err != nil {
+				b.Fatalf("error creating redaction: %#v", err)
+			}
+			return red
+		}(),
+	}
+
+	for n := 0; n < b.N; n++ {
+		result, err := Bytes(input, redactions)
+		if err != nil {
+			b.Errorf("redaction caused error: %#v", err)
+		}
+
+		if string(result) != "REDACTED" {
+			b.Errorf("input was changed unexpectedly;\ninput: %s\nresult: %s", string(input), result)
+		}
+	}
 }
