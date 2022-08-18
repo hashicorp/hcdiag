@@ -54,7 +54,7 @@ func (i Info) Run() op.Op {
 		return op.New(i.ID(), hostInfo, op.Fail, err, nil)
 	}
 
-	hostInfo, err = i.convertHostInfo(hi)
+	hostInfo, err = i.infoStat(hi)
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run() failed to convert host info", "error", err)
 		err1 := fmt.Errorf("error converting host information err=%w", err)
@@ -64,69 +64,69 @@ func (i Info) Run() op.Op {
 	return op.New(i.ID(), hostInfo, op.Success, nil, nil)
 }
 
-func (i Info) convertHostInfo(inputInfo *host.InfoStat) (InfoStat, error) {
+func (i Info) infoStat(hi *host.InfoStat) (InfoStat, error) {
 	// start from the non-string values, which won't need redaction
 	is := InfoStat{
-		Uptime:   inputInfo.Uptime,
-		BootTime: inputInfo.BootTime,
-		Procs:    inputInfo.Procs,
+		Uptime:   hi.Uptime,
+		BootTime: hi.BootTime,
+		Procs:    hi.Procs,
 	}
 
-	hostname, err := redact.String(inputInfo.Hostname, i.Redactions)
+	hostname, err := redact.String(hi.Hostname, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.Hostname = hostname
 
-	os, err := redact.String(inputInfo.OS, i.Redactions)
+	os, err := redact.String(hi.OS, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.OS = os
 
-	platform, err := redact.String(inputInfo.Platform, i.Redactions)
+	platform, err := redact.String(hi.Platform, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.Platform = platform
 
-	platformFamily, err := redact.String(inputInfo.PlatformFamily, i.Redactions)
+	platformFamily, err := redact.String(hi.PlatformFamily, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.PlatformFamily = platformFamily
 
-	platformVersion, err := redact.String(inputInfo.PlatformVersion, i.Redactions)
+	platformVersion, err := redact.String(hi.PlatformVersion, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.PlatformVersion = platformVersion
 
-	kernelVersion, err := redact.String(inputInfo.KernelVersion, i.Redactions)
+	kernelVersion, err := redact.String(hi.KernelVersion, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.KernelVersion = kernelVersion
 
-	kernelArch, err := redact.String(inputInfo.KernelArch, i.Redactions)
+	kernelArch, err := redact.String(hi.KernelArch, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.KernelArch = kernelArch
 
-	virtualizationSystem, err := redact.String(inputInfo.VirtualizationSystem, i.Redactions)
+	virtualizationSystem, err := redact.String(hi.VirtualizationSystem, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.VirtualizationSystem = virtualizationSystem
 
-	virtualizationRole, err := redact.String(inputInfo.VirtualizationRole, i.Redactions)
+	virtualizationRole, err := redact.String(hi.VirtualizationRole, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}
 	is.VirtualizationRole = virtualizationRole
 
-	hostID, err := redact.String(inputInfo.HostID, i.Redactions)
+	hostID, err := redact.String(hi.HostID, i.Redactions)
 	if err != nil {
 		return InfoStat{}, err
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInfo_convertHostInfo(t *testing.T) {
+func TestInfo_infoStat(t *testing.T) {
 	testCases := []struct {
 		name      string
 		info      Info
@@ -91,7 +91,7 @@ func TestInfo_convertHostInfo(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			info, err := tc.info.convertHostInfo(&tc.inputInfo)
+			info, err := tc.info.infoStat(&tc.inputInfo)
 			if tc.expectErr {
 				require.Error(t, err, "an error was expected, but was not returned")
 			} else {
