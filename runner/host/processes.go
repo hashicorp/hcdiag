@@ -33,39 +33,38 @@ func (p Process) ID() string {
 }
 
 func (p Process) Run() op.Op {
-	// A simple slice of processes
-	var processList []Proc
+	var procs []Proc
 
-	processes, err := ps.Processes()
+	psProcs, err := ps.Processes()
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
-		return op.New(p.ID(), processList, op.Fail, err, nil)
+		return op.New(p.ID(), procs, op.Fail, err, nil)
 	}
 
-	processList, err = p.convertProcessInfo(processes)
+	procs, err = p.procs(psProcs)
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
-		return op.New(p.ID(), processList, op.Fail, err, nil)
+		return op.New(p.ID(), procs, op.Fail, err, nil)
 	}
 
-	return op.New(p.ID(), processList, op.Success, nil, nil)
+	return op.New(p.ID(), procs, op.Success, nil, nil)
 }
 
-func (p Process) convertProcessInfo(inputInfo []ps.Process) ([]Proc, error) {
-	var processList []Proc
+func (p Process) procs(psProcs []ps.Process) ([]Proc, error) {
+	var result []Proc
 
-	for _, process := range inputInfo {
-		executable, err := redact.String(process.Executable(), p.Redactions)
+	for _, psProc := range psProcs {
+		executable, err := redact.String(psProc.Executable(), p.Redactions)
 		if err != nil {
-			return processList, err
+			return result, err
 		}
-		newProc := Proc{
+		proc := Proc{
 			Name: executable,
-			PID:  process.Pid(),
-			PPID: process.PPid(),
+			PID:  psProc.Pid(),
+			PPID: psProc.PPid(),
 		}
-		processList = append(processList, newProc)
+		result = append(result, proc)
 	}
 
-	return processList, nil
+	return result, nil
 }

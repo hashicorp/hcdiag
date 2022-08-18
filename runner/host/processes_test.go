@@ -21,7 +21,7 @@ func (m mockProc) Pid() int           { return m.pid }
 func (m mockProc) PPid() int          { return m.ppid }
 func (m mockProc) Executable() string { return m.exe }
 
-func TestProcess_convertProcessInfo(t *testing.T) {
+func TestProcess_procs(t *testing.T) {
 	testCases := []struct {
 		name       string
 		proc       Process
@@ -59,7 +59,7 @@ func TestProcess_convertProcessInfo(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			procs, err := tc.proc.convertProcessInfo(tc.inputProcs)
+			procs, err := tc.proc.procs(tc.inputProcs)
 			if tc.expectErr {
 				require.Error(t, err, "an error was expected, but was not returned")
 			} else {
