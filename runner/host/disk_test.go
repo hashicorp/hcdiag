@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDisk_convertPartitions(t *testing.T) {
+func TestDisk_partitions(t *testing.T) {
 	testCases := []struct {
 		name       string
 		disk       Disk
 		partitions []disk.PartitionStat
-		expected   []PartitionInfo
+		expected   []Partition
 		expectErr  bool
 	}{
 		{
@@ -33,7 +33,7 @@ func TestDisk_convertPartitions(t *testing.T) {
 					},
 				},
 			},
-			expected: []PartitionInfo{
+			expected: []Partition{
 				{
 					Device:     "device1",
 					Fstype:     "fstype1",
@@ -63,7 +63,7 @@ func TestDisk_convertPartitions(t *testing.T) {
 					},
 				},
 			},
-			expected: []PartitionInfo{
+			expected: []Partition{
 				{
 					Device:     fmt.Sprintf("device%s", redact.DefaultReplace),
 					Fstype:     fmt.Sprintf("fstype%s", redact.DefaultReplace),
@@ -80,7 +80,7 @@ func TestDisk_convertPartitions(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			partitions, err := tc.disk.convertPartitions(tc.partitions)
+			partitions, err := tc.disk.partitions(tc.partitions)
 			if tc.expectErr {
 				require.Error(t, err, "an error was expected, but was not returned")
 			} else {
