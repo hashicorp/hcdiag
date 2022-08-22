@@ -366,6 +366,7 @@ func MapRedacts(redactions []Redact) ([]*redact.Redact, error) {
 
 	s := make([]*redact.Redact, len(redactions))
 	for i, r := range redactions {
+		// TODO(mkcp): Implement literals and `switch r.Label {}`
 		cfg := redact.Config{
 			Matcher: r.Match,
 			ID:      r.ID,
@@ -390,8 +391,9 @@ func ValidateRedactions(redactions []Redact) error {
 			if err != nil {
 				return fmt.Errorf("could not compile regex, matcher=%s, err=%s", r.Match, err)
 			}
-		case "literal":
-			continue
+		// TODO(mkcp): Validate literals when they are implemented
+		// case "literal":
+		// 	continue
 		default:
 			return fmt.Errorf("invalid redact name, name=%s", r.Label)
 		}
