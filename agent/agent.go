@@ -587,7 +587,13 @@ func formatReportLine(cells ...string) string {
 
 // agentRedactions returns the default agent-level redactions that we ship with hcdiag
 func agentRedactions() ([]*redact.Redact, error) {
-	configs := []redact.Config{}
+	configs := []redact.Config{
+		// Email redactions applied to all products/runners
+		{
+			Matcher: redact.EmailPattern,
+			Replace: redact.EmailReplace,
+		},
+	}
 	redactions, err := redact.MapNew(configs)
 	if err != nil {
 		return nil, err
