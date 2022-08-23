@@ -1,0 +1,3 @@
+```release-note:improvement
+runner: DockerNotFoundError should result in skipped runner, not error.
+```
