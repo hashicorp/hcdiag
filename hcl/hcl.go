@@ -56,7 +56,7 @@ type Product struct {
 
 type Redact struct {
 	Label   string `hcl:"name,label" json:"label"`
-	ID      string `hcl:"id,optional" json:"ID"`
+	ID      string `hcl:"id,optional" json:"id"`
 	Match   string `hcl:"match"`
 	Replace string `hcl:"replace,optional" json:"replace"`
 }
