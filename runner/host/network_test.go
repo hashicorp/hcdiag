@@ -41,10 +41,9 @@ func TestNetwork_networkInterface(t *testing.T) {
 				},
 			},
 			expected: NetworkInterface{
-				Index:        10,
-				MTU:          1500,
-				Name:         "eth0",
-				HardwareAddr: "aa:bb:cc:dd:ee:ff",
+				Index: 10,
+				MTU:   1500,
+				Name:  "eth0",
 				Flags: []string{
 					"up",
 					"loopback",
@@ -61,8 +60,7 @@ func TestNetwork_networkInterface(t *testing.T) {
 			network: Network{
 				Redactions: createRedactionSlice(
 					t,
-					redact.Config{Matcher: "192.[\\d]{1,3}.[\\d]{1,3}.[\\d]{1,3}"},
-					redact.Config{Matcher: "aa:bb:cc:dd:ee:ff"}),
+					redact.Config{Matcher: "192.[\\d]{1,3}.[\\d]{1,3}.[\\d]{1,3}"}),
 			},
 			inputInterfaceStat: net.InterfaceStat{
 				Index:        10,
@@ -84,10 +82,9 @@ func TestNetwork_networkInterface(t *testing.T) {
 				},
 			},
 			expected: NetworkInterface{
-				Index:        10,
-				MTU:          1500,
-				Name:         "eth0",
-				HardwareAddr: redact.DefaultReplace,
+				Index: 10,
+				MTU:   1500,
+				Name:  "eth0",
 				Flags: []string{
 					"up",
 					"loopback",

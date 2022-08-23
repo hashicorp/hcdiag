@@ -9,7 +9,15 @@ import (
 	"strings"
 )
 
+// DefaultReplace is the default string to include in place of matched redactions.
 const DefaultReplace = "<REDACTED>"
+
+// EmailPattern is a simple RegEx pattern intended to identify anything that looks like an email address.
+const EmailPattern = `([a-zA-Z0-9_.+-]+)@([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)`
+
+// EmailReplace is the default replacement pattern for email addresses. It includes the @ symbol to indicate it was
+// an email address, but otherwise, the remainder of the address is redacted.
+const EmailReplace = "REDACTED@REDACTED"
 
 type Redact struct {
 	ID      string `json:"ID"`

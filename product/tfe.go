@@ -81,7 +81,24 @@ func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 
 // tfeRedactions returns a slice of default redactions for this product
 func tfeRedactions() ([]*redact.Redact, error) {
-	configs := []redact.Config{}
+	configs := []redact.Config{
+		{
+			Matcher: `(postgres://)[^@{]+`,
+			Replace: "${1}REDACTED",
+		},
+		{
+			Matcher: `(SECRET0=)[^ ]+`,
+			Replace: "${1}REDACTED",
+		},
+		{
+			Matcher: `(SECRET=)[^ ]+`,
+			Replace: "${1}REDACTED",
+		},
+		{
+			Matcher: `(\s+")[a-zA-Z0-9]{32}("\s+)`,
+			Replace: "${1}REDACTED${2}",
+		},
+	}
 	redactions, err := redact.MapNew(configs)
 	if err != nil {
 		return nil, err
