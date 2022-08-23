@@ -1,0 +1,6 @@
+```release-note:improvement
+hcl: Add JSON tagging to every hcl field, omitting empty blocks and collections.
+```
+```release-note:bug
+hcl: Ensure redact "literal", which is not implemented yet, doesn't pass HCL validation.
+```
