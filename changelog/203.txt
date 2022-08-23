@@ -1,0 +1,3 @@
+```release-note:bug
+hcl: Do not serialize hcl.Redact.Match to json. Ensures matchers are not leaked in Manifest.json.
+```
