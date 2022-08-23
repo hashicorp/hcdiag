@@ -15,12 +15,11 @@ var _ runner.Runner = &Network{}
 // NetworkInterface represents details about a network interface. This serves as the basis for the results produced
 // by the Network runner.
 type NetworkInterface struct {
-	Index        int      `json:"index"`
-	MTU          int      `json:"mtu"`
-	Name         string   `json:"name"`
-	HardwareAddr string   `json:"hardwareAddr"`
-	Flags        []string `json:"flags"`
-	Addrs        []string `json:"addrs"`
+	Index int      `json:"index"`
+	MTU   int      `json:"mtu"`
+	Name  string   `json:"name"`
+	Flags []string `json:"flags"`
+	Addrs []string `json:"addrs"`
 }
 
 type Network struct {
@@ -69,12 +68,6 @@ func (n Network) networkInterface(nis net.InterfaceStat) (NetworkInterface, erro
 		return NetworkInterface{}, err
 	}
 	netIf.Name = name
-
-	hwAddr, err := redact.String(nis.HardwareAddr, n.Redactions)
-	if err != nil {
-		return NetworkInterface{}, err
-	}
-	netIf.HardwareAddr = hwAddr
 
 	// Make a slice rather than an empty var declaration to avoid later marshalling null instead of empty array
 	flags := make([]string, 0)

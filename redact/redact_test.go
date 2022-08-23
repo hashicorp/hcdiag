@@ -158,6 +158,14 @@ func TestString(t *testing.T) {
 			in:     "an input string with a secret value 😬",
 			expect: "an input string with a secret value REDACTED",
 		},
+		{
+			name: "Test email redaction",
+			redacts: []*Redact{
+				newTestRedact(t, EmailPattern, EmailReplace),
+			},
+			in:     "lorem ipsum abc.def+_@ghi.jkl.mnop lorem ipsum",
+			expect: "lorem ipsum REDACTED@REDACTED lorem ipsum",
+		},
 	}
 
 	for _, tc := range tcs {
