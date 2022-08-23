@@ -1,0 +1,3 @@
+```release-note:improvement
+security: bump golang.org/x/sys due to GO-2022-0493
+```
