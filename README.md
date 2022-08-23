@@ -181,8 +181,23 @@ There are many implementations of Regular Expressions, but `hcdiag` uses the cap
 RegEx syntax is the same as the one documented at [https://github.com/google/re2/wiki/Syntax](https://github.com/google/re2/wiki/Syntax),
 with the exception that `\C` is not supported.
 
-Redactions are specified within custom configuration files, as shown below. Comments are included for further explanation
-of how these redactions work.
+### Default Redactions
+
+A set of redactions are enabled by default. In version `0.4.0`, these include:
+
+* Email addresses - replaced with `REDACTED@REDACTED` in all products.
+* Terraform Enterprise
+  * Postgres connection strings are replaced with `postgres://REDACTED`.
+  * 32-character alphanumeric strings are replaced with `"REDACTED"`.
+  * Key/Value pairs with keys `SECRET=` or `SECRET0=` will have their values redacted, such that
+    the result will be `SECRET=REDACTED` or `SECRET0=REDACTED`, respectively.
+
+### Custom Redactions
+
+Users may also specify custom redactions within configuration files, as shown below.
+Comments are included for further explanation of how these redactions work. As with any `hcdiag` configuration, be sure
+to execute `hcdiag` with the `-config=</the/path/to/your/config-file.hcl>` flag pointed to the proper path so that
+redactions will be applied.
 
 ```hcl
 agent {
