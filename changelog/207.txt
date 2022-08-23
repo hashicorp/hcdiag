@@ -1,0 +1,11 @@
+```release-note:improvement
+redact: Redact email addresses by default.
+```
+
+```release-note:improvement
+redact: Implement default Terraform Enterprise redactions.
+```
+
+```release-note:improvement
+network: Do not collect Network Interface hardware addresses.
+```
