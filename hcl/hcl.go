@@ -15,9 +15,9 @@ import (
 )
 
 type HCL struct {
-	Host     *Host      `hcl:"host,block" json:"host"`
-	Products []*Product `hcl:"product,block" json:"products"`
-	Agent    *Agent     `hcl:"agent,block" json:"agent"`
+	Host     *Host      `hcl:"host,block" json:"host,omitempty"`
+	Products []*Product `hcl:"product,block" json:"products,omitempty"`
+	Agent    *Agent     `hcl:"agent,block" json:"agent,omitempty"`
 }
 
 type Blocks interface {
@@ -26,73 +26,73 @@ type Blocks interface {
 
 // NOTE(dcohen) this is currently a separate config block, as opposed to a parent block of the others
 type Agent struct {
-	Redactions []Redact `hcl:"redact,block"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type Host struct {
-	Commands     []Command     `hcl:"command,block"`
-	Shells       []Shell       `hcl:"shell,block"`
-	GETs         []GET         `hcl:"GET,block"`
-	Copies       []Copy        `hcl:"copy,block"`
-	DockerLogs   []DockerLog   `hcl:"docker-log,block"`
-	JournaldLogs []JournaldLog `hcl:"journald-log,block"`
-	Excludes     []string      `hcl:"excludes,optional"`
-	Selects      []string      `hcl:"selects,optional"`
-	Redactions   []Redact      `hcl:"redact,block"`
+	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
+	Shells       []Shell       `hcl:"shell,block" json:"shells,omitempty"`
+	GETs         []GET         `hcl:"GET,block" json:"gets,omitempty"`
+	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
+	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
+	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
+	Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
+	Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
+	Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type Product struct {
-	Name         string        `hcl:"name,label"`
-	Commands     []Command     `hcl:"command,block"`
-	Shells       []Shell       `hcl:"shell,block"`
-	GETs         []GET         `hcl:"GET,block"`
-	Copies       []Copy        `hcl:"copy,block"`
-	DockerLogs   []DockerLog   `hcl:"docker-log,block"`
-	JournaldLogs []JournaldLog `hcl:"journald-log,block"`
-	Excludes     []string      `hcl:"excludes,optional"`
-	Selects      []string      `hcl:"selects,optional"`
-	Redactions   []Redact      `hcl:"redact,block"`
+	Name         string        `hcl:"name,label" json:"name"`
+	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
+	Shells       []Shell       `hcl:"shell,block" json:"shells,omitempty"`
+	GETs         []GET         `hcl:"GET,block" json:"gets,omitempty"`
+	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
+	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
+	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
+	Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
+	Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
+	Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type Redact struct {
-	Label   string `hcl:"name,label"`
-	ID      string `hcl:"id,optional"`
-	Match   string `hcl:"match"`
-	Replace string `hcl:"replace,optional"`
+	Label   string `hcl:"name,label" json:"label"`
+	ID      string `hcl:"id,optional" json:"id"`
+	Match   string `hcl:"match" json:"-"`
+	Replace string `hcl:"replace,optional" json:"replace"`
 }
 
 type Command struct {
-	Run        string   `hcl:"run"`
-	Format     string   `hcl:"format"`
-	Redactions []Redact `hcl:"redact,block"`
+	Run        string   `hcl:"run" json:"run"`
+	Format     string   `hcl:"format" json:"format"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type Shell struct {
-	Run        string   `hcl:"run"`
-	Redactions []Redact `hcl:"redact,block"`
+	Run        string   `hcl:"run" json:"run"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type GET struct {
-	Path       string   `hcl:"path"`
-	Redactions []Redact `hcl:"redact,block"`
+	Path       string   `hcl:"path" json:"path"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type Copy struct {
-	Path       string   `hcl:"path"`
-	Since      string   `hcl:"since,optional"`
-	Redactions []Redact `hcl:"redact,block"`
+	Path       string   `hcl:"path" json:"path"`
+	Since      string   `hcl:"since,optional" json:"since"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type DockerLog struct {
-	Container  string   `hcl:"container"`
-	Since      string   `hcl:"since,optional"`
-	Redactions []Redact `hcl:"redact,block"`
+	Container  string   `hcl:"container" json:"container"`
+	Since      string   `hcl:"since,optional" json:"since"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type JournaldLog struct {
-	Service    string   `hcl:"service"`
-	Since      string   `hcl:"since,optional"`
-	Redactions []Redact `hcl:"redact,block"`
+	Service    string   `hcl:"service" json:"service"`
+	Since      string   `hcl:"since,optional" json:"since"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 // Parse takes a file path and decodes the file from disk into HCL types.
@@ -366,6 +366,7 @@ func MapRedacts(redactions []Redact) ([]*redact.Redact, error) {
 
 	s := make([]*redact.Redact, len(redactions))
 	for i, r := range redactions {
+		// TODO(mkcp): Implement literals and `switch r.Label {}`
 		cfg := redact.Config{
 			Matcher: r.Match,
 			ID:      r.ID,
@@ -390,8 +391,9 @@ func ValidateRedactions(redactions []Redact) error {
 			if err != nil {
 				return fmt.Errorf("could not compile regex, matcher=%s, err=%s", r.Match, err)
 			}
-		case "literal":
-			continue
+		// TODO(mkcp): Validate literals when they are implemented
+		// case "literal":
+		// 	continue
 		default:
 			return fmt.Errorf("invalid redact name, name=%s", r.Label)
 		}

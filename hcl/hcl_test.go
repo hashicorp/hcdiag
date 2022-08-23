@@ -353,30 +353,31 @@ func TestValidateRedactions(t *testing.T) {
 			name:       "empty redactions",
 			redactions: []Redact{},
 		},
-		{
-			name: "one literal",
-			redactions: []Redact{
-				{
-					Label: "literal",
-					Match: "something",
-				},
-			},
-		},
-		{
-			name: "many literals",
-			redactions: []Redact{
-				{
-					Label: "literal",
-					ID:    "one",
-					Match: "something",
-				},
-				{
-					Label: "literal",
-					ID:    "two",
-					Match: "something else",
-				},
-			},
-		},
+		// TODO(mkcp): Uncomment when we support literal validation
+		// {
+		// 	name: "one literal",
+		// 	redactions: []Redact{
+		// 		{
+		// 			Label: "literal",
+		// 			Match: "something",
+		// 		},
+		// 	},
+		// },
+		// {
+		//	name: "many literals",
+		//	redactions: []Redact{
+		//		{
+		//			Label: "literal",
+		//			ID:    "one",
+		//			Match: "something",
+		//		},
+		//		{
+		//			Label: "literal",
+		//			ID:    "two",
+		//			Match: "something else",
+		//		},
+		//	},
+		//	},
 		{
 			name: "one regex",
 			redactions: []Redact{
@@ -407,21 +408,22 @@ func TestValidateRedactions(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "both regexes and literals",
-			redactions: []Redact{
-				{
-					Label: "regex",
-					ID:    "reg",
-					Match: "just a regex",
-				},
-				{
-					Label: "literal",
-					ID:    "lit",
-					Match: "something",
-				},
-			},
-		},
+		// TODO(mkcp): Uncomment when we support literal validation
+		// {
+		// 	name: "both regexes and literals",
+		// 	redactions: []Redact{
+		// 		{
+		// 			Label: "regex",
+		// 			ID:    "reg",
+		// 			Match: "just a regex",
+		// 		},
+		// 		{
+		// 			Label: "literal",
+		// 			ID:    "lit",
+		// 			Match: "something",
+		// 		},
+		// 	},
+		// },
 	}
 	shouldErr := []testCase{
 		{
