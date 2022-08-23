@@ -42,7 +42,7 @@ func (d Docker) Run() op.Op {
 	// Check that docker exists
 	o := runner.NewSheller("docker version", d.Redactions).Run()
 	if o.Error != nil {
-		return op.New(d.ID(), o.Result, op.Fail, DockerNotFoundError{
+		return op.New(d.ID(), o.Result, op.Skip, DockerNotFoundError{
 			container: d.Container,
 			err:       o.Error,
 		},
