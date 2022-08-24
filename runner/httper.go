@@ -1,12 +1,12 @@
 package runner
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
 )
+
+var _ Runner = HTTPer{}
 
 // HTTPer hits APIs.
 type HTTPer struct {
@@ -29,13 +29,11 @@ func (h HTTPer) ID() string {
 
 // Run executes a GET request to the Path using the Client
 func (h HTTPer) Run() op.Op {
-	result, err := h.Client.Get(h.Path)
-	redResult, redErr := redact.String(fmt.Sprint(result), h.Redactions)
+	result, err := h.Client.RedactGet(h.Path, h.Redactions)
 	if err != nil {
-		if redErr != nil {
-			return op.New(h.ID(), nil, op.Fail, redErr, Params(h))
-		}
-		return op.New(h.ID(), redResult, op.Unknown, err, Params(h))
+		op.New(h.ID(), result, op.Fail, err, Params(h))
 	}
-	return op.New(h.ID(), redResult, op.Success, nil, Params(h))
+
+	// Check type of result to see if we can return a redacted result in the op
+	return op.New(h.ID(), result, op.Success, nil, Params(h))
 }
