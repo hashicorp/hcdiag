@@ -9,8 +9,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+
+	"github.com/hashicorp/hcdiag/redact"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
+
+var defaultTestBaseURL = "test://local"
+var defaultTestPath = "/test/path"
 
 type mockHTTP struct {
 	called []*http.Request
@@ -88,7 +97,7 @@ func TestNewHTTPTransport(t *testing.T) {
 }
 
 // This is not a super thorough test, but it's something
-func TestAPIClientGet(t *testing.T) {
+func TestAPIClient_Get(t *testing.T) {
 	testBaseURL := "test://local"
 	cfg := APIConfig{
 		Product: "test",
@@ -143,7 +152,75 @@ func TestAPIClientGet(t *testing.T) {
 	}
 }
 
-func TestAPIClientGetStringValue(t *testing.T) {
+func TestAPIClient_RedactGet(t *testing.T) {
+	tcs := []struct {
+		name       string
+		path       string
+		cfg        APIConfig
+		redactCfgs []redact.Config
+		mockResp   string
+		expected   []byte
+	}{
+		{
+			name: "can redact JSON response",
+			path: defaultTestPath,
+			cfg: APIConfig{
+				Product: "test",
+				BaseURL: defaultTestBaseURL,
+				headers: map[string]string{
+					"special": "headeroni",
+				},
+				TLSConfig: TLSConfig{},
+			},
+			redactCfgs: []redact.Config{
+				{Matcher: "testMatcher"},
+			},
+			mockResp: `{"hello":"testMatcher"}`,
+			expected: []byte(`{"hello":"<REDACTED>"}`),
+		},
+	}
+
+	for _, tc := range tcs {
+		mock := &mockHTTP{resp: tc.mockResp}
+		c, err := NewAPIClient(tc.cfg)
+		if err != nil {
+			t.Errorf("NewAPIClient returned error: %s", err)
+		}
+		c.http = mock
+
+		// Make request
+		redactions, err := redact.MapNew(tc.redactCfgs)
+		assert.NoError(t, err, tc.name)
+		resp, err := c.RedactGet(tc.path, redactions)
+		assert.NoError(t, err, tc.name)
+
+		// only one request expected
+		assert.Len(t, mock.called, 1, tc.name)
+		// convenience
+		reqReceived := mock.called[0]
+
+		// ensure we tried to hit the right URL
+		expectURL := tc.cfg.BaseURL + tc.path
+		actualURL := reqReceived.URL.Scheme + "://" + reqReceived.URL.Host + reqReceived.URL.Path
+		assert.Equal(t, expectURL, actualURL, tc.name)
+
+		// check header passthrough
+		// this one is default for all requests
+		// FIXME(mkcp): magic values leftover from the migrated test, need to refactor these into the test table
+		assert.Equal(t, "application/json", reqReceived.Header["Content-Type"][0], tc.name)
+		assert.Equal(t, "headeroni", reqReceived.Header["Special"][0], tc.name)
+
+		bts := make([]byte, 0)
+		spew.Dump(resp)
+		// ensure response is Marshal-able and matches our expected
+		json.NewEncoder(bts)
+		bodyBts, _ := json.Marshal(resp)
+		spew.Dump(bodyBts)
+		assert.Equal(t, tc.expected, bodyBts, tc.name)
+	}
+}
+
+func TestAPIClient_GetStringValue(t *testing.T) {
 	// this also implicily tests APIClient.GetValue()
 
 	cfg := APIConfig{
@@ -169,7 +246,7 @@ func TestAPIClientGetStringValue(t *testing.T) {
 
 }
 
-func TestCreateTLSClientConfig(t *testing.T) {
+func Test_CreateTLSClientConfig(t *testing.T) {
 	testCases := []struct {
 		name      string
 		expectErr bool
