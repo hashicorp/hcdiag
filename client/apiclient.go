@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/hashicorp/hcdiag/redact"
+
 	"github.com/hashicorp/go-rootcerts"
 	"github.com/hashicorp/hcdiag/util"
 )
@@ -63,6 +65,55 @@ type APIResponse struct {
 // Get makes a GET request to a given path.
 func (c *APIClient) Get(path string) (interface{}, error) {
 	return c.request("GET", path, []byte{})
+}
+
+// RedactGet makes a GET request to a given path and applies redactions before returning result. Result will be empty
+// and safe to use if there is a redaction error.
+func (c *APIClient) RedactGet(path string, redactions []*redact.Redact) (any, error) {
+	method := "GET"
+	data := make([]byte, 0)
+
+	// Build request
+	url := fmt.Sprintf("%s%s", c.BaseURL, path)
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	for k, v := range c.headers {
+		req.Header.Set(k, v)
+	}
+
+	// Make request
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// Grab response contents
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to interface{}
+	var v any
+	err = json.Unmarshal(body, &v)
+
+	redResult, redErr := redact.JSON(v, redactions)
+	if redErr != nil {
+		return nil, redErr
+	}
+
+	// Error-return the status code if it's not 200 OK
+	if resp.StatusCode != http.StatusOK {
+		return redResult, errors.New(resp.Status)
+	}
+
+	return redResult, err
 }
 
 // GetValue runs Get() then looks through the response for nested mapKeys.
