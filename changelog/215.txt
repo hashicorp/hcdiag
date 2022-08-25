@@ -1,0 +1,3 @@
+```release-note:bug
+runner: Fixed a redaction and reporting issue where HTTPer incorrectly flattened and redacted JSON responses as strings.
+```
