@@ -1,0 +1,3 @@
+```release-note:improvement
+docs: Add project contribution guidelines to the repository, in CONTRIBUTING.md.
+```
