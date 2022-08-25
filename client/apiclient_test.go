@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/stretchr/testify/assert"
@@ -176,7 +174,7 @@ func TestAPIClient_RedactGet(t *testing.T) {
 				{Matcher: "testMatcher"},
 			},
 			mockResp: `{"hello":"testMatcher"}`,
-			expected: []byte(`{"hello":"<REDACTED>"}`),
+			expected: []byte(`{"hello":"\u003cREDACTED\u003e"}`),
 		},
 	}
 
@@ -210,12 +208,8 @@ func TestAPIClient_RedactGet(t *testing.T) {
 		assert.Equal(t, "application/json", reqReceived.Header["Content-Type"][0], tc.name)
 		assert.Equal(t, "headeroni", reqReceived.Header["Special"][0], tc.name)
 
-		bts := make([]byte, 0)
-		spew.Dump(resp)
 		// ensure response is Marshal-able and matches our expected
-		json.NewEncoder(bts)
 		bodyBts, _ := json.Marshal(resp)
-		spew.Dump(bodyBts)
 		assert.Equal(t, tc.expected, bodyBts, tc.name)
 	}
 }
