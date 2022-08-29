@@ -34,7 +34,7 @@ func TestNewCopier(t *testing.T) {
 	assert.Equal(t, expect, copier)
 }
 
-func setupFiles(t *testing.T, dir, file, content string) func(t *testing.T) error {
+func setupFiles(t *testing.T, dir, file, content string) {
 	// create directory
 	absDir, err := filepath.Abs(dir)
 	assert.NoError(t, err)
@@ -51,10 +51,10 @@ func setupFiles(t *testing.T, dir, file, content string) func(t *testing.T) erro
 	_, err = f.WriteString(content)
 	assert.NoError(t, err)
 
-	// return a teardown function
-	return func(t *testing.T) error {
-		return os.RemoveAll(absDir)
-	}
+	t.Cleanup(func() {
+		err := os.RemoveAll(absDir)
+		assert.NoError(t, err)
+	})
 }
 
 // TODO(mkcp): This code should be concerned with multi-file operations
@@ -79,38 +79,37 @@ func TestCopyDir(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		var reds []*redact.Redact
-		// Init our params
-		absDest, err := filepath.Abs(tc.writeDir)
-		assert.NoError(t, err)
-		absSrc, err := filepath.Abs(tc.readDir)
-		assert.NoError(t, err)
+		t.Run(tc.name, func(t *testing.T) {
+			var reds []*redact.Redact
+			// Init our params
+			absDest, err := filepath.Abs(tc.writeDir)
+			assert.NoError(t, err)
+			absSrc, err := filepath.Abs(tc.readDir)
+			assert.NoError(t, err)
 
-		if tc.redacts != nil {
-			reds = tc.redacts(t)
-		}
+			if tc.redacts != nil {
+				reds = tc.redacts(t)
+			}
 
-		// Initialize our test directory, file, and its content
-		// TODO(mkcp): Decouple directory setup, from file setup, to content writing so these all can be dynamically
-		//  generated with a broader variety of data and run in parallel without writes colliding.
-		cleanup := setupFiles(t, absSrc, tc.file, tc.content)
+			// Initialize our test directory, file, and its content
+			// TODO(mkcp): Decouple directory setup, from file setup, to content writing so these all can be dynamically
+			//  generated with a broader variety of data and run in parallel without writes colliding.
+			setupFiles(t, absSrc, tc.file, tc.content)
 
-		// Copy the directory contents
-		ce := copyDir(absDest, absSrc, reds)
-		assert.NoError(t, ce, tc.name)
+			// Copy the directory contents
+			ce := copyDir(absDest, absSrc, reds)
+			assert.NoError(t, ce, tc.name)
 
-		// TODO(mkcp): Compare files in the future, not strings
-		if tc.content != "" {
-			// confirm the file exists in the right place and has the right contents
-			expectedLocation := filepath.Join(absSrc, tc.file)
-			result, err := os.ReadFile(expectedLocation)
-			assert.NoError(t, err, tc.name)
-			assert.Equal(t, tc.content, string(result), tc.name)
-		}
+			// TODO(mkcp): Compare files in the future, not strings
+			if tc.content != "" {
+				// confirm the file exists in the right place and has the right contents
+				expectedLocation := filepath.Join(absSrc, tc.file)
+				result, err := os.ReadFile(expectedLocation)
+				assert.NoError(t, err, tc.name)
+				assert.Equal(t, tc.content, string(result), tc.name)
+			}
 
-		// Cleanup our test data
-		cle := cleanup(t)
-		assert.NoError(t, cle, tc.name)
+		})
 	}
 }
 
