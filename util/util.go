@@ -175,38 +175,6 @@ func IsInRange(target, since, until time.Time) bool {
 	return target.After(since) && target.Before(until)
 }
 
-// FilterWalk accepts a source directory, filter string, and since and to Times to return a list of matching files.
-func FilterWalk(srcDir, filter string, since, until time.Time) ([]string, error) {
-	var fileMatches []string
-
-	// Filter the files
-	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return err
-		}
-
-		// Check for files that match the filter then check for time matches
-		match, err := filepath.Match(filter, filepath.Base(path))
-		if match && err == nil {
-			// grab our file's last modified time
-			info, err := os.Stat(path)
-			if err != nil {
-				return err
-			}
-			mod := info.ModTime()
-			if IsInRange(mod, since, until) {
-				fileMatches = append(fileMatches, path)
-			}
-		}
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return fileMatches, nil
-}
-
 // FindInInterface treats an interface{} like a (nested) map,
 // and searches through its contents for a given list of mapKeys.
 // For example, given an interface{} containing a map like
