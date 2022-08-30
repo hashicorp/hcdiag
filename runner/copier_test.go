@@ -12,13 +12,13 @@ import (
 )
 
 func TestNewCopier(t *testing.T) {
-	src := "/testing/src"
-	dest := "/testing/dest"
+	src := t.TempDir()
+	dest := t.TempDir()
 	since := time.Time{}
 	until := time.Now()
 	expect := &Copier{
-		SourceDir: "/testing/",
-		Filter:    "src",
+		SourceDir: src,
+		Filter:    "*",
 		DestDir:   dest,
 		Since:     since,
 		Until:     until,
@@ -39,19 +39,44 @@ func setupFile(t *testing.T, dir, file, content string) {
 	assert.NoError(t, err)
 }
 
-// TODO(mkcp): This code should be concerned with multi-file operations
-// TODO(mkcp): Dynamically generate the write locations that are hard coded as package vars so tcs can run in parallel
+// filename -> content
+type TestFileList map[string]string
+
 func TestCopyDir(t *testing.T) {
 	tcs := []struct {
-		name     string
-		filename string
-		content  string
-		redacts  func(*testing.T) []*redact.Redact
+		name    string
+		files   TestFileList
+		redacts func(*testing.T) []*redact.Redact
 	}{
 		{
-			name:     "can copy directory",
-			filename: "filename1",
-			content:  "Some content here",
+			name:  "can copy dir with empty file",
+			files: TestFileList{"filename1": ""},
+		},
+		{
+			name: "can copy dir with several empty files",
+			files: TestFileList{
+				"filename1": "",
+				"file2.txt": "",
+			},
+		},
+		{
+			name:  "can copy single-file directory",
+			files: TestFileList{"filename1": "Some content here"},
+		},
+		{
+			name: "can copy multi-file directory",
+			files: TestFileList{
+				"filename1": "Some content here",
+				"file2.txt": "more file content",
+			},
+		},
+		{
+			name: "can copy mixed multi-file directory that includes an empty file",
+			files: TestFileList{
+				"filename1": "Some content here",
+				"file2.txt": "more file content",
+				"empty":     "",
+			},
 		},
 	}
 
@@ -65,20 +90,24 @@ func TestCopyDir(t *testing.T) {
 				reds = tc.redacts(t)
 			}
 
-			// Write our testfile and its content
-			setupFile(t, srcDir, tc.filename, tc.content)
+			// Create testfiles and content
+			for name, content := range tc.files {
+				setupFile(t, srcDir, name, content)
+			}
 
 			// Copy the directory contents
 			ce := copyDir(destDir, srcDir, reds)
 			assert.NoError(t, ce, tc.name)
 
-			// Compare content
-			if tc.content != "" {
-				// confirm the file exists in the right place and has the right contents
-				expectedLocation := filepath.Join(srcDir, tc.filename)
-				result, err := os.ReadFile(expectedLocation)
-				assert.NoError(t, err, tc.name)
-				assert.Equal(t, tc.content, string(result), tc.name)
+			// Compare destination testfiles content
+			for name, content := range tc.files {
+				if name != "" {
+					// confirm the file exists in the right place and has the right contents
+					expectedLocation := filepath.Join(srcDir, name)
+					result, err := os.ReadFile(expectedLocation)
+					assert.NoError(t, err, tc.name)
+					assert.Equal(t, content, string(result), tc.name)
+				}
 			}
 
 		})
