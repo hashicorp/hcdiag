@@ -1,9 +1,12 @@
 package runner
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/hcdiag/redact"
@@ -11,6 +14,8 @@ import (
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/hashicorp/hcdiag/util"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 var _ Runner = Copier{}
@@ -55,7 +60,7 @@ func (c Copier) Run() op.Op {
 	}
 
 	// Find all the files
-	files, err := util.FilterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
+	files, err := filterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
 		return op.New(c.ID(), nil, op.Fail,
 			FindFilesError{
@@ -66,7 +71,7 @@ func (c Copier) Run() op.Op {
 
 	// Copy the files
 	for _, s := range files {
-		err = util.CopyDir(c.DestDir, s, c.Redactions)
+		err = copyDir(c.DestDir, s, c.Redactions)
 		if err != nil {
 			return op.New(c.ID(), nil, op.Fail,
 				CopyFilesError{
@@ -118,4 +123,125 @@ func (e CopyFilesError) Error() string {
 
 func (e CopyFilesError) Unwrap() error {
 	return e.err
+}
+
+// filterWalk accepts a source directory, filter string, and since and to Times to return a list of matching files.
+func filterWalk(srcDir, filter string, since, until time.Time) ([]string, error) {
+	var fileMatches []string
+
+	// Filter the files
+	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return err
+		}
+
+		// Check for files that match the filter then check for time matches
+		match, err := filepath.Match(filter, filepath.Base(path))
+		if match && err == nil {
+			// grab our file's last modified time
+			info, err := os.Stat(path)
+			if err != nil {
+				return err
+			}
+			mod := info.ModTime()
+			if util.IsInRange(mod, since, until) {
+				fileMatches = append(fileMatches, path)
+			}
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return fileMatches, nil
+}
+
+const directoryPerms = 0755
+
+// copyDir copies a directory and all of its contents into a target directory.
+func copyDir(to, src string, redactions []*redact.Redact) error {
+	if src == "" {
+		return fmt.Errorf("no source directory given, src=%s, to=%s", src, to)
+	}
+	// get the absolute path, so we can remove it
+	// to avoid copying the entire directory structure into the dest
+	absPath, err := filepath.Abs(src)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for '%s': %s", src, err)
+	}
+	if _, err := os.Stat(absPath); err != nil {
+		return fmt.Errorf("expect %s to exist, got error: %s", absPath, err)
+	}
+	absBase := filepath.Dir(absPath)
+
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		// Windows path may contain unsafe characters
+		targetMaybeUnsafe := filepath.Join(to, absBase, info.Name())
+
+		// TODO: more extensive path cleansing beyond handling C:\
+		target := strings.Replace(targetMaybeUnsafe, ":", "_", -1)
+
+		if info.IsDir() {
+			hclog.L().Info("copying", "path", path, "to", target)
+			return os.MkdirAll(target, directoryPerms)
+		}
+		return copyFile(target, path, redactions)
+	})
+}
+
+// copyFile copies a file to a target file path.
+func copyFile(to, src string, redactions []*redact.Redact) error {
+	hclog.L().Info("copying", "path", src, "to", to)
+
+	// Ensure directories
+	dir, _ := filepath.Split(to)
+	err := os.MkdirAll(dir, directoryPerms)
+	if err != nil {
+		return err
+	}
+
+	// Open source file
+	r, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := r.Close(); err != nil {
+			hclog.L().Error("Unable to close source file", "error", err)
+		}
+	}()
+
+	// Create destination file
+	w, err := os.Create(to)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := w.Close(); err != nil {
+			hclog.L().Error("Unable to close dest file", "error", err)
+		}
+	}()
+
+	if 0 < len(redactions) {
+		scanner := bufio.NewScanner(r)
+		// Scan, redact, and write each line of the src file
+		for scanner.Scan() {
+			bts := scanner.Bytes()
+			bts = append(bts, '\n')
+			rBts, re := redact.Bytes(bts, redactions)
+			if re != nil {
+				return re
+			}
+			_, we := w.Write(rBts)
+			if we != nil {
+				return we
+			}
+		}
+		return nil
+	}
+
+	// No redactions, copy as normal
+	_, ce := io.Copy(w, r)
+	return ce
 }
