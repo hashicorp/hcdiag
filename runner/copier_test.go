@@ -11,13 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	testDir         = "./testfrom"
-	testFile        = "testfile"
-	testContent     = "hello"
-	testDestination = "./testdest"
-)
-
 func TestNewCopier(t *testing.T) {
 	src := "/testing/src"
 	dest := "/testing/dest"
@@ -34,15 +27,9 @@ func TestNewCopier(t *testing.T) {
 	assert.Equal(t, expect, copier)
 }
 
-func setupFiles(t *testing.T, dir, file, content string) {
-	// create directory
-	absDir, err := filepath.Abs(dir)
-	assert.NoError(t, err)
-	err = os.MkdirAll(absDir, 0755)
-	assert.NoError(t, err)
-
+func setupFile(t *testing.T, dir, file, content string) {
 	// touch file
-	absFile := filepath.Join(absDir, file)
+	absFile := filepath.Join(dir, file)
 	f, err := os.Create(absFile)
 	assert.NoError(t, err)
 	defer f.Close()
@@ -50,60 +37,45 @@ func setupFiles(t *testing.T, dir, file, content string) {
 	// write to file
 	_, err = f.WriteString(content)
 	assert.NoError(t, err)
-
-	t.Cleanup(func() {
-		err := os.RemoveAll(absDir)
-		assert.NoError(t, err)
-	})
 }
 
 // TODO(mkcp): This code should be concerned with multi-file operations
 // TODO(mkcp): Dynamically generate the write locations that are hard coded as package vars so tcs can run in parallel
 func TestCopyDir(t *testing.T) {
 	tcs := []struct {
-		name        string
-		readDir     string
-		writeDir    string
-		file        string
-		content     string
-		contentFile string
-		redacts     func(*testing.T) []*redact.Redact
+		name     string
+		filename string
+		content  string
+		redacts  func(*testing.T) []*redact.Redact
 	}{
 		{
 			name:     "can copy directory",
-			readDir:  testDir,
-			writeDir: testDestination,
-			file:     testFile,
-			content:  testContent,
+			filename: "filename1",
+			content:  "Some content here",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			var reds []*redact.Redact
-			// Init our params
-			absDest, err := filepath.Abs(tc.writeDir)
-			assert.NoError(t, err)
-			absSrc, err := filepath.Abs(tc.readDir)
-			assert.NoError(t, err)
+			srcDir := t.TempDir()
+			destDir := t.TempDir()
 
 			if tc.redacts != nil {
 				reds = tc.redacts(t)
 			}
 
-			// Initialize our test directory, file, and its content
-			// TODO(mkcp): Decouple directory setup, from file setup, to content writing so these all can be dynamically
-			//  generated with a broader variety of data and run in parallel without writes colliding.
-			setupFiles(t, absSrc, tc.file, tc.content)
+			// Write our testfile and its content
+			setupFile(t, srcDir, tc.filename, tc.content)
 
 			// Copy the directory contents
-			ce := copyDir(absDest, absSrc, reds)
+			ce := copyDir(destDir, srcDir, reds)
 			assert.NoError(t, ce, tc.name)
 
-			// TODO(mkcp): Compare files in the future, not strings
+			// Compare content
 			if tc.content != "" {
 				// confirm the file exists in the right place and has the right contents
-				expectedLocation := filepath.Join(absSrc, tc.file)
+				expectedLocation := filepath.Join(srcDir, tc.filename)
 				result, err := os.ReadFile(expectedLocation)
 				assert.NoError(t, err, tc.name)
 				assert.Equal(t, tc.content, string(result), tc.name)
@@ -124,7 +96,7 @@ func TestCopyDirErrors(t *testing.T) {
 		},
 		{
 			name: "dir does not exist",
-			dest: testDestination,
+			dest: "/tmp/faketestdestination",
 			src:  "dir-doesnt-exist2347890-12348079-",
 		},
 	}
@@ -153,7 +125,7 @@ func TestCopyFileErrors(t *testing.T) {
 		},
 		{
 			name: "file does not exist",
-			dest: testDestination,
+			dest: "/tmp/faketestdestination",
 			src:  "file-doesnt-exist1234712347091234",
 		},
 	}
