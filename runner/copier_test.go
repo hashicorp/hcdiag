@@ -39,40 +39,40 @@ func setupFile(t *testing.T, dir, file, content string) {
 	assert.NoError(t, err)
 }
 
-// filename -> content
-type TestFileList map[string]string
+// TestFiles maps any number of filenames to their desired content
+type TestFiles map[string]string
 
 func TestCopyDir(t *testing.T) {
 	tcs := []struct {
 		name    string
-		files   TestFileList
+		files   TestFiles
 		redacts func(*testing.T) []*redact.Redact
 	}{
 		{
 			name:  "can copy dir with empty file",
-			files: TestFileList{"filename1": ""},
+			files: TestFiles{"filename1": ""},
 		},
 		{
 			name: "can copy dir with several empty files",
-			files: TestFileList{
+			files: TestFiles{
 				"filename1": "",
 				"file2.txt": "",
 			},
 		},
 		{
 			name:  "can copy single-file directory",
-			files: TestFileList{"filename1": "Some content here"},
+			files: TestFiles{"filename1": "Some content here"},
 		},
 		{
 			name: "can copy multi-file directory",
-			files: TestFileList{
+			files: TestFiles{
 				"filename1": "Some content here",
 				"file2.txt": "more file content",
 			},
 		},
 		{
 			name: "can copy mixed multi-file directory that includes an empty file",
-			files: TestFileList{
+			files: TestFiles{
 				"filename1": "Some content here",
 				"file2.txt": "more file content",
 				"empty":     "",
@@ -130,15 +130,45 @@ func TestCopyDirErrors(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		err := copyDir(tc.dest, tc.src, nil)
-		assert.Error(t, err, tc.name)
+		t.Run(tc.name, func(t *testing.T) {
+			err := copyDir(tc.dest, tc.src, nil)
+			assert.Error(t, err, tc.name)
+		})
 	}
 }
 
-// TODO(mkcp): This code is exercised by the CopyDir cases above, but it should be tested in isolation with a variety
-//  of cases.
 func TestCopyFile(t *testing.T) {
-	t.Skip()
+	tcs := []struct {
+		name  string
+		files TestFiles
+	}{
+		{
+			name:  "Test copying a single file",
+			files: TestFiles{"filename1": "hack the planet"},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			var reds []*redact.Redact
+			srcDir := t.TempDir()
+			dstDir := t.TempDir()
+
+			for name, content := range tc.files {
+				setupFile(t, srcDir, name, content)
+				srcLocation := filepath.Join(srcDir, name)
+				dstLocation := filepath.Join(dstDir, name)
+
+				// Copy the file
+				err := copyFile(dstLocation, srcLocation, reds)
+				assert.NoError(t, err, tc.name)
+
+				// Read the file
+				result, err := os.ReadFile(dstLocation)
+				assert.NoError(t, err, tc.name)
+				assert.Equal(t, content, string(result), tc.name)
+			}
+		})
+	}
 }
 
 // TODO(mkcp): more cases
@@ -159,11 +189,13 @@ func TestCopyFileErrors(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		var reds []*redact.Redact
-		if tc.redactions != nil {
-			reds = tc.redactions(t)
-		}
-		err := copyFile(tc.dest, tc.src, reds)
-		assert.Error(t, err, tc.name)
+		t.Run(tc.name, func(t *testing.T) {
+			var reds []*redact.Redact
+			if tc.redactions != nil {
+				reds = tc.redactions(t)
+			}
+			err := copyFile(tc.dest, tc.src, reds)
+			assert.Error(t, err, tc.name)
+		})
 	}
 }
