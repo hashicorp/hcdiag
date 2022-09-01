@@ -3,7 +3,7 @@ package run
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -99,8 +99,8 @@ func (c *cmd) init() {
 	c.destination = path.Dir(c.destination)
 
 	// When invalid flags are provided, Go will output a usage message of its own. If we direct our flag set to
-	// ioutil.Discard, it will effectively be hidden, allowing us to print our own Help message upon failure.
-	c.flags.SetOutput(ioutil.Discard)
+	// io.Discard, it will effectively be hidden, allowing us to print our own Help message upon failure.
+	c.flags.SetOutput(io.Discard)
 }
 
 // New produces a new *cmd pointer, initialized for use in a CLI application.
