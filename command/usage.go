@@ -1,4 +1,4 @@
-package help
+package command
 
 import (
 	"bytes"
@@ -52,12 +52,7 @@ func printTitle(w io.Writer, s string) {
 
 // printFlag prints a single flag to the given writer.
 func printFlag(w io.Writer, f *flag.Flag) {
-	example, _ := flag.UnquoteUsage(f)
-	if example != "" {
-		_, _ = fmt.Fprintf(w, "  -%s=<%s>\n", f.Name, example)
-	} else {
-		_, _ = fmt.Fprintf(w, "  -%s\n", f.Name)
-	}
+	_, _ = fmt.Fprintf(w, "  -%s\n", f.Name)
 
 	indented := wrapAtLength(f.Usage, 5)
 	_, _ = fmt.Fprintf(w, "%s\n\n", indented)

@@ -8,10 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcdiag/command"
 	"github.com/mitchellh/cli"
-
-	"github.com/hashicorp/hcdiag/cmd/run"
-	"github.com/hashicorp/hcdiag/cmd/version"
 )
 
 const appName = "hcdiag"
@@ -33,12 +31,12 @@ func realMain() (returnCode int) {
 		Args: os.Args[1:],
 
 		// Something more robust will be necessary if we add sub-subcommands, however the approach of having factories
-		// within the various cmd packages seemed like a clean starting point.
+		// within the various command packages seemed like a clean starting point.
 		Commands: map[string]cli.CommandFactory{
 			// The empty string key is what will happen when no subcommands are provided to hcdiag.
-			"":        run.CommandFactory(ui),
-			"run":     run.CommandFactory(ui),
-			"version": version.CommandFactory(ui),
+			"":        command.RunCommandFactory(ui),
+			"run":     command.RunCommandFactory(ui),
+			"version": command.VersionCommandFactory(ui),
 		},
 
 		HiddenCommands: []string{
@@ -51,8 +49,7 @@ func realMain() (returnCode int) {
 
 	// This overrides the output format for the --version flag so that it matches the version subcommand
 	if c.IsVersion() {
-		command := version.New(ui)
-		return command.Run(c.Args)
+		return command.NewVersionCommand(ui).Run(c.Args)
 	}
 
 	rc, err := c.Run()
@@ -105,7 +102,7 @@ For guidance on available options for running local execution, please refer to t
 			panic("command not found: " + key)
 		}
 
-		command, err := commandFunc()
+		c, err := commandFunc()
 		if err != nil {
 			log.Printf("[ERR] cli: Command '%s' failed to load: %s",
 				key, err)
@@ -113,7 +110,7 @@ For guidance on available options for running local execution, please refer to t
 		}
 
 		key = fmt.Sprintf("%s%s", key, strings.Repeat(" ", maxKeyLen-len(key)))
-		buf.WriteString(fmt.Sprintf("    %s    %s\n", key, command.Synopsis()))
+		buf.WriteString(fmt.Sprintf("    %s    %s\n", key, c.Synopsis()))
 	}
 
 	return buf.String()

@@ -1,10 +1,9 @@
-package run
+package command
 
 import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -12,8 +11,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcdiag/cmd/help"
-	"github.com/hashicorp/hcdiag/cmd/returns"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/hcdiag/agent"
@@ -24,18 +21,9 @@ import (
 // seventyTwoHours represents the duration "72h" parsed in nanoseconds
 const seventyTwoHours = 72 * time.Hour
 
-// helpText is the short usage guidance shown under --help.
-const helpText = `Usage: hcdiag run [options]
+var _ cli.Command = &RunCommand{}
 
-Executes an hcdiag diagnostics run on a local machine. Options are available to customize the execution.
-`
-
-// synopsis is provided in the help output of the enclosing scope, for example `hcdiag --help`.
-const synopsis = `Execute an hcdiag diagnostic run`
-
-var _ cli.Command = &cmd{}
-
-type cmd struct {
+type RunCommand struct {
 	ui    cli.Ui
 	flags *flag.FlagSet
 
@@ -72,7 +60,26 @@ type cmd struct {
 	debugInterval time.Duration
 }
 
-func (c *cmd) init() {
+func (c *RunCommand) init() {
+	const (
+		consulUsageText        = "Run Consul diagnostics"
+		nomadUsageText         = "Run Nomad diagnostics"
+		terraformEntUsageText  = "Run Terraform Enterprise diagnostics"
+		vaultUsageText         = "Run Vault diagnostics"
+		autodetectUsageText    = "Auto-Detect installed products; any provided product flags will override this setting"
+		dryrunUsageText        = "Displays all runners that would be executed during a normal run without actually executing them."
+		serialUsageText        = "Run products in sequence rather than concurrently"
+		includeSinceUsageText  = "Alias for -since, will be overridden if -since is also provided, usage examples: '72h', '25m', '45s', '120h1m90s'"
+		sinceUsageText         = "Collect information within this time. Takes a 'go-formatted' duration, usage examples: '72h', '25m', '45s', '120h1m90s'"
+		debugDurationUsageText = "How long to run product debug bundle commands. Provide a duration ex: '00h00m00s'. See: -duration in 'vault debug', 'consul debug', and 'nomad operator debug'"
+		debugIntervalUsageText = "How long metrics collection intervals in product debug commands last. Provide a duration ex: '00h00m00s'. See: -interval in 'vault debug', 'consul debug', and 'nomad operator debug'"
+		osUsageText            = "Override operating system detection"
+		destinationUsageText   = "Path to the directory the bundle should be written in"
+		destUsageText          = "Shorthand for -destination"
+		configUsageText        = "Path to HCL configuration file"
+		includesUsageText      = "Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'"
+	)
+
 	// flag.ContinueOnError allows flag.Parse to return an error if one comes up, rather than doing an `os.Exit(2)`
 	// on its own.
 	c.flags = flag.NewFlagSet("run", flag.ContinueOnError)
@@ -103,39 +110,43 @@ func (c *cmd) init() {
 	c.flags.SetOutput(io.Discard)
 }
 
-// New produces a new *cmd pointer, initialized for use in a CLI application.
-func New(ui cli.Ui) *cmd {
-	c := &cmd{ui: ui}
+// NewRunCommand produces a new *command pointer, initialized for use in a CLI application.
+func NewRunCommand(ui cli.Ui) *RunCommand {
+	c := &RunCommand{ui: ui}
 	c.init()
 	return c
 }
 
-// CommandFactory provides a cli.CommandFactory that will produce an appropriately-initiated *cmd.
-func CommandFactory(ui cli.Ui) cli.CommandFactory {
+// RunCommandFactory provides a cli.CommandFactory that will produce an appropriately-initiated *command.
+func RunCommandFactory(ui cli.Ui) cli.CommandFactory {
 	return func() (cli.Command, error) {
-		return New(ui), nil
+		return NewRunCommand(ui), nil
 	}
 }
 
 // Help provides help text to users who pass in the --help flag or who enter invalid options.
-func (c *cmd) Help() string {
-	return help.Usage(helpText, c.flags)
+func (c *RunCommand) Help() string {
+	helpText := `Usage: hcdiag run [options]
+
+Executes an hcdiag diagnostics run on a local machine. Options are available to customize the execution.
+`
+
+	return Usage(helpText, c.flags)
 }
 
 // Synopsis provides a brief description of the command, for inclusion in the application's primary --help.
-func (c *cmd) Synopsis() string {
-	return synopsis
+func (c *RunCommand) Synopsis() string {
+	return "Execute an hcdiag diagnostic run"
 }
 
-// Run executes the command. On successful execution, it returns 0. On unsuccessful execution, a non-zero integer
-// is returned instead.
-func (c *cmd) Run(args []string) int {
+// Run executes the command.
+func (c *RunCommand) Run(args []string) int {
 	if err := c.parseFlags(args); err != nil {
 		// Output the specific error to help the user understand what went wrong.
 		c.ui.Warn(err.Error())
 		// Since there was an issue in input, let's show our Help to try and assist the user.
 		c.ui.Warn(c.Help())
-		return returns.FlagParseError
+		return FlagParseError
 	}
 
 	l := configureLogging("hcdiag")
@@ -146,12 +157,13 @@ func (c *cmd) Run(args []string) int {
 	if c.config != "" {
 		hclCfg, err := hcl.Parse(c.config)
 		if err != nil {
-			log.Fatalf("Failed to load configuration: %s", err)
+			l.Error("Failed to load configuration", "config", c.config, "error", err)
+			return ConfigError
 		}
 		l.Debug("HCL config is", "hcl", hclCfg)
 		config.HCL = hclCfg
 	}
-	// Assign flag vals to our agent.Config
+	// Assign flag values to our agent.Config
 	cfg := c.mergeAgentConfig(config)
 
 	// Set config timestamps based on durations
@@ -164,23 +176,22 @@ func (c *cmd) Run(args []string) int {
 	a, err := agent.NewAgent(cfg, l)
 	if err != nil {
 		l.Error("problem creating agent", err)
-		return returns.AgentSetupError
+		return AgentSetupError
 	}
 
 	// Run the agent
-	// NOTE(mkcp): Are there semantic returnCodes we can send based on the agent error type?
 	errs := a.Run()
 	if 0 < len(errs) {
-		return returns.AgentExecutionError
+		return AgentExecutionError
 	}
 
 	// TODO (nwchandler): Pass in the client UI for output
 	if err = a.WriteSummary(os.Stdout); err != nil {
 		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
-		return returns.AgentExecutionError
+		return AgentExecutionError
 	}
 
-	return returns.Success
+	return Success
 }
 
 // configureLogging takes a logger name, sets the default configuration, grabs the LOG_LEVEL from our ENV vars, and
@@ -217,12 +228,12 @@ func (s CSVFlag) Set(v string) error {
 	return nil
 }
 
-func (c *cmd) parseFlags(args []string) error {
+func (c *RunCommand) parseFlags(args []string) error {
 	return c.flags.Parse(args)
 }
 
 // mergeAgentConfig merges flags into the agent.Config, prioritizing flags over HCL config.
-func (c *cmd) mergeAgentConfig(config agent.Config) agent.Config {
+func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 	config.OS = c.os
 	config.Serial = c.serial
 	config.Dryrun = c.dryrun
