@@ -91,7 +91,7 @@ func TestFunctional(t *testing.T) {
 					skip: runtime.GOOS == "windows",
 				},
 				"vault-windows": {
-					flags:    []string{"-vault", "-config", "exclude_debug.hcl"},
+					flags:    []string{"-vault", "-config=exclude_debug.hcl"},
 					outFiles: []string{},
 					skip:     runtime.GOOS != "windows",
 				},
