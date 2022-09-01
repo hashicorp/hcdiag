@@ -188,7 +188,7 @@ func runHCDiag(t *testing.T, tmpDir string, flags []string) string {
 
 	out, err := exec.Command("hcdiag", flags...).CombinedOutput()
 	if !assert.NoError(t, err) {
-		t.Fatalf("hcidag run failure, output:\n%s", out)
+		t.Fatalf("hcdiag run failure, output:\n%s", out)
 	}
 	t.Logf("hcdiag output:\n%s", out)
 
