@@ -1,275 +1,120 @@
 package main
 
 import (
-	"flag"
+	"bytes"
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"path"
+	"sort"
 	"strings"
-	"time"
 
-	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcdiag/agent"
-	"github.com/hashicorp/hcdiag/product"
-	"github.com/hashicorp/hcdiag/version"
+	"github.com/hashicorp/hcdiag/cmd/run"
+	"github.com/hashicorp/hcdiag/cmd/version"
 )
 
-// SeventyTwoHours represents the duration "72h" parsed in nanoseconds
-const SeventyTwoHours = 72 * time.Hour
+const appName = "hcdiag"
 
 func main() {
 	os.Exit(realMain())
 }
 
 func realMain() (returnCode int) {
-	l := configureLogging("hcdiag")
+	ui := &cli.BasicUi{
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+	}
 
-	// Ensure the first arg is a flag
-	err := noSubcommand(os.Args)
+	c := &cli.CLI{
+		Name: appName,
+
+		// Args should not include the command name, so we pass along [1:] instead of all args.
+		Args: os.Args[1:],
+
+		// Something more robust will be necessary if we add sub-subcommands, however the approach of having factories
+		// within the various cmd packages seemed like a clean starting point.
+		Commands: map[string]cli.CommandFactory{
+			// The empty string key is what will happen when no subcommands are provided to hcdiag.
+			"":        run.CommandFactory(ui),
+			"run":     run.CommandFactory(ui),
+			"version": version.CommandFactory(ui),
+		},
+
+		HiddenCommands: []string{
+			// Keep the output of available commands a bit cleaner by not including the default command in the help.
+			"",
+		},
+
+		HelpFunc: mainHelp,
+	}
+
+	// This overrides the output format for the --version flag so that it matches the version subcommand
+	if c.IsVersion() {
+		command := version.New(ui)
+		return command.Run(c.Args)
+	}
+
+	rc, err := c.Run()
 	if err != nil {
-		l.Error("subcommands not supported", "error", err)
-		return 2
-	}
+		ui.Warn(err.Error())
 
-	// Parse our CLI flags
-	flags := Flags{}
-	err = flags.parseFlags(os.Args[1:])
-	if err != nil {
-		return 64
 	}
+	return rc
+}
 
-	// If -version, skip agent setup and print version
-	if flags.Version {
-		v := version.GetVersion()
-		fmt.Println(v.FullVersionNumber(true))
-		return
+func mainHelp(commands map[string]cli.CommandFactory) string {
+	// NOTE: This is a slightly modified copy of mitchellh/cli.BasicHelp so that we can include some general
+	// application usage information in it.
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("Usage: %s [--version] [--help] <command> [<args>]\n\n", appName))
+
+	appUsage := strings.TrimSpace(`
+hcdiag simplifies debugging HashiCorp products by automating shared and product-specific diagnostics data collection
+on individual nodes. Running the binary issues a set of operations that read the current state of the system then write
+the results to a tar.gz bundle.
+
+DEPRECATION NOTICE:
+To maintain backward compatibility for a short time, you may execute a local diagnostic run using 'hcdiag [<args>]'.
+However, this will be deprecated in an upcoming release. You should begin using the 'run' subcommand for such purposes.
+For guidance on available options for running local execution, please refer to the help output from 'run' by using
+'hcdiag run --help'.
+`)
+	buf.WriteString(fmt.Sprintf("%s\n\n", appUsage))
+
+	buf.WriteString("Available commands are:\n")
+
+	// Get the list of keys so we can sort them, and also get the maximum
+	// key length so they can be aligned properly.
+	keys := make([]string, 0, len(commands))
+	maxKeyLen := 0
+	for key := range commands {
+		if len(key) > maxKeyLen {
+			maxKeyLen = len(key)
+		}
+
+		keys = append(keys, key)
 	}
+	sort.Strings(keys)
 
-	// Build agent configuration from flags, HCL, and system time
-	var config agent.Config
-	// Parse and store HCL struct on agent.
-	if flags.Config != "" {
-		hclCfg, err := hcl.Parse(flags.Config)
+	for _, key := range keys {
+		commandFunc, ok := commands[key]
+		if !ok {
+			// This should never happen since we JUST built the list of
+			// keys.
+			panic("command not found: " + key)
+		}
+
+		command, err := commandFunc()
 		if err != nil {
-			log.Fatalf("Failed to load configuration: %s", err)
+			log.Printf("[ERR] cli: Command '%s' failed to load: %s",
+				key, err)
+			continue
 		}
-		l.Debug("HCL config is", "hcl", hclCfg)
-		config.HCL = hclCfg
-	}
-	// Assign flag vals to our agent.Config
-	cfg := mergeAgentConfig(config, flags)
 
-	// Set config timestamps based on durations
-	now := time.Now()
-	since := pickSinceVsIncludeSince(l, flags.Since, flags.IncludeSince)
-	cfg = setTime(cfg, now, since)
-	l.Debug("merged cfg", "cfg", fmt.Sprintf("%+v", cfg))
-
-	// Create agent
-	a, err := agent.NewAgent(cfg, l)
-	if err != nil {
-		l.Error("problem creating agent", err)
-		return 1
+		key = fmt.Sprintf("%s%s", key, strings.Repeat(" ", maxKeyLen-len(key)))
+		buf.WriteString(fmt.Sprintf("    %s    %s\n", key, command.Synopsis()))
 	}
 
-	// Run the agent
-	// NOTE(mkcp): Are there semantic returnCodes we can send based on the agent error type?
-	errs := a.Run()
-	if 0 < len(errs) {
-		return 1
-	}
-	return 0
-}
-
-// configureLogging takes a logger name, sets the default configuration, grabs the LOG_LEVEL from our ENV vars, and
-//  returns a configured and usable logger.
-func configureLogging(loggerName string) hclog.Logger {
-	// Create logger, set default and log level
-	appLogger := hclog.New(&hclog.LoggerOptions{
-		Name:  loggerName,
-		Color: hclog.AutoColor,
-	})
-	hclog.SetDefault(appLogger)
-	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {
-		if level := hclog.LevelFromString(logStr); level != hclog.NoLevel {
-			appLogger.SetLevel(level)
-			appLogger.Debug("Logger configuration change", "LOG_LEVEL", hclog.Fmt("%s", logStr))
-		}
-	}
-	return hclog.Default()
-}
-
-// Flags stores our CLI inputs.
-// TODO(mkcp): Add doccomments for flag fields (and organize them)
-type Flags struct {
-	OS     string
-	Serial bool
-	Dryrun bool
-
-	// Products
-	Consul             bool
-	Nomad              bool
-	TFE                bool
-	Vault              bool
-	AutoDetectProducts bool
-
-	// Since provides a time range for ops to work from
-	Since time.Duration
-
-	// IncludeSince provides a time range for ops to work from
-	IncludeSince time.Duration
-
-	// Includes
-	Includes []string
-
-	// Bundle write location
-	Destination string
-
-	// HCL file location
-	Config string
-
-	// Get hcdiag version
-	Version bool
-
-	// Duration param for product debug bundles
-	DebugDuration time.Duration
-
-	// Interval param for product debug bundles
-	DebugInterval time.Duration
-}
-
-type CSVFlag struct {
-	Values *[]string
-}
-
-func (s CSVFlag) String() string {
-	if s.Values == nil {
-		return ""
-	}
-	return strings.Join(*s.Values, ",")
-}
-
-func (s CSVFlag) Set(v string) error {
-	*s.Values = strings.Split(v, ",")
-	return nil
-}
-
-func (f *Flags) parseFlags(args []string) error {
-	flags := flag.NewFlagSet("hcdiag", flag.ExitOnError)
-	flags.BoolVar(&f.Dryrun, "dryrun", false, "Performing a dry run will display all commands without executing them")
-	flags.BoolVar(&f.Serial, "serial", false, "Run products in sequence rather than concurrently")
-	flags.BoolVar(&f.Consul, "consul", false, "Run Consul diagnostics")
-	flags.BoolVar(&f.Nomad, "nomad", false, "Run Nomad diagnostics")
-	flags.BoolVar(&f.TFE, "terraform-ent", false, "(Experimental) Run Terraform Enterprise diagnostics")
-	flags.BoolVar(&f.Vault, "vault", false, "Run Vault diagnostics")
-	flags.BoolVar(&f.AutoDetectProducts, "autodetect", true, "Auto-Detect installed products; any provided product flags will override this setting")
-	flags.BoolVar(&f.Version, "version", false, "Print the current version of hcdiag")
-	flags.DurationVar(&f.IncludeSince, "include-since", SeventyTwoHours, "Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
-	flags.DurationVar(&f.Since, "since", SeventyTwoHours, "Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`")
-	flags.DurationVar(&f.DebugDuration, "debug-duration", product.DefaultDuration, "How long to run product debug bundle commands. Provide a duration ex: `00h00m00s`. See: -duration in `vault debug`, `consul debug`, and `nomad operator debug`")
-	flags.DurationVar(&f.DebugInterval, "debug-interval", product.DefaultInterval, "How long metrics collection intervals in product debug commands last. Provide a duration ex: `00h00m00s`. See: -interval in `vault debug`, `consul debug`, and `nomad operator debug`")
-	flags.StringVar(&f.OS, "os", "auto", "Override operating system detection")
-	flags.StringVar(&f.Destination, "destination", ".", "Path to the directory the bundle should be written in")
-	flags.StringVar(&f.Destination, "dest", ".", "Shorthand for -destination")
-	flags.StringVar(&f.Config, "config", "", "Path to HCL configuration file")
-	flags.Var(&CSVFlag{&f.Includes}, "includes", "files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes')\ne.g. '/var/log/consul-*,/var/log/nomad-*'")
-
-	// Ensure f.Destination points to some kind of directory by its notation
-	// FIXME(mkcp): trailing slashes should be trimmed in path.Dir... why does a double slash end in a slash?
-	f.Destination = path.Dir(f.Destination)
-
-	return flags.Parse(args)
-}
-
-// mergeAgentConfig merges flags into the agent.Config, prioritizing flags over HCL config.
-func mergeAgentConfig(config agent.Config, flags Flags) agent.Config {
-	config.OS = flags.OS
-	config.Serial = flags.Serial
-	config.Dryrun = flags.Dryrun
-
-	config.Consul = flags.Consul
-	config.Nomad = flags.Nomad
-	config.TFE = flags.TFE
-	config.Vault = flags.Vault
-
-	// If any products have been set manually, then we do not care about product auto-detection
-	if flags.AutoDetectProducts && !checkProductsSet(config) {
-		config.Consul = autoDetectCommand("consul")
-		config.Nomad = autoDetectCommand("nomad")
-		config.TFE = autoDetectCommand("terraform")
-		config.Vault = autoDetectCommand("vault")
-
-		if checkProductsSet(config) {
-			hclog.L().Info(
-				"Auto-detected products; if you wish to limit hcdiag, please use the appropriate -<product> flag and run again",
-				"consul", config.Consul,
-				"nomad", config.Nomad,
-				"terraform", config.TFE,
-				"vault", config.Vault,
-			)
-		}
-	}
-
-	// Params for --includes
-	config.Includes = flags.Includes
-
-	// Bundle write location
-	config.Destination = flags.Destination
-
-	// Apply Debug{Duration,Interval}
-	config.DebugDuration = flags.DebugDuration
-	config.DebugInterval = flags.DebugInterval
-
-	return config
-}
-
-// checkProductsSet returns true if any of the individual products are true in the provided config
-func checkProductsSet(config agent.Config) bool {
-	return config.Consul || config.Nomad || config.TFE || config.Vault
-}
-
-func autoDetectCommand(cmd string) bool {
-	p, err := exec.LookPath(cmd)
-	if err != nil {
-		return false
-	}
-	hclog.L().Debug("Found command", "cmd", cmd, "path", p)
-	return true
-}
-
-// pickSinceVsIncludeSince if Since is default and IncludeSince is NOT default, use IncludeSince
-func pickSinceVsIncludeSince(l hclog.Logger, since, includeSince time.Duration) time.Duration {
-	if since == SeventyTwoHours && includeSince != SeventyTwoHours {
-		l.Debug("includeSince set and default since", "includeSince", includeSince)
-		return includeSince
-	}
-	return since
-}
-
-func setTime(cfg agent.Config, now time.Time, since time.Duration) agent.Config {
-	// Capture a now value and set timestamps based on the same Now value
-	// Get the difference between now and the provided --since Duration
-	cfg.Since = now.Add(-since)
-	// NOTE(mkcp): In the future, cfg.Until may be set by a flag.
-	cfg.Until = time.Time{}
-
-	return cfg
-}
-
-func noSubcommand(args []string) error {
-	if len(args) <= 1 {
-		return nil
-	}
-
-	mustBeFlag := args[1]
-	checker := '-'
-	firstChar := []rune(mustBeFlag)[0]
-	if firstChar != checker {
-		return fmt.Errorf("expected first arg to be flag, instead received arg=%v", mustBeFlag)
-	}
-	return nil
+	return buf.String()
 }
