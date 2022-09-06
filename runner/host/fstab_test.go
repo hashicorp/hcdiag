@@ -17,7 +17,7 @@ type mockShellRunner struct {
 }
 
 func (m mockShellRunner) Run() []op.Op {
-	return []op.Op{op.Op{
+	return []op.Op{{
 		Result: m.result,
 		Status: m.status,
 		Error:  m.err,
