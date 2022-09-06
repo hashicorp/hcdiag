@@ -8,6 +8,28 @@ the open, non-proprietary, bundle format makes the results, manifest, and includ
 
 We are constantly refining the utility to be safe, robust, and speedy. If you have any concerns please voice them via the GitHub issues so we may address them. 
 
+---
+
+**The documentation in this README corresponds to the main branch of hcdiag. It may contain references to new features that the most recently released version doesn't include.**
+
+**Please see the [Git tag](https://github.com/hashicorp/hcdiag/releases) that corresponds to your version of hcdiag for the proper documentation.**
+
+---
+
+## Table of Contents
+
+- [Installation](docs/installation.md)
+- [Usage](#usage)
+- [Prerequisites](#prerequisites)
+- [Examples](#example-runs)
+- [Flags](#flags)
+- [Custom Configuration](docs/custom_config.md)
+- [Runner Types](docs/runner-types.md)
+- [Redactions](./docs/custom_config.md#redactions)
+- [FAQ](./docs/faq.md)
+- [Contributing](./CONTRIBUTING.md)
+- [Learn Tutorials](#learn-tutorials)
+
 ## Usage
 To reliably debug the widest variety of issues with the lowest impact on each machine, `hcdiag` runs on one node at a time and gathers the view of the current node whenever possible. 
 
@@ -94,8 +116,14 @@ Terraform Enterprise historically uses replicated to provide similar functionali
 | `config`        | Path to HCL configuration file                                                                                                                         | string | ""            |
 | `serial`        | Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load.                   | bool   | false         |
 
+### Installation
+
+hcdiag is available on our [releases page](https://releases.hashicorp.com/hcdiag/), as well as via many popular package managers on different operating systems. Please see [docs/Installation.md](docs/installation.md) for details.
 
 ### Adding and Filtering Runners with Configuration
+
+To support a variety of troubleshooting use-cases, the runners that hcdiag executes on a system can be customized via a configuration file.
+
 In addition to the defaults hcdiag offers, for the host and products, diagnostic runs can be tailored to specific
 use-cases. With the `-config <FILE>` flag, users can execute HCL configuration saved to disk. Here's a simple example:
 
@@ -114,19 +142,7 @@ the HTTP client for TLS and store the results in the proper location behind the 
 
 For more in-depth examples, check out the [custom configuration documentation](docs/custom_config.md)
 
-
-#### Table of Available Runners
-
-More will be added as they are made available
-
-| Constructor                | Config Block   | Description                                                                                                                                                                            | Parameters                                                          |
-|----------------------------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| `runner.NewCommander(...)` | `command`      | Issues a CLI command and optionally parses the result if format JSON is specified. Otherwise use string.                                                                               | `command = <string,required>` <br/> `format = <string,required>`    |
-| `runner.NewCopier(...)`    | `copy`         | Copies the file or directory and all of its contents into the bundle using the same name. Since will check the last modified time of the file and ignore if it's outside the duration. | `path = <string,required>` <br/> `since = <duration,optional>`      |
-| `runner.NewHTTPer(...)`    | `GET`          | Makes an HTTP get request to the path                                                                                                                                                  | `path = <string,required>`                                          |
-| `runner.NewSheller(...)`   | `shell`        | An "escape hatch" allowing arbitrary shell strings to be executed.                                                                                                                     | `run = <string,required>`                                           |
-| `log.NewDocker(...)`       | `docker-log`   | Copies logs from a docker container, via the `docker logs` command.                                                                                                                    | `container = <string,required>` <br/> `since = <duration,optional>` | 
-| `log.NewJournald(...)`     | `journald-log` | Copies logs from a journald service, via the `journalctl` command.                                                                                                                     | `service = <string,required>` <br/> `since = <duration,optional>`   |
+**Note** hcdiag is an execution tool, and custom runners allow you to execute arbitrary commands on a system. Please ensure that data privacy is taken into account in all situations, particularly when using custom configuration.
 
 ## Redactions
 
@@ -141,6 +157,15 @@ See the [Redactions section](./docs/custom_config.md#redactions) of the custom c
 ## FAQs
 
 Depending on the context you're using hcdiag in, you may have some questions about the tool. Please scan through our [FAQ documentation](./docs/faq.md) before opening an issue to make sure there's not already an answer, clarifying context, or workaround for your situation.
+
+## Learn Tutorials
+
+We've created detailed tutorials that teach the basics of using hcdiag to gather troubleshooting data for Hashicorp tools.
+
+- [Vault](https://learn.hashicorp.com/tutorials/vault/hcdiag-with-vault)
+- [Consul](https://learn.hashicorp.com/tutorials/consul/hcdiag-with-consul)
+- [Terraform Enterprise](https://learn.hashicorp.com/tutorials/terraform/hcdiag-with-tfe)
+- [Nomad](https://learn.hashicorp.com/tutorials/nomad/hcdiag-with-nomad)
 
 ## Contributing
 

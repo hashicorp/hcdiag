@@ -19,6 +19,10 @@ is used, and it will indicate which products were found on your system. If you f
 are executed, please use the appropriate product flag. In the previous example, you would want to run `hcdiag -vault` instead
 of just `hcdiag` because you have both CLIs on your system, but Terraform is not actually configured for use.
 
+### Can I use hcdiag as a real-time metrics-gathering or sampling tool?
+
+hcdiag is designed for use cases like troubleshooting, which require historical data. As a result, hcdiag retrieves data for a particular range of time in the past. It is not designed for real-time or sampling use cases where it continues to run perpetually every x minutes, reporting on changes in environment data.
+
 ### How do I use hcdiag with Kubernetes?
 
 Although Kubernetes is a complex topic with many configuration options, the key to remember is that hcdiag must be able
@@ -40,4 +44,47 @@ kubectl -n consul port-forward consul-server-0 8500:8500
 
 # Now, run hcdiag
 hcdiag -consul
+```
+
+### How can I split large bundle files into smaller ones?
+If you're diagnosing issues on large clusters, hcdiag's output bundles may contain large, but necessary, amounts of data (logs, debug output, etc.).
+
+If you need to transfer these large files, for example between a customer and a support team, we recommend a secure file-sharing platform such as SendSafely.
+
+If you are forced to use less secure and more limited methods of transfer, such as email, you can split the bundle file with a tool such as `split`, which is built into (or available on) most Unix-like systems, including Linux and Mac OS.
+
+```
+split -b 10M hcdiag-2022-09-01T133045Z.tar.gz hcsplit
+```
+Let's break down the arguments, piece by piece:
+
+* `-b 10M`: split into 10-megabyte files
+* `hcdiag-2022-09-01T133045Z.tar.gz`: name of the input file you'd like to split
+* `hcsplit`: filename prefix that your split files should have (this is optional; the default is `x`)
+
+When you run this command on a large bundle, you'll see something like this:
+
+```
+$ root@3891043f2342:/tmp/vault-hcdiag# ls -alh
+...
+-rw-r--r-- 1 root root 20M  Sep  1 13:30 hcdiag-2022-09-01T133045Z.tar.gz
+-rw-r--r-- 1 root root 10M  Sep  1 13:38 hcsplitaa
+-rw-r--r-- 1 root root 10M  Sep  1 13:38 hcsplitab
+-rw-r--r-- 1 root root  37K Sep  1 13:38 hcsplitac
+```
+
+Your original bundle file remains untouched, and has been copied/split into these three chunks.
+
+After the split file has been transferred to its destination, it can be reconstituted from these smaller parts with a single command: just concatenate them together using `cat`.
+
+```
+cat hcsplit* > reconstituted_bundle.tar.gz
+```
+
+You can work with this file normally, now; the file content in `reconstituted_bundle.tar.gz` is identical to that of `hcdiag-2022-09-01T133045Z.tar.gz`:
+
+```
+root@3891043f2342:/tmp/vault-hcdiag# md5sum *.tar.gz
+017bed533ecbf4745edb29b832d755c8  hcdiag-2022-09-01T133045Z.tar.gz
+017bed533ecbf4745edb29b832d755c8  reconstituted_bundle.tar.gz
 ```
