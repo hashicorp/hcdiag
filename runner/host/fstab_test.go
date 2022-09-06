@@ -16,12 +16,12 @@ type mockShellRunner struct {
 	err    error
 }
 
-func (m mockShellRunner) Run() op.Op {
-	return op.Op{
+func (m mockShellRunner) Run() []op.Op {
+	return []op.Op{op.Op{
 		Result: m.result,
 		Status: m.status,
 		Error:  m.err,
-	}
+	}}
 }
 
 func (m mockShellRunner) ID() string {
@@ -100,10 +100,10 @@ func TestFSTab_Run(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			expected := tc.expected
 			o := tc.fstab.Run()
-			assert.Equal(t, expected.result, o.Result)
-			assert.Equal(t, expected.status, o.Status)
+			assert.Equal(t, expected.result, o[0].Result)
+			assert.Equal(t, expected.status, o[0].Status)
 			if tc.expected.expectErr {
-				assert.Error(t, o.Error)
+				assert.Error(t, o[0].Error)
 			}
 		})
 	}

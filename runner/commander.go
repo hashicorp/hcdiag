@@ -34,7 +34,8 @@ func (c Commander) ID() string {
 }
 
 // Run executes the Command
-func (c Commander) Run() op.Op {
+func (c Commander) Run() []op.Op {
+	opList := make([]op.Op, 0)
 	bits := strings.Split(c.Command, " ")
 	cmd := bits[0]
 	args := bits[1:]
@@ -49,7 +50,7 @@ func (c Commander) Run() op.Op {
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
-		return op.New(c.ID(), string(bts), op.Unknown, err1, Params(c))
+		return append(opList, op.New(c.ID(), string(bts), op.Unknown, err1, Params(c)))
 	}
 
 	// Parse result format
@@ -58,10 +59,10 @@ func (c Commander) Run() op.Op {
 	case c.Format == "string":
 		redBts, err := redact.Bytes(bts, c.Redactions)
 		if err != nil {
-			return op.New(c.ID(), nil, op.Fail, err, Params(c))
+			return append(opList, op.New(c.ID(), nil, op.Fail, err, Params(c)))
 		}
 		redResult := strings.TrimSuffix(string(redBts), "\n")
-		return op.New(c.ID(), redResult, op.Success, nil, Params(c))
+		return append(opList, op.New(c.ID(), redResult, op.Success, nil, Params(c)))
 
 	case c.Format == "json":
 		var obj any
@@ -70,29 +71,29 @@ func (c Commander) Run() op.Op {
 			// Redact the string to return the failed-to-parse JSON
 			redBts, redErr := redact.Bytes(bts, c.Redactions)
 			if redErr != nil {
-				return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+				return append(opList, op.New(c.ID(), nil, op.Fail, redErr, Params(c)))
 			}
-			return op.New(c.ID(), string(redBts), op.Unknown,
+			return append(opList, op.New(c.ID(), string(redBts), op.Unknown,
 				UnmarshalError{
 					command: c.Command,
 					err:     marshErr,
-				}, Params(c))
+				}, Params(c)))
 		}
 		redResult, redErr := redact.JSON(obj, c.Redactions)
 		if redErr != nil {
-			return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+			return append(opList, op.New(c.ID(), nil, op.Fail, redErr, Params(c)))
 		}
-		return op.New(c.ID(), redResult, op.Success, nil, Params(c))
+		return append(opList, op.New(c.ID(), redResult, op.Success, nil, Params(c)))
 	default:
 		redBts, redErr := redact.Bytes(bts, c.Redactions)
 		if redErr != nil {
-			return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+			return append(opList, op.New(c.ID(), nil, op.Fail, redErr, Params(c)))
 		}
-		return op.New(c.ID(), string(redBts), op.Fail,
+		return append(opList, op.New(c.ID(), string(redBts), op.Fail,
 			FormatUnknownError{
 				command: c.Command,
 				format:  c.Format,
-			}, Params(c))
+			}, Params(c)))
 	}
 }
 

@@ -15,8 +15,8 @@ type mockRunner struct {
 	id string
 }
 
-func (m mockRunner) ID() string { return m.id }
-func (m mockRunner) Run() op.Op { return op.Op{} }
+func (m mockRunner) ID() string   { return m.id }
+func (m mockRunner) Run() []op.Op { return []op.Op{} }
 
 func TestFilters(t *testing.T) {
 	testTable := []struct {

@@ -157,8 +157,8 @@ func TestAgent_RecordManifest(t *testing.T) {
 	t.Run("adds to ManifestOps when ops exist", func(t *testing.T) {
 		// Setup
 		testProduct := product.Host
-		testResults := map[string]op.Op{
-			"": {},
+		testResults := map[string][]op.Op{
+			"": {{}},
 		}
 		a := newTestAgent(t)
 

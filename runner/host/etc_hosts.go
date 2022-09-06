@@ -28,15 +28,17 @@ func (r EtcHosts) ID() string {
 	return "/etc/hosts"
 }
 
-func (r EtcHosts) Run() op.Op {
+func (r EtcHosts) Run() []op.Op {
+	opList := make([]op.Op, 0)
+
 	// Not compatible with windows
 	if r.OS == "windows" {
 		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.OS)
-		return op.New(r.ID(), nil, op.Skip, err, runner.Params(r))
+		return append(opList, op.New(r.ID(), nil, op.Skip, err, runner.Params(r)))
 	}
 	s := runner.NewSheller("cat /etc/hosts", r.Redactions).Run()
-	if s.Error != nil {
-		return op.New(r.ID(), s.Result, op.Fail, s.Error, runner.Params(r))
+	if s[0].Error != nil {
+		return append(opList, op.New(r.ID(), s[0].Result, op.Fail, s[0].Error, runner.Params(r)))
 	}
-	return op.New(r.ID(), s.Result, op.Success, nil, runner.Params(r))
+	return append(opList, op.New(r.ID(), s[0].Result, op.Success, nil, runner.Params(r)))
 }

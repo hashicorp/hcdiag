@@ -42,48 +42,50 @@ func (j Journald) ID() string {
 
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
-func (j Journald) Run() op.Op {
+func (j Journald) Run() []op.Op {
+	opList := make([]op.Op, 0)
+
 	o := runner.NewSheller("journalctl --version", j.Redactions).Run()
-	if o.Error != nil {
-		return op.New(j.ID(), o.Result, op.Skip, JournaldNotFound{
+	if o[0].Error != nil {
+		return append(opList, op.New(j.ID(), o[0].Result, op.Skip, JournaldNotFound{
 			service: j.Service,
-			err:     o.Error,
+			err:     o[0].Error,
 		},
-			runner.Params(j))
+			runner.Params(j)))
 	}
 
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
 	o = runner.NewCommander(cmd, "string", j.Redactions).Run()
-	if o.Error != nil {
-		hclog.L().Debug("skipping journald", "service", j.Service, "output", o.Result, "error", o.Error)
-		return op.New(j.ID(), o.Result, op.Skip, JournaldServiceNotEnabled{
+	if o[0].Error != nil {
+		hclog.L().Debug("skipping journald", "service", j.Service, "output", o[0].Result, "error", o[0].Error)
+		return append(opList, op.New(j.ID(), o[0].Result, op.Skip, JournaldServiceNotEnabled{
 			service: j.Service,
 			command: cmd,
-			result:  fmt.Sprintf("%s", o.Result),
-			err:     o.Error,
+			result:  fmt.Sprintf("%s", o[0].Result),
+			err:     o[0].Error,
 		},
-			runner.Params(j))
+			runner.Params(j)))
 	}
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
 	o = runner.NewSheller(cmd, j.Redactions).Run()
 	// permissions error detected
-	if o.Error == nil {
-		return op.New(j.ID(), o.Result, op.Fail, JournaldPermissionError{
+	if o[0].Error == nil {
+		return append(opList, op.New(j.ID(), o[0].Result, op.Fail, JournaldPermissionError{
 			service: j.Service,
 			command: cmd,
-			result:  fmt.Sprintf("%s", o.Result),
-			err:     o.Error,
+			result:  fmt.Sprintf("%s", o[0].Result),
+			err:     o[0].Error,
 		},
-			runner.Params(j))
+			runner.Params(j)))
 	}
 
 	cmd = j.LogsCmd()
 	o = runner.NewSheller(cmd, j.Redactions).Run()
 
-	return op.New(j.ID(), o.Result, o.Status, o.Error, runner.Params(j))
+	return append(opList, op.New(j.ID(), o[0].Result, o[0].Status, o[0].Error, runner.Params(j)))
 }
 
 // LogsCmd arranges the params into a runnable command string.

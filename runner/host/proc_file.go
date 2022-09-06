@@ -34,17 +34,19 @@ func (p ProcFile) ID() string {
 	return "/proc/ files"
 }
 
-func (p ProcFile) Run() op.Op {
+func (p ProcFile) Run() []op.Op {
+	opList := make([]op.Op, 0)
+
 	if p.OS != "linux" {
-		return op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p))
+		return append(opList, op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p)))
 	}
 	m := make(map[string]interface{})
 	for _, c := range p.Commands {
 		sheller := runner.NewSheller(c, p.Redactions).Run()
-		m[c] = sheller.Result
-		if sheller.Error != nil {
-			return op.New(p.ID(), m, op.Fail, sheller.Error, runner.Params(p))
+		m[c] = sheller[0].Result
+		if sheller[0].Error != nil {
+			return append(opList, op.New(p.ID(), m, op.Fail, sheller[0].Error, runner.Params(p)))
 		}
 	}
-	return op.New(p.ID(), m, op.Success, nil, runner.Params(p))
+	return append(opList, op.New(p.ID(), m, op.Success, nil, runner.Params(p)))
 }

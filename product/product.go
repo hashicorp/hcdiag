@@ -50,38 +50,40 @@ type Product struct {
 }
 
 // Run iterates over the list of runners in a product and returns a map of runner IDs to Ops.
-func (p *Product) Run() map[string]op.Op {
+func (p *Product) Run() map[string][]op.Op {
 	p.l.Info("Running operations for", "product", p.Name)
-	results := make(map[string]op.Op)
+	results := make(map[string][]op.Op)
 	for _, r := range p.Runners {
 		p.l.Info("running operation", "product", p.Name, "runner", r.ID())
-		o := r.Run()
-		results[r.ID()] = o
+		ops := r.Run()
+		results[r.ID()] = ops
 		// Note runner errors to users and keep going.
-		if o.Error != nil {
-			switch o.Status {
-			case op.Fail:
-				// TODO(dcohen) This should be p.l.Error, but that outputs an "Error:" line which breaks the test-functional github workflow
-				p.l.Warn("result",
-					"runner", o.Identifier,
-					"status", o.Status,
-					"result", fmt.Sprintf("%s", o.Result),
-					"error", o.Error,
-				)
-			case op.Unknown:
-				p.l.Warn("result",
-					"runner", o.Identifier,
-					"status", o.Status,
-					"result", fmt.Sprintf("%s", o.Result),
-					"error", o.Error,
-				)
-			case op.Skip:
-				p.l.Info("result",
-					"runner", o.Identifier,
-					"status", o.Status,
-					"result", fmt.Sprintf("%s", o.Result),
-					"error", o.Error,
-				)
+		for _, o := range ops {
+			if o.Error != nil {
+				switch o.Status {
+				case op.Fail:
+					// TODO(dcohen) This should be p.l.Error, but that outputs an "Error:" line which breaks the test-functional github workflow
+					p.l.Warn("result",
+						"runner", o.Identifier,
+						"status", o.Status,
+						"result", fmt.Sprintf("%s", o.Result),
+						"error", o.Error,
+					)
+				case op.Unknown:
+					p.l.Warn("result",
+						"runner", o.Identifier,
+						"status", o.Status,
+						"result", fmt.Sprintf("%s", o.Result),
+						"error", o.Error,
+					)
+				case op.Skip:
+					p.l.Info("result",
+						"runner", o.Identifier,
+						"status", o.Status,
+						"result", fmt.Sprintf("%s", o.Result),
+						"error", o.Error,
+					)
+				}
 			}
 		}
 	}
@@ -110,12 +112,12 @@ func (p *Product) Filter() error {
 // CommanderHealthCheck employs the CLI to check if the client and then the agent are available.
 func CommanderHealthCheck(client, agent string) error {
 	checkClient := runner.NewCommander(client, "string", nil).Run()
-	if checkClient.Error != nil {
-		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, checkClient.Result, checkClient.Error)
+	if checkClient[0].Error != nil {
+		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, checkClient[0].Result, checkClient[0].Error)
 	}
 	checkAgent := runner.NewCommander(agent, "string", nil).Run()
-	if checkAgent.Error != nil {
-		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, checkAgent.Result, checkAgent.Error)
+	if checkAgent[0].Error != nil {
+		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, checkAgent[0].Result, checkAgent[0].Error)
 	}
 	return nil
 }

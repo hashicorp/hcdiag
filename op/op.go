@@ -51,13 +51,15 @@ func New(id string, result interface{}, status Status, err error, params map[str
 }
 
 // StatusCounts takes a slice of op references and returns a map containing sums of each Status
-func StatusCounts(ops map[string]Op) (map[Status]int, error) {
+func StatusCounts(opLists map[string][]Op) (map[Status]int, error) {
 	statuses := make(map[Status]int)
-	for _, op := range ops {
-		if op.Status == "" {
-			return nil, fmt.Errorf("unable to build Statuses map, op not run: op=%s", op.Identifier)
+	for _, ops := range opLists {
+		for _, op := range ops {
+			if op.Status == "" {
+				return nil, fmt.Errorf("unable to build Statuses map, op not run: op=%s", op.Identifier)
+			}
+			statuses[op.Status]++
 		}
-		statuses[op.Status]++
 	}
 	return statuses, nil
 }

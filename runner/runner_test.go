@@ -31,19 +31,20 @@ func (r MockRunner) ID() string {
 	return r.id
 }
 
-func (r MockRunner) Run() op.Op {
-	return op.Op{
+func (r MockRunner) Run() []op.Op {
+	return []op.Op{op.Op{
 		Identifier: r.ID(),
 		Result:     mockResult,
 		ErrString:  errFake.Error(),
 		Error:      errFake,
 		Status:     testStatus,
-	}
+	}}
 }
 
 func TestRunner_Run(t *testing.T) {
 	r := NewMockRunner(mockID)
-	o := r.Run()
+	ops := r.Run()
+	o := ops[0]
 
 	// assert that return values are also being stored as struct fields
 	if o.Identifier != mockID {

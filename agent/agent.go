@@ -51,7 +51,7 @@ type Config struct {
 type Agent struct {
 	l           hclog.Logger
 	products    map[product.Name]*product.Product
-	results     map[product.Name]map[string]op.Op
+	results     map[product.Name]map[string][]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
 	Start       time.Time       `json:"started_at"`
@@ -84,7 +84,7 @@ func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
 	return &Agent{
 		l:           logger,
 		Config:      config,
-		results:     make(map[product.Name]map[string]op.Op),
+		results:     make(map[product.Name]map[string][]op.Op),
 		products:    make(map[product.Name]*product.Product),
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
@@ -300,7 +300,8 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		o := runner.NewCopier(f, dest, a.Config.Since, a.Config.Until, nil).Run()
+		ops := runner.NewCopier(f, dest, a.Config.Since, a.Config.Until, nil).Run()
+		o := ops[0]
 		if o.Error != nil {
 			return o.Error
 		}
@@ -354,14 +355,16 @@ func (a *Agent) RunProducts() error {
 
 // RecordManifest writes additional data to the agent to serialize into manifest.json
 func (a *Agent) RecordManifest() {
-	for name, ops := range a.results {
-		for _, o := range ops {
-			m := ManifestOp{
-				ID:     o.Identifier,
-				Error:  o.ErrString,
-				Status: o.Status,
+	for name, opList := range a.results {
+		for _, ops := range opList {
+			for _, o := range ops {
+				m := ManifestOp{
+					ID:     o.Identifier,
+					Error:  o.ErrString,
+					Status: o.Status,
+				}
+				a.ManifestOps[string(name)] = append(a.ManifestOps[string(name)], m)
 			}
-			a.ManifestOps[string(name)] = append(a.ManifestOps[string(name)], m)
 		}
 	}
 }

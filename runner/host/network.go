@@ -36,12 +36,14 @@ func (n Network) ID() string {
 	return "network"
 }
 
-func (n Network) Run() op.Op {
+func (n Network) Run() []op.Op {
+	opList := make([]op.Op, 0)
 	var interfaces []NetworkInterface
+
 	netIfs, err := net.Interfaces()
 	if err != nil {
 		hclog.L().Trace("runner/host.Network.Run()", "error", err)
-		return op.New(n.ID(), interfaces, op.Fail, err, nil)
+		return append(opList, op.New(n.ID(), interfaces, op.Fail, err, nil))
 	}
 
 	for _, netIf := range netIfs {
@@ -49,12 +51,12 @@ func (n Network) Run() op.Op {
 		if err != nil {
 			hclog.L().Trace("runner/host.Network.Run()", "error", err)
 			err1 := fmt.Errorf("error converting network information err=%w", err)
-			return op.New(n.ID(), interfaces, op.Fail, err1, nil)
+			return append(opList, op.New(n.ID(), interfaces, op.Fail, err1, nil))
 		}
 		interfaces = append(interfaces, ifce)
 	}
 
-	return op.New(n.ID(), interfaces, op.Success, nil, nil)
+	return append(opList, op.New(n.ID(), interfaces, op.Success, nil, nil))
 }
 
 func (n Network) networkInterface(nis net.InterfaceStat) (NetworkInterface, error) {

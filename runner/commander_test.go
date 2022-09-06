@@ -51,9 +51,9 @@ func TestCommander_Run(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			c := NewCommander(tc.command, tc.format, nil)
 			o := c.Run()
-			assert.NoError(t, o.Error)
-			assert.Equal(t, op.Success, o.Status)
-			assert.Equal(t, tc.expect, o.Result)
+			assert.NoError(t, o[0].Error)
+			assert.Equal(t, op.Success, o[0].Status)
+			assert.Equal(t, tc.expect, o[0].Result)
 		})
 	}
 }
@@ -93,10 +93,12 @@ func TestCommander_RunError(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			c := NewCommander(tc.command, tc.format, nil)
 			o := c.Run()
-			assert.Error(t, o.Error)
-			hclog.L().Trace("commander.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
-			assert.Equal(t, tc.status, o.Status)
-			assert.Equal(t, tc.expect, o.Result)
+			assert.Error(t, o[0].Error)
+			hclog.L().Trace("commander.Run() errored", "error", o[0].Error, "error type", reflect.TypeOf(o[0].Error))
+			assert.Equal(t, tc.status, o[0].Status)
+			if tc.expect != nil {
+				assert.Equal(t, tc.expect, o[0].Result)
+			}
 		})
 	}
 }
