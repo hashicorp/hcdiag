@@ -37,7 +37,7 @@ func (d Do) Run() []op.Op {
 	wg.Add(len(d.Runners))
 
 	for i, r := range d.Runners {
-		go func(m *sync.Mutex, sm *map[int][]op.Op, r Runner, ridx int) {
+		go func(m *sync.Mutex, wg *sync.WaitGroup, sm *map[int][]op.Op, r Runner, ridx int) {
 			// Dereference pointer TODO(is there a better way?)
 			sortMap := *sm
 			o := r.Run()
@@ -45,7 +45,8 @@ func (d Do) Run() []op.Op {
 			mu.Lock()
 			sortMap[ridx] = o
 			mu.Unlock()
-		}(&mu, &sortMap, r, i)
+			wg.Done()
+		}(&mu, wg, &sortMap, r, i)
 	}
 
 	wg.Wait()
