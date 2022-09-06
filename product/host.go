@@ -60,7 +60,7 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 
 // hostRunners generates a slice of runners to inspect the host.
 func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
-	return []runner.Runner{
+	runners := []runner.Runner{
 		host.NewOS(os, redactions),
 		host.NewDisk(redactions),
 		host.NewInfo(redactions),
@@ -72,6 +72,7 @@ func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
 		host.NewProcFile(os, redactions),
 		host.NewFSTab(os, redactions),
 	}
+	return []runner.Runner{runner.NewDo(runners)}
 }
 
 // hostRedactions returns a slice of default redactions for this product
