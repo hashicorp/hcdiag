@@ -28,9 +28,6 @@ Explain the impact to your work or process, e.g., We cannot do [...].
 **What are the customer data privacy implications for this request?**
 Will (or could) sensitive customer data be exposed as part of this feature? Please test any suggested commands yourself and list any tokens, keys, PII, or other sensitive information that is at risk of being exported or shared via this feature.
 
-**If any sensitive customer data might be exported or shared via this feature, have you spoken with Hashicorp legal about it?**
-Any additional sensitive information that hcdiag collects should be cleared with legal before making it into a feature request.
-
 **Are there any deadlines?**
 Disclose any deadlines impacting the required completion date of the request.
 

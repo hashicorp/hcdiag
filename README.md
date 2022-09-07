@@ -23,9 +23,9 @@ We are constantly refining the utility to be safe, robust, and speedy. If you ha
 - [Prerequisites](#prerequisites)
 - [Examples](#example-runs)
 - [Flags](#flags)
-- [Custom Configuration](docs/custom_config.md)
+- [Custom Configuration](docs/custom-config.md)
 - [Runner Types](docs/runner-types.md)
-- [Redactions](./docs/custom_config.md#redactions)
+- [Redactions](./docs/redactions.md)
 - [FAQ](./docs/faq.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Learn Tutorials](#learn-tutorials)
@@ -140,7 +140,7 @@ Executing `hcdiag -config example.hcl` with the HCL above means we add a Runner:
 `format = "string"` attribute tells `hcdiag` how to parse the result. The `product "consul" {}` block ensures we configure
 the HTTP client for TLS and store the results in the proper location behind the scenes.
 
-For more in-depth examples, check out the [custom configuration documentation](docs/custom_config.md)
+For more in-depth examples, check out the [custom configuration documentation](docs/custom-config.md)
 
 **Note** hcdiag is an execution tool, and custom runners allow you to execute arbitrary commands on a system. Please ensure that data privacy is taken into account in all situations, particularly when using custom configuration.
 
@@ -151,7 +151,7 @@ text that should be omitted from the results bundle. Redaction matching patterns
 
 As of version `0.4.0`, hcdiag includes a default set of redactions which omit email addresses from runner results across all products, as well as more specific redactions for Terraform Enterprise only. Users may also specify custom redactions within configuration files.
 
-See the [Redactions section](./docs/custom_config.md#redactions) of the custom configuration documentation for more information and examples.
+See the [Redactions section](./docs/redactions.md) of the custom configuration documentation for more information and examples.
 
 
 ## FAQs

@@ -49,7 +49,7 @@ hcdiag -consul
 ### How can I split large bundle files into smaller ones?
 If you're diagnosing issues on large clusters, hcdiag's output bundles may contain large, but necessary, amounts of data (logs, debug output, etc.).
 
-If you need to transfer these large files, for example between a customer and a support team, we recommend a secure file-sharing platform such as SendSafely.
+If you need to transfer these large files, for example between a customer and a support team, we recommend sending the file in a way that's secure and encrypted end-to-end. A secure file-sharing platform such as [SendSafely](https://www.sendsafely.com/) fits this requirement.
 
 If you are forced to use less secure and more limited methods of transfer, such as email, you can split the bundle file with a tool such as `split`, which is built into (or available on) most Unix-like systems, including Linux and Mac OS.
 
