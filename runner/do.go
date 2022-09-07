@@ -3,6 +3,7 @@ package runner
 import (
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -11,12 +12,14 @@ var _ Runner = Do{}
 // Do runs shell commands.
 type Do struct {
 	Runners []Runner `json:"runners"`
+	log     hclog.Logger
 }
 
 // NewDo returns a pointer to a new Do runner
-func NewDo(runners []Runner) *Do {
+func NewDo(l hclog.Logger, runners []Runner) *Do {
 	return &Do{
 		Runners: runners,
+		log:     l,
 	}
 }
 
@@ -37,6 +40,7 @@ func (d Do) Run() []op.Op {
 	wg.Add(len(d.Runners))
 
 	for i, r := range d.Runners {
+		d.log.Info("running operation", "runner", r.ID())
 		go func(m *sync.Mutex, wg *sync.WaitGroup, sm *map[int][]op.Op, r Runner, ridx int) {
 			// Dereference pointer TODO(is there a better way?)
 			sortMap := *sm

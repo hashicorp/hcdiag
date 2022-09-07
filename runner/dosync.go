@@ -3,6 +3,7 @@ package runner
 import (
 	"errors"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -11,14 +12,16 @@ var _ Runner = DoSync{}
 // DoSync runs shell commands.
 type DoSync struct {
 	Runners []Runner `json:"runners"`
+	log     hclog.Logger
 	// TODO(dcohen): should "Do/DoSync" accept redactions? My instinct is no.
 	// Redactions []*redact.Redact `json:"redactions"`
 }
 
 // NewDoSync provides a runner for bin commands
-func NewDoSync(runners []Runner) *DoSync {
+func NewDoSync(l hclog.Logger, runners []Runner) *DoSync {
 	return &DoSync{
 		Runners: runners,
+		log:     l,
 	}
 }
 
@@ -31,6 +34,7 @@ func (d DoSync) Run() []op.Op {
 	opList := make([]op.Op, 0)
 
 	for _, r := range d.Runners {
+		d.log.Info("running operation", "runner", r.ID())
 		ops := r.Run()
 		// If any result op is not Success, abort and return all existing ops
 		for _, o := range ops {
