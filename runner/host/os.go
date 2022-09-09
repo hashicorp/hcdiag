@@ -38,5 +38,6 @@ func (o OS) Run() []op.Op {
 	// NOTE(mkcp): This runner can be made consistent between multiple operating systems if we parse the output of
 	//   systeminfo to match uname's scope of concerns.
 	c := runner.NewCommander(o.Command, "string", o.Redactions).Run()
-	return append(opList, op.New(o.ID(), c[0].Result, c[0].Status, c[0].Error, runner.Params(o)))
+	first := c[0]
+	return append(opList, op.New(o.ID(), first.Result, first.Status, first.Error, runner.Params(o)))
 }

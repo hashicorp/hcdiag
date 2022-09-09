@@ -63,3 +63,18 @@ func StatusCounts(opLists map[string][]Op) (map[Status]int, error) {
 	}
 	return statuses, nil
 }
+
+// IsAllStatus returns true if all Ops have Status.
+func IsAllStatus(s Status, ops []Op) bool {
+	for _, o := range ops {
+		if o.Status != s {
+			return false
+		}
+	}
+	return true
+}
+
+// // NoStatus returns false if any Op has Status s
+// func NoStatus(s Status, ops []Op) {
+// 	return true
+// }

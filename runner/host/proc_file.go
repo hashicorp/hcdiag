@@ -43,9 +43,10 @@ func (p ProcFile) Run() []op.Op {
 	m := make(map[string]interface{})
 	for _, c := range p.Commands {
 		sheller := runner.NewSheller(c, p.Redactions).Run()
-		m[c] = sheller[0].Result
-		if sheller[0].Error != nil {
-			return append(opList, op.New(p.ID(), m, op.Fail, sheller[0].Error, runner.Params(p)))
+		first := sheller[0]
+		m[c] = first.Result
+		if first.Error != nil {
+			return append(opList, op.New(p.ID(), m, op.Fail, first.Error, runner.Params(p)))
 		}
 	}
 	return append(opList, op.New(p.ID(), m, op.Success, nil, runner.Params(p)))

@@ -46,10 +46,11 @@ func (j Journald) Run() []op.Op {
 	opList := make([]op.Op, 0)
 
 	o := runner.NewSheller("journalctl --version", j.Redactions).Run()
-	if o[0].Error != nil {
-		return append(opList, op.New(j.ID(), o[0].Result, op.Skip, JournaldNotFound{
+	first := o[0]
+	if first.Error != nil {
+		return append(opList, op.New(j.ID(), first.Result, op.Skip, JournaldNotFound{
 			service: j.Service,
-			err:     o[0].Error,
+			err:     first.Error,
 		},
 			runner.Params(j)))
 	}
@@ -57,13 +58,14 @@ func (j Journald) Run() []op.Op {
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
 	o = runner.NewCommander(cmd, "string", j.Redactions).Run()
-	if o[0].Error != nil {
-		hclog.L().Debug("skipping journald", "service", j.Service, "output", o[0].Result, "error", o[0].Error)
-		return append(opList, op.New(j.ID(), o[0].Result, op.Skip, JournaldServiceNotEnabled{
+	first = o[0]
+	if first.Error != nil {
+		hclog.L().Debug("skipping journald", "service", j.Service, "output", first.Result, "error", first.Error)
+		return append(opList, op.New(j.ID(), first.Result, op.Skip, JournaldServiceNotEnabled{
 			service: j.Service,
 			command: cmd,
-			result:  fmt.Sprintf("%s", o[0].Result),
-			err:     o[0].Error,
+			result:  fmt.Sprintf("%s", first.Result),
+			err:     first.Error,
 		},
 			runner.Params(j)))
 	}
@@ -71,13 +73,14 @@ func (j Journald) Run() []op.Op {
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
 	o = runner.NewSheller(cmd, j.Redactions).Run()
+	first = o[0]
 	// permissions error detected
-	if o[0].Error == nil {
-		return append(opList, op.New(j.ID(), o[0].Result, op.Fail, JournaldPermissionError{
+	if first.Error == nil {
+		return append(opList, op.New(j.ID(), first.Result, op.Fail, JournaldPermissionError{
 			service: j.Service,
 			command: cmd,
-			result:  fmt.Sprintf("%s", o[0].Result),
-			err:     o[0].Error,
+			result:  fmt.Sprintf("%s", first.Result),
+			err:     first.Error,
 		},
 			runner.Params(j)))
 	}

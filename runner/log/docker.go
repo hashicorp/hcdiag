@@ -43,10 +43,11 @@ func (d Docker) Run() []op.Op {
 
 	// Check that docker exists
 	o := runner.NewSheller("docker version", d.Redactions).Run()
-	if o[0].Error != nil {
-		return append(opList, op.New(d.ID(), o[0].Result, op.Skip, DockerNotFoundError{
+	first := o[0]
+	if first.Error != nil {
+		return append(opList, op.New(d.ID(), first.Result, op.Skip, DockerNotFoundError{
 			container: d.Container,
-			err:       o[0].Error,
+			err:       first.Error,
 		},
 			runner.Params(d)))
 	}
@@ -66,7 +67,7 @@ func (d Docker) Run() []op.Op {
 		return append(opList, op.New(d.ID(), o[0].Result, o[0].Status, o[0].Error, runner.Params(d)))
 	}
 
-	return append(opList, op.New(d.ID(), o[0].Result, op.Success, nil, runner.Params(d)))
+	return append(opList, op.New(d.ID(), first.Result, op.Success, nil, runner.Params(d)))
 }
 
 func DockerLogCmd(container, destDir string, since time.Time) string {

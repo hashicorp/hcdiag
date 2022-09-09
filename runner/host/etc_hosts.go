@@ -37,8 +37,9 @@ func (r EtcHosts) Run() []op.Op {
 		return append(opList, op.New(r.ID(), nil, op.Skip, err, runner.Params(r)))
 	}
 	s := runner.NewSheller("cat /etc/hosts", r.Redactions).Run()
-	if s[0].Error != nil {
-		return append(opList, op.New(r.ID(), s[0].Result, op.Fail, s[0].Error, runner.Params(r)))
+	first := s[0]
+	if first.Error != nil {
+		return append(opList, op.New(r.ID(), first.Result, op.Fail, first.Error, runner.Params(r)))
 	}
-	return append(opList, op.New(r.ID(), s[0].Result, op.Success, nil, runner.Params(r)))
+	return append(opList, op.New(r.ID(), first.Result, op.Success, nil, runner.Params(r)))
 }

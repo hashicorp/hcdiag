@@ -35,9 +35,10 @@ func (r FSTab) Run() []op.Op {
 		return append(opList, op.New(r.ID(), nil, op.Skip, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.OS), runner.Params(r)))
 	}
 	o := r.Sheller.Run()
-	if o[0].Error != nil {
-		return append(opList, op.New(r.ID(), o[0].Result, op.Fail, o[0].Error, runner.Params(r)))
+	first := o[0]
+	if first.Error != nil {
+		return append(opList, op.New(r.ID(), first.Result, op.Fail, first.Error, runner.Params(r)))
 	}
 
-	return append(opList, op.New(r.ID(), o[0].Result, op.Success, nil, runner.Params(r)))
+	return append(opList, op.New(r.ID(), first.Result, op.Success, nil, runner.Params(r)))
 }
