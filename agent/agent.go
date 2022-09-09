@@ -179,11 +179,6 @@ func (a *Agent) Run() []error {
 		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
 	}
 
-	a.l.Info("Writing summary of products and ops to standard output")
-	if errSummary := a.WriteSummary(os.Stdout); errSummary != nil {
-		errs = append(errs, errSummary)
-		a.l.Error("Failed to write summary report following run", "error", errSummary)
-	}
 	return errs
 }
 

@@ -1,11 +1,10 @@
-package main
+package command
 
 import (
 	"testing"
 	"time"
 
 	"github.com/hashicorp/hcdiag/agent"
-
 	"github.com/stretchr/testify/assert"
 )
 

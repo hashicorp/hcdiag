@@ -91,7 +91,7 @@ func TestFunctional(t *testing.T) {
 					skip: runtime.GOOS == "windows",
 				},
 				"vault-windows": {
-					flags:    []string{"-vault", "-config", "exclude_debug.hcl"},
+					flags:    []string{"-vault", "-config=exclude_debug.hcl"},
 					outFiles: []string{},
 					skip:     runtime.GOOS != "windows",
 				},
@@ -188,7 +188,7 @@ func runHCDiag(t *testing.T, tmpDir string, flags []string) string {
 
 	out, err := exec.Command("hcdiag", flags...).CombinedOutput()
 	if !assert.NoError(t, err) {
-		t.Fatalf("hcidag run failure, output:\n%s", out)
+		t.Fatalf("hcdiag run failure, output:\n%s", out)
 	}
 	t.Logf("hcdiag output:\n%s", out)
 

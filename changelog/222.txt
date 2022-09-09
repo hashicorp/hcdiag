@@ -1,0 +1,12 @@
+```release-note:improvement
+cli: A CLI library framework (mitchellh/cli) has been implemented in hcdiag, so that its user interface is now more consistent with other HashiCorp products.
+```
+```release-note:improvement
+cli: The application version can now by found using the `version` subcommand in addition to the `--version` flag. This is more consistent with other HashiCorp products.
+```
+```release-note:improvement
+cli: A local diagnostics collection can be triggered using the `run` subcommand.
+```
+```release-note:deprecation
+cli: Running hcdiag without a subcommand will be deprecated going forward. Currently, running without a subcommand will execute a local diagnostics collection. However, users should begin to use the `run` subcommand instead.
+```
