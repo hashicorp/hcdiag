@@ -13,6 +13,9 @@ From there, select “Feature request,” and fill out the form, following the p
 added to the product discussion backlog for prioritization. The GitHub issue that is created will be used for
 communication about the request.
 
+### Consider User Privacy!
+If your feature request in any way impacts user privacy, or could leak Personally-Identifiable Information (PII) about the customer or user of hcdiag, you'll need to provide details about this in your request.
+
 ## Bug Reports
 If you have found some behavior in hcdiag that isn’t quite what you expected, please let us know by filing a Bug Report!
 Like with Feature Requests, we track Bug Reports in GitHub. Please visit [this page][gh-issues] and click the green

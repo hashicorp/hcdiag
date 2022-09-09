@@ -25,7 +25,10 @@ Share any alternative solutions or features considered.
 **How does this impact you?**  
 Explain the impact to your work or process, e.g., We cannot do [...].
 
-**Are there any deadlines?**  
+**What are the customer data privacy implications for this request?**
+Will (or could) sensitive customer data be exposed as part of this feature? Please test any suggested commands yourself and list any tokens, keys, PII, or other sensitive information that is at risk of being exported or shared via this feature.
+
+**Are there any deadlines?**
 Disclose any deadlines impacting the required completion date of the request.
 
 **Is there any additional context?**  
