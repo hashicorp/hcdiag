@@ -1,0 +1,3 @@
+```release-note:improvement
+docs: Restructured readme into several doc files, improved new issue template, and added install and file-splitting docs.
+```
