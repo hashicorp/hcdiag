@@ -35,3 +35,8 @@ Using `homebrew` on Mac OS:
 ```
 brew install hashicorp/tap/hcdiag
 ```
+
+### Windows and other OSes
+
+To use hcdiag on Windows or another OS that we build binaries for, just download the appropriate binary from the releases page mentioned above.
+
