@@ -111,11 +111,11 @@ func (p *Product) Filter() error {
 func CommanderHealthCheck(client, agent string) error {
 	checkClient := runner.NewCommander(client, "string", nil).Run()
 	if checkClient.Error != nil {
-		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%w", client, checkClient.Result, checkClient.Error)
+		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, checkClient.Result, checkClient.Error)
 	}
 	checkAgent := runner.NewCommander(agent, "string", nil).Run()
 	if checkAgent.Error != nil {
-		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%w", agent, checkAgent.Result, checkAgent.Error)
+		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, checkAgent.Result, checkAgent.Error)
 	}
 	return nil
 }

@@ -36,24 +36,21 @@ func (c Commander) ID() string {
 
 // CommandExists is a cross-platform function that returns true if a command exists on the host
 func CommandExists(command string) bool {
-	var cmd string
-	var args []string
+	var lookup string
 
 	// Strip command of args; we're only testing the first token
 	command = strings.Fields(command)[0]
 
 	// Set appropriate lookup command based on OS
 	if runtime.GOOS == "windows" {
-		cmd = "where"
-		args = []string{command}
+		lookup = "where"
 	} else {
-		// Should work on all POSIX-compliant systems
-		cmd = "command"
-		args = []string{"-v", command}
+		// "command -v" should work on all POSIX-compliant systems BUT IT DOESN'T - 'which' is more reliable
+		lookup = "which"
 	}
 
 	// No redactions because we never store or inspect the output of this command
-	err := exec.Command(cmd, args...).Run()
+	err := exec.Command(lookup, command).Run()
 	return err == nil
 }
 
@@ -63,9 +60,9 @@ func (c Commander) Run() op.Op {
 	cmd := bits[0]
 	args := bits[1:]
 
-	// Exit early if the command isn't found on this system
+	// Exit early with a wrapped error if the command isn't found on this system
 	if !CommandExists(cmd) {
-		err := fmt.Errorf("commander: %w", &CommandNotFoundError{command: c.Command})
+		err := fmt.Errorf("%w", &CommandNotFoundError{command: c.Command})
 		return op.New(c.ID(), nil, op.Skip, err, Params(c))
 	}
 
