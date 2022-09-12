@@ -1,0 +1,3 @@
+```release-note:security
+security: bump goutils version to fix security issue"
+```
