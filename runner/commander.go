@@ -39,6 +39,9 @@ func CommandExists(command string) bool {
 	var cmd string
 	var args []string
 
+	// Strip command of args; we're only testing the first token
+	command = strings.Fields(command)[0]
+
 	// Set appropriate lookup command based on OS
 	if runtime.GOOS == "windows" {
 		cmd = "where"
@@ -62,8 +65,8 @@ func (c Commander) Run() op.Op {
 
 	// Exit early if the command isn't found on this system
 	if !CommandExists(cmd) {
-		cmdErr := fmt.Sprintf("%s: command not found", cmd)
-		return op.New(c.ID(), cmdErr, op.Skip, nil, Params(c))
+		err := fmt.Errorf("commander: %w", &CommandNotFoundError{command: c.Command})
+		return op.New(c.ID(), nil, op.Skip, err, Params(c))
 	}
 
 	// Execute command
@@ -152,3 +155,16 @@ type FormatUnknownError struct {
 func (e FormatUnknownError) Error() string {
 	return fmt.Sprintf("unknown format: must be either 'string' or 'json', format=%s, command=%s", e.format, e.command)
 }
+
+type CommandNotFoundError struct {
+	command string
+	// err     error
+}
+
+func (e CommandNotFoundError) Error() string {
+	return fmt.Sprintf("command not found: command=%s", e.command)
+}
+
+// func (e CommandNotFoundError) Unwrap() error {
+// 	return e.err
+// }
