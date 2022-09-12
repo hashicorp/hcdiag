@@ -155,13 +155,8 @@ func (e FormatUnknownError) Error() string {
 
 type CommandNotFoundError struct {
 	command string
-	// err     error
 }
 
 func (e CommandNotFoundError) Error() string {
 	return fmt.Sprintf("command not found: command=%s", e.command)
 }
-
-// func (e CommandNotFoundError) Unwrap() error {
-// 	return e.err
-// }
