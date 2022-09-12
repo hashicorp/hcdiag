@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/hashicorp/hcdiag/redact"
@@ -33,13 +34,37 @@ func (c Commander) ID() string {
 	return c.Command
 }
 
+// CommandExists is a cross-platform function that returns true if a command exists on the host
+func CommandExists(command string) bool {
+	var cmd string
+	var args []string
+
+	// Set appropriate lookup command based on OS
+	if runtime.GOOS == "windows" {
+		cmd = "where"
+		args = []string{command}
+	} else {
+		// Should work on all POSIX-compliant systems
+		cmd = "command"
+		args = []string{"-v", command}
+	}
+
+	// No redactions because we never store or inspect the output of this command
+	err := exec.Command(cmd, args...).Run()
+	return err == nil
+}
+
 // Run executes the Command
 func (c Commander) Run() op.Op {
 	bits := strings.Split(c.Command, " ")
 	cmd := bits[0]
 	args := bits[1:]
 
-	// TODO(mkcp): Add cross-platform commandExists() func to ensure there's a bin we can call
+	// Exit early if the command isn't found on this system
+	if !CommandExists(cmd) {
+		cmdErr := fmt.Sprintf("%s: command not found", cmd)
+		return op.New(c.ID(), cmdErr, op.Skip, nil, Params(c))
+	}
 
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
