@@ -409,15 +409,18 @@ func (a *Agent) WriteOutput() (err error) {
 
 // CheckAvailable runs healthchecks for each enabled product
 func (a *Agent) CheckAvailable() error {
+	// these healthchecks may run commands that don't exist on a system, and that's OK
+	var errNotFound *runner.CommandNotFoundError
+
 	if a.Config.Consul {
 		err := product.CommanderHealthCheck(product.ConsulClientCheck, product.ConsulAgentCheck)
-		if err != nil {
+		if err != nil && !errors.As(err, &errNotFound) {
 			return err
 		}
 	}
 	if a.Config.Nomad {
 		err := product.CommanderHealthCheck(product.NomadClientCheck, product.NomadAgentCheck)
-		if err != nil {
+		if err != nil && !errors.As(err, &errNotFound) {
 			return err
 		}
 	}
@@ -426,7 +429,7 @@ func (a *Agent) CheckAvailable() error {
 	// }
 	if a.Config.Vault {
 		err := product.CommanderHealthCheck(product.VaultClientCheck, product.VaultAgentCheck)
-		if err != nil {
+		if err != nil && !errors.As(err, &errNotFound) {
 			return err
 		}
 	}
