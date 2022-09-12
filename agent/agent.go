@@ -513,6 +513,7 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 		"product",
 		string(op.Success),
 		string(op.Fail),
+		string(op.Skip),
 		string(op.Unknown),
 		"total",
 	}
@@ -531,7 +532,7 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 	sort.Strings(products)
 
 	for _, prod := range products {
-		var success, fail, unknown int
+		var success, fail, skip, unknown int
 		ops := a.ManifestOps[prod]
 
 		for _, o := range ops {
@@ -540,6 +541,8 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 				success++
 			case op.Fail:
 				fail++
+			case op.Skip:
+				skip++
 			default:
 				unknown++
 			}
@@ -549,6 +552,7 @@ func (a *Agent) WriteSummary(writer io.Writer) error {
 			prod,
 			strconv.Itoa(success),
 			strconv.Itoa(fail),
+			strconv.Itoa(skip),
 			strconv.Itoa(unknown),
 			strconv.Itoa(len(ops))))
 		if err != nil {

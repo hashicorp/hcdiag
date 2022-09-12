@@ -1,0 +1,3 @@
+```release-note:improvement
+improvement: Add "skip" status counts to the summary output at the end of a run"
+```
