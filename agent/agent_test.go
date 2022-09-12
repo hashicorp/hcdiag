@@ -273,6 +273,9 @@ func TestAgent_WriteSummary(t *testing.T) {
 						Status: op.Fail,
 					},
 					{
+						Status: op.Skip,
+					},
+					{
 						Status: op.Unknown,
 					},
 				},
@@ -282,6 +285,9 @@ func TestAgent_WriteSummary(t *testing.T) {
 					},
 					{
 						Status: op.Unknown,
+					},
+					{
+						Status: op.Skip,
 					},
 				},
 			}},
@@ -332,8 +338,8 @@ func Test_formatReportLine(t *testing.T) {
 		},
 		{
 			name:   "Test Sample Header Row",
-			cells:  []string{"product", "success", "failed", "unknown", "total"},
-			expect: "product\tsuccess\tfailed\tunknown\ttotal\t\n",
+			cells:  []string{"product", "success", "failed", "skip", "unknown", "total"},
+			expect: "product\tsuccess\tfailed\tskip\tunknown\ttotal\t\n",
 		},
 	}
 
