@@ -1,0 +1,3 @@
+```release-note:security
+security: upgrade all dependencies, including the (vulnerable) crypto package"
+```
