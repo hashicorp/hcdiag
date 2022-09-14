@@ -298,7 +298,8 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		o := runner.NewCopier(f, dest, a.Config.Since, a.Config.Until, nil).Run()
+		// In this case, newCopier doesn't need real since/until; if I am passing the -includes CLI flag, I want matching files regardless of creation/mod timestamps
+		o := runner.NewCopier(f, dest, time.Time{}, time.Now(), nil).Run()
 		if o.Error != nil {
 			return o.Error
 		}
