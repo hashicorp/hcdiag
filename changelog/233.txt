@@ -1,0 +1,3 @@
+```release-note:docs
+docs: add custom config examples, faq content"
+```
