@@ -92,7 +92,7 @@ Terraform Enterprise historically uses replicated to provide similar functionali
   - `hcdiag -vault -dest /tmp/hcdiag`
 
 - Gather diagnostics and use the CLI to copy individual files or whole directories
-  - `hcdiag -vault -include "/var/log/dmesg,/var/log/vault-"`
+  - `hcdiag -vault -includes "/var/log/dmesg,/var/log/vault-"`
 
 - Gather only host diagnostics (prior to `0.4.0`, this was the behavior of running `hcdiag` with no flags).
   - `hcdiag -autodetect=false`

@@ -69,3 +69,77 @@ product "consul" {
 Beginning with version `0.4.0`, `hcdiag` supports redactions. Redactions enable users to tell `hcdiag` about patterns of text that should be omitted from the results bundle.
 
 Read more about them [here](./redactions.md).
+
+## Custom Config Examples
+
+### Collect additional Consul information
+
+**Example:** we want a `-consul` run to collect additional information from several commands:
+
+* The Consul memberlist: `consul members`
+* Raft peer information: `consul operator raft list-peers`
+* A custom journalctl command that's different from the builtin: `journalctl -u consul --since=yesterday --output=json`
+* Another custom command (in this case, just running `cat` to collect a file's contents into the bundle `Results.json` file with no redactions)
+
+To do this, we create a custom config file named `hcdiag.hcl` with the following content:
+
+```
+product "consul" {
+  command {
+    run = "consul members"
+    format = "string"
+  }
+
+  command {
+    run = "consul operator raft list-peers"
+    format = "string"
+  }
+
+  // You could copy files with -includes as well
+  command {
+    run = "cat /etc/consul.d/example.hcl"
+    format = "string"
+  }
+
+  // if you want specific journalctl flags, you can use a command:
+  command {
+    run = "journalctl -u consul --since=yesterday --output=json"
+    format = "json"
+  }
+
+}
+```
+
+Then, a user can run hcdiag with the following command:
+
+```
+hcdiag -consul -config hcdiag.hcl
+```
+
+This will point hcdiag at your custom config file and execute your custom commands.
+
+
+### Collect additional Nomad information
+
+**Example:** we want to run a custom `nomad operator debug` command, instead of the built-in. Our command should run with log-level `DEBUG` and return unlimited nodes.
+
+Create a custom config file named `hcdiag.hcl` with the following content:
+
+```
+product "nomad" {
+  command {
+    run = "nomad operator debug -log-level=DEBUG -duration=20s -interval=10s -max-nodes=0"
+    format = "string"
+  }
+}
+```
+
+Run hcdiag with this config file:
+
+```
+hcdiag -nomad -debug-duration=0 -config hcdiag.hcl
+```
+
+This will point hcdiag at your custom config file and execute your custom command.
+
+**NOTE** The -debug-duration flag is here to suppress the built-in nomad debug command, preventing the built-in version of the `nomad operator debug` command from being run, and a second nomad-debug archive being created in your hcdiag bundle.

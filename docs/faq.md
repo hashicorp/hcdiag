@@ -2,6 +2,10 @@
 
 Depending on the context you're using hcdiag in, you may have some questions about the tool. Here are questions we see frequently.
 
+### I want hcdiag to gather information from all nodes in a cluster (servers and clients)!
+
+hcdiag is a binary that runs on one host at a time. As a result, each run collects data from that host, and that host alone. If you want to gather information from multiple hosts, e.g. client *and* server config files, you’ll need to run hcdiag on those hosts separately.
+
 ### Why is hcdiag checking for all HashiCorp products when I only want one?
 
 We heard feedback from `hcdiag` users that the default behavior, with no flags provided, could be confusing. In that case,
