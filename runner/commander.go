@@ -6,9 +6,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/hashicorp/hcdiag/redact"
-
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/util"
 )
 
 var _ Runner = Commander{}
@@ -39,7 +39,11 @@ func (c Commander) Run() op.Op {
 	cmd := bits[0]
 	args := bits[1:]
 
-	// TODO(mkcp): Add cross-platform commandExists() func to ensure there's a bin we can call
+	// Exit early with a wrapped error if the command isn't found on this system
+	_, err := util.HostCommandExists(cmd)
+	if err != nil {
+		return op.New(c.ID(), nil, op.Skip, err, Params(c))
+	}
 
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()

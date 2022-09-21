@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -217,4 +218,33 @@ func EnsureDirectory(dir string) error {
 	}
 
 	return nil
+}
+
+// HostCommandExists takes a single OS-level command name, returning true if it exists in $PATH; false/CommandNotFoundError otherwise
+func HostCommandExists(cmd string) (bool, error) {
+	// Only look at the first command
+	fields := strings.Fields(cmd)
+	if len(fields) > 1 {
+		hclog.L().Debug("HostCommandExists() received multiple commands - using only the first", "cmd", cmd)
+		cmd = fields[0]
+	}
+
+	_, err := exec.LookPath(cmd)
+	if err != nil {
+		return false, CommandNotFoundError{command: cmd, err: err}
+	}
+	return true, nil
+}
+
+type CommandNotFoundError struct {
+	command string
+	err     error
+}
+
+func (e CommandNotFoundError) Error() string {
+	return fmt.Sprintf("command not found: command=%s, error=%s", e.command, e.err.Error())
+}
+
+func (e CommandNotFoundError) Unwrap() error {
+	return e.err
 }

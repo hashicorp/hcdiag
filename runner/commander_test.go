@@ -77,7 +77,15 @@ func TestCommander_RunError(t *testing.T) {
 			desc:    "errors and fails on bad json",
 			command: `echo {"bad",}`,
 			format:  "json",
+			expect:  string("{\"bad\",}\n"),
 			status:  op.Unknown,
+		},
+		{
+			desc:    "returns a Skip status when a nonexistent command is called",
+			command: "fooblarbalurg this is not a real command",
+			format:  "string",
+			expect:  nil,
+			status:  op.Skip,
 		},
 	}
 
@@ -88,9 +96,7 @@ func TestCommander_RunError(t *testing.T) {
 			assert.Error(t, o.Error)
 			hclog.L().Trace("commander.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
 			assert.Equal(t, tc.status, o.Status)
-			if tc.expect != nil {
-				assert.Equal(t, tc.expect, o.Result)
-			}
+			assert.Equal(t, tc.expect, o.Result)
 		})
 	}
 }

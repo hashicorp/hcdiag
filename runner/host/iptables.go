@@ -40,9 +40,14 @@ func (r IPTables) Run() op.Op {
 	result := make(map[string]string)
 	for _, c := range r.Commands {
 		o := runner.NewCommander(c, "string", r.Redactions).Run()
-		result[c] = o.Result.(string)
+
+		if o.Result != nil {
+			result[c] = o.Result.(string)
+		}
+
 		if o.Error != nil {
-			return op.New(r.ID(), result, op.Fail, o.Error, runner.Params(r))
+			// If there's an error, pass through the Op's status and Error
+			return op.New(r.ID(), result, o.Status, o.Error, runner.Params(r))
 		}
 	}
 	return op.New(r.ID(), result, op.Success, nil, runner.Params(r))

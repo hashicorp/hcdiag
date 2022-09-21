@@ -1,0 +1,6 @@
+```release-note:improvement
+runner: commander now checks to see if a command exists before attempting to run it
+```
+```release-note:bug
+runner: fixed possible iptables runner nil panic and status passing
+```
