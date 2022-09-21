@@ -242,7 +242,7 @@ type CommandNotFoundError struct {
 }
 
 func (e CommandNotFoundError) Error() string {
-	return fmt.Sprintf("command not found: command=%s", e.command)
+	return fmt.Sprintf("command not found: command=%s, error=%s", e.command, e.err.Error())
 }
 
 func (e CommandNotFoundError) Unwrap() error {
