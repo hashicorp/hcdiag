@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"runtime"
 	"strings"
 
-	"github.com/hashicorp/hcdiag/redact"
-
 	"github.com/hashicorp/hcdiag/op"
+	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/util"
 )
 
 var _ Runner = Commander{}
@@ -34,26 +33,6 @@ func (c Commander) ID() string {
 	return c.Command
 }
 
-// CommandExists is a cross-platform function that returns true if a command exists on the host
-func CommandExists(command string) bool {
-	var lookup string
-
-	// Strip command of args; we're only testing the first token
-	command = strings.Fields(command)[0]
-
-	// Set appropriate lookup command based on OS
-	if runtime.GOOS == "windows" {
-		lookup = "where"
-	} else {
-		// "command -v" should work on all POSIX-compliant systems BUT IT DOESN'T - 'which' is more reliable
-		lookup = "which"
-	}
-
-	// No redactions because we never store or inspect the output of this command
-	err := exec.Command(lookup, command).Run()
-	return err == nil
-}
-
 // Run executes the Command
 func (c Commander) Run() op.Op {
 	bits := strings.Split(c.Command, " ")
@@ -61,8 +40,8 @@ func (c Commander) Run() op.Op {
 	args := bits[1:]
 
 	// Exit early with a wrapped error if the command isn't found on this system
-	if !CommandExists(cmd) {
-		err := fmt.Errorf("%w", &CommandNotFoundError{command: c.Command})
+	_, err := util.HostCommandExists(cmd)
+	if err != nil {
 		return op.New(c.ID(), nil, op.Skip, err, Params(c))
 	}
 
@@ -151,12 +130,4 @@ type FormatUnknownError struct {
 
 func (e FormatUnknownError) Error() string {
 	return fmt.Sprintf("unknown format: must be either 'string' or 'json', format=%s, command=%s", e.format, e.command)
-}
-
-type CommandNotFoundError struct {
-	command string
-}
-
-func (e CommandNotFoundError) Error() string {
-	return fmt.Sprintf("command not found: command=%s", e.command)
 }

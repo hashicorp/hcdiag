@@ -186,6 +186,42 @@ func Test_getTarRelativePathName(t *testing.T) {
 	}
 }
 
+func TestHostCommandExists(t *testing.T) {
+	tt := []struct {
+		desc    string
+		command string
+		expect  bool
+	}{
+		{
+			desc:    "test ls command",
+			command: "ls",
+			expect:  true,
+		},
+		{
+			desc:    "ensure additional args are not tested",
+			command: "ls fooblarbalurg sdlfkj",
+			expect:  true,
+		},
+		{
+			desc:    "ensure additional args are not tested 2",
+			command: "fooblarbalurg ls pwd",
+			expect:  false,
+		},
+		{
+			desc:    "nonexistent commands should return false",
+			command: "fooblarbalurg",
+			expect:  false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			result, _ := HostCommandExists(tc.command)
+			assert.Equal(t, result, tc.expect)
+		})
+	}
+}
+
 // FIXME(mkcp): Ensure the since and until works with modtime properly
 // func TestFilterWalk(t *testing.T) {
 // 	testTable := []struct{

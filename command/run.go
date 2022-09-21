@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/hcdiag/agent"
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/product"
+	"github.com/hashicorp/hcdiag/util"
 )
 
 // seventyTwoHours represents the duration "72h" parsed in nanoseconds
@@ -195,7 +195,8 @@ func (c *RunCommand) Run(args []string) int {
 }
 
 // configureLogging takes a logger name, sets the default configuration, grabs the LOG_LEVEL from our ENV vars, and
-//  returns a configured and usable logger.
+//
+//	returns a configured and usable logger.
 func configureLogging(loggerName string) hclog.Logger {
 	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
@@ -245,10 +246,10 @@ func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 
 	// If any products have been set manually, then we do not care about product auto-detection
 	if c.autoDetectProducts && !checkProductsSet(config) {
-		config.Consul = autoDetectCommand("consul")
-		config.Nomad = autoDetectCommand("nomad")
-		config.TFE = autoDetectCommand("terraform")
-		config.Vault = autoDetectCommand("vault")
+		config.Consul, _ = util.HostCommandExists("consul")
+		config.Nomad, _ = util.HostCommandExists("nomad")
+		config.TFE, _ = util.HostCommandExists("terraform")
+		config.Vault, _ = util.HostCommandExists("vault")
 
 		if checkProductsSet(config) {
 			hclog.L().Info(
@@ -277,15 +278,6 @@ func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 // checkProductsSet returns true if any of the individual products are true in the provided config
 func checkProductsSet(config agent.Config) bool {
 	return config.Consul || config.Nomad || config.TFE || config.Vault
-}
-
-func autoDetectCommand(cmd string) bool {
-	p, err := exec.LookPath(cmd)
-	if err != nil {
-		return false
-	}
-	hclog.L().Debug("Found command", "cmd", cmd, "path", p)
-	return true
 }
 
 // pickSinceVsIncludeSince if Since is default and IncludeSince is NOT default, use IncludeSince

@@ -100,34 +100,3 @@ func TestCommander_RunError(t *testing.T) {
 		})
 	}
 }
-
-func TestCommandExists(t *testing.T) {
-	tt := []struct {
-		desc    string
-		command string
-		expect  bool
-	}{
-		{
-			desc:    "test ls command",
-			command: "ls",
-			expect:  true,
-		},
-		{
-			desc:    "ensure additional args are not tested",
-			command: "ls fooblarbalurg sdlfkj",
-			expect:  true,
-		},
-		{
-			desc:    "nonexistent commands should return false",
-			command: "fooblarbalurg",
-			expect:  false,
-		},
-	}
-
-	for _, tc := range tt {
-		t.Run(tc.desc, func(t *testing.T) {
-			result := CommandExists(tc.command)
-			assert.Equal(t, result, tc.expect)
-		})
-	}
-}
