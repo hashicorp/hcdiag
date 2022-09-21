@@ -195,8 +195,7 @@ func (c *RunCommand) Run(args []string) int {
 }
 
 // configureLogging takes a logger name, sets the default configuration, grabs the LOG_LEVEL from our ENV vars, and
-//
-//	returns a configured and usable logger.
+// returns a configured and usable logger.
 func configureLogging(loggerName string) hclog.Logger {
 	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
