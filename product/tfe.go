@@ -1,6 +1,8 @@
 package product
 
 import (
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/hcl"
@@ -84,6 +86,81 @@ func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 
 		runner.NewSheller("getenforce", cfg.Redactions),
 		runner.NewSheller("env | grep -i proxy", cfg.Redactions),
+
+		//
+		// NOTE(dcohen): Replicated bundle building, by the numbers
+		//
+
+		// TODO(dcohen) bundle/app/container-logs
+
+		// bundle/app/logs
+		// NOTE(dcohen temp:) ignoring since and until, since this is a simple file copy
+		runner.NewCopier("/var/lib/docker/containers/*/*-json.log", "app/logs", time.Time{}, time.Now(), cfg.Redactions),
+
+		// bundle/app/containers
+		// Run a docker inspect for all containers on the host
+		runner.NewCommander("docker ps -aq | xargs docker inspect", "json", cfg.Redactions),
+
+		// bundle/default/commands
+		runner.NewCommander("date", "string", cfg.Redactions),
+		runner.NewCommander("df", "string", cfg.Redactions),
+		runner.NewCommander("df -ali", "string", cfg.Redactions),
+		runner.NewCommander("dmesg", "string", cfg.Redactions),
+		runner.NewCommander("free", "string", cfg.Redactions),
+		runner.NewCommander("hostname", "string", cfg.Redactions),
+		runner.NewCommander("ip -o addr show", "string", cfg.Redactions),
+		runner.NewCommander("ip -o link show", "string", cfg.Redactions),
+		runner.NewCommander("ip -o route show", "string", cfg.Redactions),
+		// Note(dcohen): 'loadavg' is not always installed, and always available from `uptime`
+		runner.NewCommander("uptime", "string", cfg.Redactions),
+		runner.NewCommander("ps fauxwww", "string", cfg.Redactions),
+
+		// bundle/default/docker
+		// container_ls.json
+		runner.NewCommander("docker container ls --format '{{json .}}'", "json", cfg.Redactions),
+		// docker_info.json
+		runner.NewCommander("docker info --format '{{json .}}'", "json", cfg.Redactions),
+		// docker_version.json
+		runner.NewCommander("docker version --format '{{json .}}'", "json", cfg.Redactions),
+		// image_ls.json
+		runner.NewCommander("docker image ls --format '{{json .}}'", "json", cfg.Redactions),
+
+		// bundle/default/etc
+		runner.NewCopier("/etc/firewalld", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+		runner.NewCopier("/etc/dnsmasq.conf", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+		runner.NewCopier("/etc/sysconfig/iptables-config", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+		runner.NewCopier("/etc/fstab", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+		runner.NewCopier("/etc/hostname", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+		runner.NewCopier("/etc/hosts", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+		runner.NewCopier("/etc/os-release", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+		// NOTE(dcohen): added /etc/issue in case os-release isn't present
+		runner.NewCopier("/etc/issue", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+		runner.NewCopier("/etc/resolv.conf", "default/etc", time.Time{}, time.Now(), cfg.Redactions),
+
+		// TODO(dcohen): journald: (raw docker logs from journald)
+
+		// TODO(dcohen): kubernetes kubelet/logs/logs.raw
+
+		// bundle/default/proc
+		runner.NewCommander("cat /proc/cpuinfo", "string", cfg.Redactions),
+		runner.NewCommander("cat /proc/loadavg", "string", cfg.Redactions),
+		runner.NewCommander("cat /proc/meminfo", "string", cfg.Redactions),
+		runner.NewCommander("cat /proc/mounts", "string", cfg.Redactions),
+		runner.NewCommander("cat /proc/uptime", "string", cfg.Redactions),
+		runner.NewCommander("cat /proc/version", "string", cfg.Redactions),
+		runner.NewCommander("cat /proc/vmstat", "string", cfg.Redactions),
+
+		// NOTE(dcohen): omitted: bundle/default/{replicated,support-bundle}
+
+		// NOTE(dcohen): omitted: bundle/docker/* (dupes)
+		// NOTE(dcohen): omitted: bundle/kubernetes/logs (dupes)
+
+		// TODO(dcohen): bundle/kubernetes/inspect
+
+		// NOTE(dcohen): omitted: bundle/os/* (dupes)
+		// NOTE(dcohen): omitted: bundle/replicated/*
+		// NOTE(dcohen): omitted: bundle/retraced/*
+
 	}, nil
 }
 
