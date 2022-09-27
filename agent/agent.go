@@ -117,6 +117,12 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errTemp)
 		a.l.Error("Failed to create temp directory", "error", errTemp)
 	}
+	defer func() {
+		if err := a.Cleanup(); err != nil {
+			a.l.Error("Failed to cleanup after the run", "error", err)
+		}
+	}()
+
 	if errCopy := a.CopyIncludes(); errCopy != nil {
 		errs = append(errs, errCopy)
 		a.l.Error("Failed copying includes", "error", errCopy)
@@ -173,10 +179,6 @@ func (a *Agent) Run() []error {
 	if errWrite := a.WriteOutput(); errWrite != nil {
 		errs = append(errs, errWrite)
 		a.l.Error("Failed running output", "error", errWrite)
-	}
-	if errCleanup := a.Cleanup(); errCleanup != nil {
-		errs = append(errs, errCleanup)
-		a.l.Error("Failed to cleanup after the run", "error", errCleanup)
 	}
 
 	return errs
@@ -262,7 +264,7 @@ func (a *Agent) CreateTemp() error {
 	return nil
 }
 
-// Cleanup attempts to delete the contents of the tempdir when the diagnostics are done.
+// Cleanup removes the temporary directory and its contents, returning an error if it is unable to do so.
 func (a *Agent) Cleanup() (err error) {
 	a.l.Debug("Cleaning up temporary files")
 
