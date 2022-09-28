@@ -1,0 +1,3 @@
+```release-note:bug
+docker: Resolve issue where extraneous, empty Docker log files were included in results bundle when no matching container was found during the run.
+```
