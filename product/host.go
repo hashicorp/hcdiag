@@ -3,8 +3,6 @@ package product
 import (
 	"runtime"
 
-	"github.com/hashicorp/hcdiag/runner/do"
-
 	"github.com/hashicorp/hcdiag/runner/host"
 
 	"github.com/hashicorp/hcdiag/hcl"
@@ -76,7 +74,7 @@ func hostRunners(os string, redactions []*redact.Redact, l hclog.Logger) []runne
 		host.NewFSTab(os, redactions),
 	}
 	// Execute asynchronously
-	return []runner.Runner{do.New(l, runners)}
+	return runners
 }
 
 // hostRedactions returns a slice of default redactions for this product
