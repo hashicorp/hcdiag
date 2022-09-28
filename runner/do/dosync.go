@@ -1,7 +1,7 @@
 package do
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/hashicorp/hcdiag/runner"
 
@@ -43,12 +43,28 @@ func (d Sync) Run() op.Op {
 		// If any result op is not Success, abort and return all existing ops
 		if o.Status != op.Success {
 			// Add an op for this failed DoSync at the end of the slice
-			// TODO(dcohen) is this what returning a status for Do/DoSync blocks should look like?
-			e := errors.New("do-sync runner failed")
 			results[o.Identifier] = o
-			return op.New(d.ID(), results, op.Fail, e, runner.Params(d))
+			return op.New(d.ID(), results, op.Fail, ChildRunnerError{
+				Parent: d.ID(),
+				Child:  o.Identifier,
+				err:    o.Error,
+			}, runner.Params(d))
 		}
 	}
 	// Return runner ops, adding one at the end for our successful DoSync run
 	return op.New(d.ID(), results, op.Success, nil, runner.Params(d))
+}
+
+type ChildRunnerError struct {
+	Parent string
+	Child  string
+	err    error
+}
+
+func (e ChildRunnerError) Error() string {
+	return fmt.Sprintf("error in child runner, parent=%s, child=%s, err=%s", e.Parent, e.Child, e.Unwrap().Error())
+}
+
+func (e ChildRunnerError) Unwrap() error {
+	return e.err
 }
