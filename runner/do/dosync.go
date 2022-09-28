@@ -11,7 +11,9 @@ import (
 
 var _ runner.Runner = Sync{}
 
-// Sync runs shell commands.
+// Sync wraps a collection of runners and executes them in order, returning all of their Ops keyed by their ID(). If one
+// of the runners has a status other than Success, subsequent runners will not be executed and the do-sync will return
+// a status.Fail.
 type Sync struct {
 	Runners     []runner.Runner `json:"runners"`
 	Label       string          `json:"label"`
@@ -19,7 +21,7 @@ type Sync struct {
 	log         hclog.Logger
 }
 
-// NewSync provides a runner for bin commands
+// NewSync initializes a DoSync runner.
 func NewSync(l hclog.Logger, label, description string, runners []runner.Runner) *Sync {
 	return &Sync{
 		Label:       label,
@@ -30,7 +32,7 @@ func NewSync(l hclog.Logger, label, description string, runners []runner.Runner)
 }
 
 func (d Sync) ID() string {
-	return "do-sync"
+	return "do-sync " + d.Label
 }
 
 // Run executes the Command

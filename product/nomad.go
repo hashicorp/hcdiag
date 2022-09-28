@@ -103,15 +103,6 @@ func nomadRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.R
 		runners = append([]runner.Runner{logCopier}, runners...)
 	}
 
-	// TODO(dcohen) nexting test/example
-	// syncRunners := []runner.Runner{
-	// 	runner.NewCommander("uname -a", "string", cfg.Redactions),
-	// 	runner.NewCommander("echo foobar", "string", cfg.Redactions),
-	// }
-	// // Execute asynchronously: Do inside of DoSync
-	// allRunners := []runner.Runner{runner.NewDoSync(l, append(syncRunners, runner.NewDo(l, runners)))}
-	// return allRunners, nil
-
 	return runners, nil
 }
 

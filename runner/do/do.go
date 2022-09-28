@@ -12,7 +12,8 @@ import (
 
 var _ runner.Runner = Do{}
 
-// Do runs shell commands.
+// Do is a runner that wraps a collection of runners and executes each of them in a goroutine. It returns a map associating
+// each runner's Op to its ID.
 type Do struct {
 	Runners     []runner.Runner `json:"runners"`
 	Label       string          `json:"label"`
@@ -20,7 +21,7 @@ type Do struct {
 	log         hclog.Logger
 }
 
-// New returns a pointer to a new Do runner
+// New initializes a Do runner.
 func New(l hclog.Logger, label, description string, runners []runner.Runner) *Do {
 	return &Do{
 		Label:       label,
