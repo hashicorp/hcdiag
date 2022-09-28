@@ -30,19 +30,34 @@ type Agent struct {
 }
 
 type Host struct {
+	// Do
+	Do     []Do     `hcl:"do,block" json:"do,omitempty"`
+	DoSync []DoSync `hcl:"do-sync,block" json:"do-sync,omitempty"`
+
+	// Runners
 	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
 	Shells       []Shell       `hcl:"shell,block" json:"shells,omitempty"`
 	GETs         []GET         `hcl:"GET,block" json:"gets,omitempty"`
 	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
-	Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
-	Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
-	Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
+
+	// Filters
+	Excludes []string `hcl:"excludes,optional" json:"excludes,omitempty"`
+	Selects  []string `hcl:"selects,optional" json:"selects,omitempty"`
+
+	// Params
+	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type Product struct {
-	Name         string        `hcl:"name,label" json:"name"`
+	Name string `hcl:"name,label" json:"name"`
+
+	// Do
+	Do     []Do     `hcl:"do,block" json:"do,omitempty"`
+	DoSync []DoSync `hcl:"do-sync,block" json:"do-sync,omitempty"`
+
+	// Runners
 	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
 	Shells       []Shell       `hcl:"shell,block" json:"shells,omitempty"`
 	GETs         []GET         `hcl:"GET,block" json:"gets,omitempty"`
@@ -52,13 +67,15 @@ type Product struct {
 	Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
 	Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
 	Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
-	Do           Do            `hcl:"do,block" json:"do,omitempty"`
-	DoSync       DoSync        `hcl:"do-sync,block" json:"do-sync,omitempty"`
 }
 
 type Do struct {
 	Label       string `hcl:"name,label" json:"label"`
 	Description string `hcl:"description,optional" json:"since"`
+
+	// Do
+	Do     []Do     `hcl:"do,block" json:"do,omitempty"`
+	DoSync []DoSync `hcl:"do-sync,block" json:"do-sync,omitempty"`
 
 	// Runners
 	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
@@ -79,6 +96,10 @@ type Do struct {
 type DoSync struct {
 	Label       string `hcl:"name,label" json:"label"`
 	Description string `hcl:"description,optional" json:"since"`
+
+	// Do
+	Do     []Do     `hcl:"do,block" json:"do,omitempty"`
+	DoSync []DoSync `hcl:"do-sync,block" json:"do-sync,omitempty"`
 
 	// Runners
 	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`

@@ -77,7 +77,7 @@ func TestCommander_RunError(t *testing.T) {
 			desc:    "errors and fails on bad json",
 			command: `echo {"bad",}`,
 			format:  "json",
-			expect:  string("{\"bad\",}\n"),
+			expect:  map[string]any{"json": "{\"bad\",}\n"},
 			status:  op.Unknown,
 		},
 		{
