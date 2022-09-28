@@ -28,12 +28,10 @@ func (g Get) ID() string {
 	return "GET" + " " + g.Path
 }
 
-func (g Get) Run() []op.Op {
-	opList := make([]op.Op, 0)
+func (g Get) Run() op.Op {
 	cmd := strings.Join([]string{"curl -s", g.Path}, " ")
 	// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
 	format := "string"
 	o := runner.NewCommander(cmd, format, g.Redactions).Run()
-	first := o[0]
-	return append(opList, op.New(g.ID(), first.Result, first.Status, first.Error, runner.Params(g)))
+	return op.New(g.ID(), o.Result, o.Status, o.Error, runner.Params(g))
 }

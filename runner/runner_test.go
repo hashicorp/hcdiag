@@ -12,7 +12,7 @@ import (
 
 var (
 	mockID            = "mock"
-	mockResult        = "get mock'd"
+	mockResult        = map[string]any{"mock": "get mock'd"}
 	errFake           = errors.New("uh oh a fake error")
 	testStatus        = op.Status("test")
 	_          Runner = MockRunner{}
@@ -31,34 +31,29 @@ func (r MockRunner) ID() string {
 	return r.id
 }
 
-func (r MockRunner) Run() []op.Op {
-	return []op.Op{op.Op{
+func (r MockRunner) Run() op.Op {
+	return op.Op{
 		Identifier: r.ID(),
 		Result:     mockResult,
 		ErrString:  errFake.Error(),
 		Error:      errFake,
 		Status:     testStatus,
-	}}
+	}
 }
 
 func TestRunner_Run(t *testing.T) {
 	r := NewMockRunner(mockID)
-	ops := r.Run()
-	for _, o := range ops {
-		// assert that return values are also being stored as struct fields
-		if o.Identifier != mockID {
-			t.Errorf("returned result (%s) does not match Op Result field (%s)", mockID, o.Identifier)
-		}
-		if o.Result != mockResult {
-			t.Errorf("returned result (%s) does not match Op Result field (%s)", mockResult, o.Result)
-		}
-		if o.Error != errFake {
-			t.Errorf("returned err (%s) does not match Op Error field (%s)", errFake, o.Error)
-		}
-		errStr := fmt.Sprintf("%s", o.Error)
-		if o.ErrString != errStr {
-			t.Errorf("Op ErrString (%s) not formatted as expected (%s)", o.ErrString, errStr)
-		}
+	o := r.Run()
+	assert.Equal(t, mockResult, o.Result, "returned result does not match Op Result field")
+	if o.Identifier != mockID {
+		t.Errorf("returned result (%s) does not match Op Result field (%s)", mockID, o.Identifier)
+	}
+	if o.Error != errFake {
+		t.Errorf("returned err (%s) does not match Op Error field (%s)", errFake, o.Error)
+	}
+	errStr := fmt.Sprintf("%s", o.Error)
+	if o.ErrString != errStr {
+		t.Errorf("Op ErrString (%s) not formatted as expected (%s)", o.ErrString, errStr)
 	}
 }
 

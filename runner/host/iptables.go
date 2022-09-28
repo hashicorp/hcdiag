@@ -15,11 +15,13 @@ var _ runner.Runner = IPTables{}
 type IPTables struct {
 	Commands   []string         `json:"commands"`
 	Redactions []*redact.Redact `json:"redactions"`
+	OS         string           `json:"os"`
 }
 
 // NewIPTables returns a runner configured to run several iptables commands
-func NewIPTables(redactions []*redact.Redact) *IPTables {
+func NewIPTables(os string, redactions []*redact.Redact) *IPTables {
 	return &IPTables{
+		OS: os,
 		Commands: []string{
 			"iptables -L -n -v",
 			"iptables -L -n -v -t nat",
@@ -33,20 +35,14 @@ func (r IPTables) ID() string {
 	return "iptables"
 }
 
-func (r IPTables) Run() []op.Op {
-	opList := make([]op.Op, 0)
-
-	if runtime.GOOS != "linux" {
-		return append(opList, op.New(r.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS), runner.Params(r)))
+func (r IPTables) Run() op.Op {
+	if r.OS == "linux" {
+		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS), runner.Params(r))
 	}
-	result := make(map[string]string)
+	result := make(map[string]any)
 	for _, c := range r.Commands {
 		o := runner.NewCommander(c, "string", r.Redactions).Run()
-		first := o[0]
-		result[c] = first.Result.(string)
-		if first.Error != nil {
-			return append(opList, op.New(r.ID(), result, op.Fail, first.Error, runner.Params(r)))
-		}
+		result[c] = o.Result
 	}
-	return append(opList, op.New(r.ID(), result, op.Success, nil, runner.Params(r)))
+	return op.New(r.ID(), result, op.Success, nil, runner.Params(r))
 }

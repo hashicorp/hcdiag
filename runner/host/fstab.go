@@ -27,18 +27,15 @@ func (r FSTab) ID() string {
 	return "/etc/fstab"
 }
 
-func (r FSTab) Run() []op.Op {
-	opList := make([]op.Op, 0)
-
+func (r FSTab) Run() op.Op {
 	// Only Linux is supported currently; Windows is unsupported, and Darwin doesn't use /etc/fstab by default.
 	if r.OS != "linux" {
-		return append(opList, op.New(r.ID(), nil, op.Skip, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.OS), runner.Params(r)))
+		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.OS), runner.Params(r))
 	}
 	o := r.Sheller.Run()
-	first := o[0]
-	if first.Error != nil {
-		return append(opList, op.New(r.ID(), first.Result, op.Fail, first.Error, runner.Params(r)))
+	if o.Error != nil {
+		return op.New(r.ID(), o.Result, op.Fail, o.Error, runner.Params(r))
 	}
 
-	return append(opList, op.New(r.ID(), first.Result, op.Success, nil, runner.Params(r)))
+	return op.New(r.ID(), o.Result, op.Success, nil, runner.Params(r))
 }

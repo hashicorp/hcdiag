@@ -33,15 +33,15 @@ func TestCommander_Run(t *testing.T) {
 			desc:    "can run with string format",
 			command: "echo hello",
 			format:  "string",
-			expect:  "hello",
+			expect:  map[string]any{"text": "hello"},
 		},
 		{
 			desc:    "can run with json format",
 			command: "echo {\"hi\":\"there\"}",
 			format:  "json",
 			expect: func() interface{} {
-				expect := make(map[string]interface{})
-				expect["hi"] = "there"
+				expect := make(map[string]any)
+				expect["json"] = map[string]any{"hi": "there"}
 				return expect
 			}(),
 		},
@@ -50,12 +50,10 @@ func TestCommander_Run(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			c := NewCommander(tc.command, tc.format, nil)
-			ops := c.Run()
-			for _, o := range ops {
-				assert.NoError(t, o.Error)
-				assert.Equal(t, op.Success, o.Status)
-				assert.Equal(t, tc.expect, o.Result)
-			}
+			o := c.Run()
+			assert.NoError(t, o.Error)
+			assert.Equal(t, op.Success, o.Status)
+			assert.Equal(t, tc.expect, o.Result)
 		})
 	}
 }
@@ -72,7 +70,7 @@ func TestCommander_RunError(t *testing.T) {
 			desc:    "errors and unknown when bash returns error",
 			command: "cat no-file-to-see-here",
 			format:  "string",
-			expect:  "cat: no-file-to-see-here: No such file or directory\n",
+			expect:  map[string]any{"text": "cat: no-file-to-see-here: No such file or directory\n"},
 			status:  op.Unknown,
 		},
 		{
@@ -94,14 +92,12 @@ func TestCommander_RunError(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			c := NewCommander(tc.command, tc.format, nil)
-			ops := c.Run()
-			for _, o := range ops {
-				assert.Error(t, o.Error)
-				hclog.L().Trace("commander.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
-				assert.Equal(t, tc.status, o.Status)
-				if tc.expect != nil {
-					assert.Equal(t, tc.expect, o.Result)
-				}
+			o := c.Run()
+			assert.Error(t, o.Error)
+			hclog.L().Trace("commander.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
+			assert.Equal(t, tc.status, o.Status)
+			if tc.expect != nil {
+				assert.Equal(t, tc.expect, o.Result)
 			}
 		})
 	}

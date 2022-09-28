@@ -31,13 +31,11 @@ func (s Sheller) ID() string {
 }
 
 // Run ensures a shell exists and optimistically executes the given Command string
-func (s Sheller) Run() []op.Op {
-	opList := make([]op.Op, 0)
-
+func (s Sheller) Run() op.Op {
 	// Read the shell from the environment
 	shell, err := util.GetShell()
 	if err != nil {
-		return append(opList, op.New(s.ID(), nil, op.Fail, err, Params(s)))
+		return op.New(s.ID(), nil, op.Fail, err, Params(s))
 	}
 	s.Shell = shell
 
@@ -48,16 +46,18 @@ func (s Sheller) Run() []op.Op {
 	redBts, redErr := redact.Bytes(bts, s.Redactions)
 	// Fail run if unable to redact
 	if redErr != nil {
-		return append(opList, op.New(s.ID(), nil, op.Fail, redErr, Params(s)))
+		return op.New(s.ID(), nil, op.Fail, redErr, Params(s))
 	}
 	if cmdErr != nil {
-		return append(opList, op.New(s.ID(), string(redBts), op.Unknown,
+		result := map[string]any{"shell": string(redBts)}
+		return op.New(s.ID(), result, op.Unknown,
 			ShellExecError{
 				command: s.Command,
 				err:     cmdErr,
-			}, Params(s)))
+			}, Params(s))
 	}
-	return append(opList, op.New(s.ID(), string(redBts), op.Success, nil, Params(s)))
+	result := map[string]any{"shell": string(redBts)}
+	return op.New(s.ID(), result, op.Success, nil, Params(s))
 }
 
 type ShellExecError struct {

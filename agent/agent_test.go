@@ -147,8 +147,9 @@ func TestRunProducts(t *testing.T) {
 	assert.NoError(t, err)
 	p[product.Host] = h
 
-	err = a.RunProducts()
-	assert.NoError(t, err)
+	// FIXME(mkcp): BUSTED
+	err1 := a.RunProducts()
+	assert.NoError(t, err1)
 	assert.Len(t, a.products, 1, "has one product")
 	assert.NotNil(t, a.products["host"], "product is under \"host\" key")
 }
@@ -157,8 +158,8 @@ func TestAgent_RecordManifest(t *testing.T) {
 	t.Run("adds to ManifestOps when ops exist", func(t *testing.T) {
 		// Setup
 		testProduct := product.Host
-		testResults := map[string][]op.Op{
-			"": {{}},
+		testResults := map[string]op.Op{
+			"": {},
 		}
 		a := newTestAgent(t)
 

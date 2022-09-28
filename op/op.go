@@ -26,7 +26,7 @@ const (
 // Op seeks information via its Runner then stores the results.
 type Op struct {
 	Identifier string                 `json:"-"`
-	Result     interface{}            `json:"result"`
+	Result     map[string]any         `json:"result"`
 	ErrString  string                 `json:"error"` // this simplifies json marshaling
 	Error      error                  `json:"-"`
 	Status     Status                 `json:"status"`
@@ -34,7 +34,7 @@ type Op struct {
 }
 
 // New takes a runner its results, serializing it into an immutable Op struct.
-func New(id string, result interface{}, status Status, err error, params map[string]interface{}) Op {
+func New(id string, result map[string]any, status Status, err error, params map[string]any) Op {
 	// We store the error directly to make JSON serialization easier
 	var message string
 	if err != nil {
@@ -51,15 +51,13 @@ func New(id string, result interface{}, status Status, err error, params map[str
 }
 
 // StatusCounts takes a slice of op references and returns a map containing sums of each Status
-func StatusCounts(opLists map[string][]Op) (map[Status]int, error) {
+func StatusCounts(ops map[string]Op) (map[Status]int, error) {
 	statuses := make(map[Status]int)
-	for _, ops := range opLists {
-		for _, op := range ops {
-			if op.Status == "" {
-				return nil, fmt.Errorf("unable to build Statuses map, op not run: op=%s", op.Identifier)
-			}
-			statuses[op.Status]++
+	for _, o := range ops {
+		if o.Status == "" {
+			return nil, fmt.Errorf("unable to build Statuses map, op not run: op=%s", o.Identifier)
 		}
+		statuses[o.Status]++
 	}
 	return statuses, nil
 }

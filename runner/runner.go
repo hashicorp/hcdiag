@@ -13,7 +13,7 @@ import (
 // Runner runs things to get information.
 type Runner interface {
 	ID() string
-	Run() []op.Op
+	Run() op.Op
 }
 
 // Exclude takes a slice of matcher strings and a slice of ops. If any of the runner identifiers match the exclude

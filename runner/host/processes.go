@@ -32,24 +32,24 @@ func (p Process) ID() string {
 	return "process"
 }
 
-func (p Process) Run() []op.Op {
-	opList := make([]op.Op, 0)
-
+func (p Process) Run() op.Op {
 	var procs []Proc
 
 	psProcs, err := ps.Processes()
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
-		return append(opList, op.New(p.ID(), procs, op.Fail, err, nil))
+		results := map[string]any{"procs": psProcs}
+		return op.New(p.ID(), results, op.Fail, err, runner.Params(p))
 	}
 
 	procs, err = p.procs(psProcs)
+	results := map[string]any{"procs": procs}
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
-		return append(opList, op.New(p.ID(), procs, op.Fail, err, nil))
+		return op.New(p.ID(), results, op.Fail, err, runner.Params(p))
 	}
 
-	return append(opList, op.New(p.ID(), procs, op.Success, nil, nil))
+	return op.New(p.ID(), results, op.Success, nil, runner.Params(p))
 }
 
 func (p Process) procs(psProcs []ps.Process) ([]Proc, error) {

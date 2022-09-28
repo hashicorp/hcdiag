@@ -42,53 +42,48 @@ func (j Journald) ID() string {
 
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
-func (j Journald) Run() []op.Op {
-	opList := make([]op.Op, 0)
-
-	o := runner.NewSheller("journalctl --version", j.Redactions).Run()
-	first := o[0]
-	if first.Error != nil {
-		return append(opList, op.New(j.ID(), first.Result, op.Skip, JournaldNotFound{
+func (j Journald) Run() op.Op {
+	version := runner.NewSheller("journalctl --version", j.Redactions).Run()
+	if version.Error != nil {
+		return op.New(j.ID(), version.Result, op.Skip, JournaldNotFound{
 			service: j.Service,
-			err:     first.Error,
+			err:     version.Error,
 		},
-			runner.Params(j)))
+			runner.Params(j))
 	}
 
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
-	o = runner.NewCommander(cmd, "string", j.Redactions).Run()
-	first = o[0]
-	if first.Error != nil {
-		hclog.L().Debug("skipping journald", "service", j.Service, "output", first.Result, "error", first.Error)
-		return append(opList, op.New(j.ID(), first.Result, op.Skip, JournaldServiceNotEnabled{
+	enabled := runner.NewCommander(cmd, "string", j.Redactions).Run()
+	if enabled.Error != nil {
+		hclog.L().Debug("skipping journald", "service", j.Service, "output", enabled.Result, "error", enabled.Error)
+		return op.New(j.ID(), enabled.Result, op.Skip, JournaldServiceNotEnabled{
 			service: j.Service,
 			command: cmd,
-			result:  fmt.Sprintf("%s", first.Result),
-			err:     first.Error,
+			result:  fmt.Sprintf("%s", enabled.Result),
+			err:     enabled.Error,
 		},
-			runner.Params(j)))
+			runner.Params(j))
 	}
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
-	o = runner.NewSheller(cmd, j.Redactions).Run()
-	first = o[0]
+	permissions := runner.NewSheller(cmd, j.Redactions).Run()
 	// permissions error detected
-	if first.Error == nil {
-		return append(opList, op.New(j.ID(), first.Result, op.Fail, JournaldPermissionError{
+	if permissions.Error == nil {
+		return op.New(j.ID(), permissions.Result, op.Fail, JournaldPermissionError{
 			service: j.Service,
 			command: cmd,
-			result:  fmt.Sprintf("%s", first.Result),
-			err:     first.Error,
+			result:  fmt.Sprintf("%s", permissions.Result),
+			err:     permissions.Error,
 		},
-			runner.Params(j)))
+			runner.Params(j))
 	}
 
 	cmd = j.LogsCmd()
-	o = runner.NewSheller(cmd, j.Redactions).Run()
+	logs := runner.NewSheller(cmd, j.Redactions).Run()
 
-	return append(opList, op.New(j.ID(), o[0].Result, o[0].Status, o[0].Error, runner.Params(j)))
+	return op.New(j.ID(), logs.Result, logs.Status, logs.Error, runner.Params(j))
 }
 
 // LogsCmd arranges the params into a runnable command string.

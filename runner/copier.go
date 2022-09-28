@@ -48,43 +48,42 @@ func (c Copier) ID() string {
 }
 
 // Run satisfies the Runner interface and copies the filtered source files to the destination.
-func (c Copier) Run() []op.Op {
-	opList := make([]op.Op, 0)
-
+func (c Copier) Run() op.Op {
 	// Ensure destination directory exists
 	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
-		return append(opList, op.New(c.ID(), nil, op.Fail,
+		return op.New(c.ID(), nil, op.Fail,
 			MakeDirError{
 				path: c.DestDir,
 				err:  err,
-			}, Params(c)))
+			}, Params(c))
 	}
 
 	// Find all the files
 	files, err := filterWalk(c.SourceDir, c.Filter, c.Since, c.Until)
 	if err != nil {
-		return append(opList, op.New(c.ID(), nil, op.Fail,
+		return op.New(c.ID(), nil, op.Fail,
 			FindFilesError{
 				path: c.SourceDir,
 				err:  err,
-			}, Params(c)))
+			}, Params(c))
 	}
 
 	// Copy the files
 	for _, s := range files {
 		err = copyDir(c.DestDir, s, c.Redactions)
 		if err != nil {
-			return append(opList, op.New(c.ID(), nil, op.Fail,
+			return op.New(c.ID(), nil, op.Fail,
 				CopyFilesError{
 					dest:  c.DestDir,
 					files: files,
 					err:   err,
-				}, Params(c)))
+				}, Params(c))
 		}
 	}
 
-	return append(opList, op.New(c.ID(), files, op.Success, nil, Params(c)))
+	result := map[string]any{"files": files}
+	return op.New(c.ID(), result, op.Success, nil, Params(c))
 }
 
 type MakeDirError struct {

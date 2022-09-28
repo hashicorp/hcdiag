@@ -11,17 +11,17 @@ import (
 )
 
 type mockShellRunner struct {
-	result interface{}
+	result map[string]any
 	status op.Status
 	err    error
 }
 
-func (m mockShellRunner) Run() []op.Op {
-	return []op.Op{{
+func (m mockShellRunner) Run() op.Op {
+	return op.Op{
 		Result: m.result,
 		Status: m.status,
 		Error:  m.err,
-	}}
+	}
 }
 
 func (m mockShellRunner) ID() string {
@@ -32,7 +32,7 @@ var _ runner.Runner = mockShellRunner{}
 
 func TestFSTab_Run(t *testing.T) {
 	type response struct {
-		result    interface{}
+		result    map[string]any
 		status    op.Status
 		expectErr bool
 	}
@@ -67,13 +67,13 @@ func TestFSTab_Run(t *testing.T) {
 			fstab: FSTab{
 				OS: "linux",
 				Sheller: &mockShellRunner{
-					result: "contents",
+					result: map[string]any{"shell": "contents"},
 					status: op.Success,
 					err:    nil,
 				},
 			},
 			expected: response{
-				result:    "contents",
+				result:    map[string]any{"shell": "contents"},
 				status:    op.Success,
 				expectErr: false,
 			},
@@ -83,13 +83,11 @@ func TestFSTab_Run(t *testing.T) {
 			fstab: FSTab{
 				OS: "linux",
 				Sheller: &mockShellRunner{
-					result: nil,
 					status: op.Unknown,
 					err:    fmt.Errorf("an error"),
 				},
 			},
 			expected: response{
-				result:    nil,
 				status:    op.Fail,
 				expectErr: true,
 			},
@@ -100,10 +98,10 @@ func TestFSTab_Run(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			expected := tc.expected
 			o := tc.fstab.Run()
-			assert.Equal(t, expected.result, o[0].Result)
-			assert.Equal(t, expected.status, o[0].Status)
+			assert.Equal(t, expected.result, o.Result)
+			assert.Equal(t, expected.status, o.Status)
 			if tc.expected.expectErr {
-				assert.Error(t, o[0].Error)
+				assert.Error(t, o.Error)
 			}
 		})
 	}

@@ -37,25 +37,27 @@ func (d Disk) ID() string {
 	return "disks"
 }
 
-func (d Disk) Run() []op.Op {
-	opList := make([]op.Op, 0)
+func (d Disk) Run() op.Op {
 	var partitions []Partition
 
 	dp, err := disk.Partitions(true)
 	if err != nil {
 		hclog.L().Trace("runner/host.Disk.Run()", "error", err)
 		err1 := fmt.Errorf("error getting disk information err=%w", err)
-		return append(opList, op.New(d.ID(), partitions, op.Unknown, err1, nil))
+		result := map[string]any{"partitions": partitions}
+		return op.New(d.ID(), result, op.Unknown, err1, nil)
 	}
 
 	partitions, err = d.partitions(dp)
 	if err != nil {
 		hclog.L().Trace("runner/host.Disk.Run() failed to convert partition info", "error", err)
 		err1 := fmt.Errorf("error converting partition information err=%w", err)
-		return append(opList, op.New(d.ID(), partitions, op.Fail, err1, nil))
+		result := map[string]any{"partitions": partitions}
+		return op.New(d.ID(), result, op.Fail, err1, runner.Params(d))
 	}
 
-	return append(opList, op.New(d.ID(), partitions, op.Success, nil, nil))
+	result := map[string]any{"partitions": partitions}
+	return op.New(d.ID(), result, op.Success, nil, runner.Params(d))
 }
 
 func (d Disk) partitions(dps []disk.PartitionStat) ([]Partition, error) {

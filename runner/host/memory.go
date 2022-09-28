@@ -16,14 +16,13 @@ func (m Memory) ID() string {
 }
 
 // Run calls out to mem.VirtualMemory
-func (m Memory) Run() []op.Op {
-	opList := make([]op.Op, 0)
-
+func (m Memory) Run() op.Op {
 	memoryInfo, err := mem.VirtualMemory()
+	result := map[string]any{"memoryInfo": memoryInfo}
 	if err != nil {
 		hclog.L().Trace("runner/host.Memory.Run()", "error", err)
-		return append(opList, op.New(m.ID(), memoryInfo, op.Fail, err, nil))
+		return op.New(m.ID(), result, op.Fail, err, runner.Params(m))
 	}
 
-	return append(opList, op.New(m.ID(), memoryInfo, op.Success, nil, nil))
+	return op.New(m.ID(), result, op.Success, nil, runner.Params(m))
 }
