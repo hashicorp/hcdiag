@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Clean up the temporary directory even if hcdiag does not finish successfully, for example due to a failing product healthcheck. Previously, directories beginning with `hcdiag` would be left over in the working directory in the event of a failure.
+```
