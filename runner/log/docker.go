@@ -49,17 +49,19 @@ func (d Docker) Run() op.Op {
 			runner.Params(d))
 	}
 
+	// Check whether the container can be found on the system
+	if !d.containerExists() {
+		return op.New(d.ID(), "", op.Skip, ContainerNotFoundError{
+			container: d.Container,
+		},
+			runner.Params(d))
+	}
+
 	// Retrieve logs
 	cmd := DockerLogCmd(d.Container, d.DestDir, d.Since)
 	o = runner.NewSheller(cmd, d.Redactions).Run()
-	// NOTE(mkcp): If the container does not exist, docker will exit non-zero and it'll surface as a ShellExecError.
-	//  The result actionably states that the container wasn't found. In the future we may want to scrub the result
-	//  and only return an actionable error message
 	if o.Error != nil {
 		return op.New(d.ID(), o.Result, o.Status, o.Error, runner.Params(d))
-	}
-	if o.Result == "" {
-		return op.New(d.ID(), o.Result, op.Unknown, DockerNoLogsError{container: d.Container}, runner.Params(d))
 	}
 
 	return op.New(d.ID(), o.Result, op.Success, nil, runner.Params(d))
@@ -79,6 +81,13 @@ func DockerLogCmd(container, destDir string, since time.Time) string {
 	return cmd
 }
 
+func (d Docker) containerExists() bool {
+	// attempt to inspect the container by name, to ensure it exists
+	cmd := fmt.Sprintf("docker container inspect %s > /dev/null 2>&1", d.Container)
+	o := runner.NewSheller(cmd, d.Redactions).Run()
+	return o.Error == nil
+}
+
 var _ error = DockerNotFoundError{}
 
 type DockerNotFoundError struct {
@@ -94,10 +103,22 @@ func (e DockerNotFoundError) Unwrap() error {
 	return e.err
 }
 
+var _ error = DockerNoLogsError{}
+
 type DockerNoLogsError struct {
 	container string
 }
 
 func (e DockerNoLogsError) Error() string {
 	return fmt.Sprintf("docker container found but results were empty, container=%s", e.container)
+}
+
+var _ error = ContainerNotFoundError{}
+
+type ContainerNotFoundError struct {
+	container string
+}
+
+func (e ContainerNotFoundError) Error() string {
+	return fmt.Sprintf("docker container not found, container=%s", e.container)
 }
