@@ -14,20 +14,24 @@ var _ runner.Runner = Do{}
 
 // Do runs shell commands.
 type Do struct {
-	Runners []runner.Runner `json:"runners"`
-	log     hclog.Logger
+	Runners     []runner.Runner `json:"runners"`
+	Label       string          `json:"label"`
+	Description string          `json:"description"`
+	log         hclog.Logger
 }
 
 // New returns a pointer to a new Do runner
-func New(l hclog.Logger, runners []runner.Runner) *Do {
+func New(l hclog.Logger, label, description string, runners []runner.Runner) *Do {
 	return &Do{
-		Runners: runners,
-		log:     l,
+		Label:       label,
+		Description: description,
+		Runners:     runners,
+		log:         l,
 	}
 }
 
 func (d Do) ID() string {
-	return "do"
+	return "do " + d.Label
 }
 
 // Run asynchronously executes all Runners and returns the resulting ops when the last one has finished

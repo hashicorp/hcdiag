@@ -13,17 +13,19 @@ var _ runner.Runner = Sync{}
 
 // Sync runs shell commands.
 type Sync struct {
-	Runners []runner.Runner `json:"runners"`
-	log     hclog.Logger
-	// TODO(dcohen): should "Do/DoSync" accept redactions? My instinct is no.
-	// Redactions []*redact.Redact `json:"redactions"`
+	Runners     []runner.Runner `json:"runners"`
+	Label       string          `json:"label"`
+	Description string          `json:"description"`
+	log         hclog.Logger
 }
 
 // NewSync provides a runner for bin commands
-func NewSync(l hclog.Logger, runners []runner.Runner) *Sync {
+func NewSync(l hclog.Logger, label, description string, runners []runner.Runner) *Sync {
 	return &Sync{
-		Runners: runners,
-		log:     l,
+		Label:       label,
+		Description: description,
+		Runners:     runners,
+		log:         l,
 	}
 }
 
