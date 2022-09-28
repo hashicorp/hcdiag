@@ -86,7 +86,7 @@ func (d Docker) containerExists() bool {
 	// attempt to inspect the container by name, to ensure it exists
 	cmd := fmt.Sprintf("docker container inspect %s > /dev/null 2>&1", d.Container)
 	o := runner.NewSheller(cmd, d.Redactions).Run()
-	return o[0].Error == nil
+	return o.Error == nil
 }
 
 var _ error = DockerNotFoundError{}
