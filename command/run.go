@@ -77,7 +77,7 @@ func (c *RunCommand) init() {
 		destinationUsageText   = "Path to the directory the bundle should be written in"
 		destUsageText          = "Shorthand for -destination"
 		configUsageText        = "Path to HCL configuration file"
-		includesUsageText      = "Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'"
+		includesUsageText      = "DEPRECATED: Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead"
 	)
 
 	// flag.ContinueOnError allows flag.Parse to return an error if one comes up, rather than doing an `os.Exit(2)`
@@ -263,6 +263,11 @@ func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 
 	// Params for --includes
 	config.Includes = c.includes
+	if len(c.includes) > 0 {
+		hclog.L().Warn(
+			"DEPRECATION NOTICE: The '-includes' option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead.",
+		)
+	}
 
 	// Bundle write location
 	config.Destination = c.destination

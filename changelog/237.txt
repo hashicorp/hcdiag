@@ -1,0 +1,3 @@
+```release-note:deprecation
+deprecation: -includes flag will be removed in a future version of hcdiag
+```
