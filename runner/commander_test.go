@@ -167,6 +167,19 @@ func Test_parseCommand(t *testing.T) {
 				err: &CommandParseError{},
 			},
 		},
+		{
+			desc:    "Test Windows style paths",
+			command: "consul debug -output=C:\\\\Temp\\\\ConsulDebug -duration=10s -interval=5s",
+			expect: parsedCommand{
+				cmd: "consul",
+				args: []string{
+					"debug",
+					"-output=C:\\Temp\\ConsulDebug",
+					"-duration=10s",
+					"-interval=5s",
+				},
+			},
+		},
 	}
 
 	for _, tc := range tt {
