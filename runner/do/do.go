@@ -44,7 +44,7 @@ func (d Do) Run() op.Op {
 	for _, r := range d.Runners {
 		d.log.Info("running operation", "runner", r.ID())
 		go func(results *sync.Map, r runner.Runner) {
-			m.Store(r.ID(), r.Run())
+			results.Store(r.ID(), r.Run())
 			wg.Done()
 		}(&m, r)
 	}
