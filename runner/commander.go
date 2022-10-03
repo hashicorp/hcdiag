@@ -109,7 +109,9 @@ func parseCommand(command string) parsedCommand {
 	parsed := parsedCommand{}
 
 	if runtime.GOOS == "windows" {
-		parsed.cmd = command
+		split := strings.Split(command, " ")
+		parsed.cmd = split[0]
+		parsed.args = split[1:]
 		return parsed
 	}
 
