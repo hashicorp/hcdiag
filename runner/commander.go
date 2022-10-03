@@ -105,7 +105,7 @@ type parsedCommand struct {
 	err  error
 }
 
-func parseCommand(command string) parsedCommand {
+func parseCommand(command string) (parsedCommand, error) {
 	parsed := parsedCommand{}
 
 	// Under the hood, the arguments provided to Windows are re-joined into a single string, allowing the Windows
