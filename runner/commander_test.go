@@ -171,13 +171,16 @@ func Test_parseCommand(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			p := parseCommand(tc.command)
+			p, err := parseCommand(tc.command)
 			if tc.expect.err != nil {
 				assert.Error(t, p.err)
-				// We verify that we can decode the error as the one
+				assert.Error(t, err)
+				// We verify that we can decode the error as the one we expect
 				assert.ErrorAs(t, p.err, tc.expect.err)
+				assert.ErrorAs(t, err, tc.expect.err)
 			} else {
 				assert.NoError(t, p.err)
+				assert.NoError(t, err)
 			}
 			assert.Equal(t, tc.expect.cmd, p.cmd)
 			assert.Equal(t, tc.expect.args, p.args)

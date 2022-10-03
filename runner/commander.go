@@ -37,13 +37,13 @@ func (c Commander) ID() string {
 
 // Run executes the Command
 func (c Commander) Run() op.Op {
-	p := parseCommand(c.Command)
-	if p.err != nil {
-		return op.New(c.ID(), nil, op.Fail, p.err, Params(c))
+	p, err := parseCommand(c.Command)
+	if err != nil {
+		return op.New(c.ID(), nil, op.Fail, err, Params(c))
 	}
 
 	// Exit early with a wrapped error if the command isn't found on this system
-	_, err := util.HostCommandExists(p.cmd)
+	_, err = util.HostCommandExists(p.cmd)
 	if err != nil {
 		return op.New(c.ID(), nil, op.Skip, err, Params(c))
 	}
@@ -117,33 +117,35 @@ func parseCommand(command string) (parsedCommand, error) {
 		split := strings.Split(command, " ")
 		parsed.cmd = split[0]
 		parsed.args = split[1:]
-		return parsed
+		return parsed, nil
 	}
 
 	// Argv returns a [][]string, where each outer slice represents commands split by '|' and the inner slices
 	// have the command at element 0 and any arguments to the command in the remaining elements.
 	p, err := argv.Argv(command, nil, nil)
 	if err != nil {
-		parsed.err = CommandParseError{
+		e := CommandParseError{
 			command: command,
 			err:     err,
 		}
-		return parsed
+		parsed.err = e
+		return parsed, e
 	}
 
 	// We only support a single command, without piping from one to the next, in Commander
 	if len(p) > 1 {
-		parsed.err = CommandParseError{
+		e := CommandParseError{
 			command: command,
 			err:     fmt.Errorf("piped commands are unsupported, please use a Sheller runner or multiple Commander runners, command=%s", command),
 		}
-		return parsed
+		parsed.err = e
+		return parsed, e
 	}
 
 	parsed.cmd = p[0][0]
 	parsed.args = p[0][1:]
 
-	return parsed
+	return parsed, nil
 }
 
 var _ error = CommandParseError{}
