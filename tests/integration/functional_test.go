@@ -95,6 +95,14 @@ func TestFunctional(t *testing.T) {
 					outFiles: []string{},
 					skip:     runtime.GOOS != "windows",
 				},
+				"command-arg-processing": {
+					flags: []string{
+						"-autodetect=false",
+						"-config=cmd_args.hcl",
+					},
+					outFiles: []string{},
+					skip:     false,
+				},
 			}
 
 			for name, tc := range testTable {
