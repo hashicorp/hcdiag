@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/cosiner/argv"
@@ -107,6 +108,11 @@ type parsedCommand struct {
 func parseCommand(command string) parsedCommand {
 	parsed := parsedCommand{}
 
+	if runtime.GOOS == "windows" {
+		parsed.cmd = command
+		return parsed
+	}
+
 	// Argv returns a [][]string, where each outer slice represents commands split by '|' and the inner slices
 	// have the command at element 0 and any arguments to the command in the remaining elements.
 	p, err := argv.Argv(command, nil, nil)
@@ -131,7 +137,6 @@ func parseCommand(command string) parsedCommand {
 	parsed.args = p[0][1:]
 
 	return parsed
-
 }
 
 var _ error = CommandParseError{}
