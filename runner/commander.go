@@ -108,6 +108,11 @@ type parsedCommand struct {
 func parseCommand(command string) parsedCommand {
 	parsed := parsedCommand{}
 
+	// Under the hood, the arguments provided to Windows are re-joined into a single string, allowing the Windows
+	// OS to handle splitting however it needs to (see syscall/exec_windows.go, along with doc comments for exec.Command).
+	// Allowing Windows paths through to argv can cause issues with character escaping; rather than adding complexity
+	// to command parsing, just to have the args rejoined later on Windows, we short-circuit here, pulling out the cmd
+	// name and arguments using a simple split on spaces.
 	if runtime.GOOS == "windows" {
 		split := strings.Split(command, " ")
 		parsed.cmd = split[0]
