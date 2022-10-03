@@ -1,6 +1,8 @@
 package runner
 
 import (
+	"time"
+
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
@@ -29,11 +31,13 @@ func (h HTTPer) ID() string {
 
 // Run executes a GET request to the Path using the Client
 func (h HTTPer) Run() op.Op {
+	startTime := time.Now()
+
 	result, err := h.Client.RedactGet(h.Path, h.Redactions)
 	if err != nil {
-		op.New(h.ID(), result, op.Fail, err, Params(h))
+		op.New(h.ID(), result, op.Fail, err, Params(h), startTime, time.Now())
 	}
 
 	// Check type of result to see if we can return a redacted result in the op
-	return op.New(h.ID(), result, op.Success, nil, Params(h))
+	return op.New(h.ID(), result, op.Success, nil, Params(h), startTime, time.Now())
 }

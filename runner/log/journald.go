@@ -43,13 +43,15 @@ func (j Journald) ID() string {
 // Run attempts to pull logs from journald via shell command, e.g.:
 // journalctl -x -u {name} --since '3 days ago' --no-pager > {destDir}/journald-{name}.log
 func (j Journald) Run() op.Op {
+	startTime := time.Now()
+
 	o := runner.NewSheller("journalctl --version", j.Redactions).Run()
 	if o.Error != nil {
 		return op.New(j.ID(), o.Result, op.Skip, JournaldNotFound{
 			service: j.Service,
 			err:     o.Error,
 		},
-			runner.Params(j))
+			runner.Params(j), startTime, time.Now())
 	}
 
 	// Check if systemd has a unit with the provided name
@@ -63,7 +65,7 @@ func (j Journald) Run() op.Op {
 			result:  fmt.Sprintf("%s", o.Result),
 			err:     o.Error,
 		},
-			runner.Params(j))
+			runner.Params(j), startTime, time.Now())
 	}
 
 	// check if user is able to read messages
@@ -77,13 +79,13 @@ func (j Journald) Run() op.Op {
 			result:  fmt.Sprintf("%s", o.Result),
 			err:     o.Error,
 		},
-			runner.Params(j))
+			runner.Params(j), startTime, time.Now())
 	}
 
 	cmd = j.LogsCmd()
 	o = runner.NewSheller(cmd, j.Redactions).Run()
 
-	return op.New(j.ID(), o.Result, o.Status, o.Error, runner.Params(j))
+	return op.New(j.ID(), o.Result, o.Status, o.Error, runner.Params(j), startTime, time.Now())
 }
 
 // LogsCmd arranges the params into a runnable command string.

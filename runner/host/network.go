@@ -2,6 +2,7 @@ package host
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/op"
@@ -37,11 +38,12 @@ func (n Network) ID() string {
 }
 
 func (n Network) Run() op.Op {
+	startTime := time.Now()
 	var interfaces []NetworkInterface
 	netIfs, err := net.Interfaces()
 	if err != nil {
 		hclog.L().Trace("runner/host.Network.Run()", "error", err)
-		return op.New(n.ID(), interfaces, op.Fail, err, nil)
+		return op.New(n.ID(), interfaces, op.Fail, err, nil, startTime, time.Now())
 	}
 
 	for _, netIf := range netIfs {
@@ -49,12 +51,12 @@ func (n Network) Run() op.Op {
 		if err != nil {
 			hclog.L().Trace("runner/host.Network.Run()", "error", err)
 			err1 := fmt.Errorf("error converting network information err=%w", err)
-			return op.New(n.ID(), interfaces, op.Fail, err1, nil)
+			return op.New(n.ID(), interfaces, op.Fail, err1, nil, startTime, time.Now())
 		}
 		interfaces = append(interfaces, ifce)
 	}
 
-	return op.New(n.ID(), interfaces, op.Success, nil, nil)
+	return op.New(n.ID(), interfaces, op.Success, nil, nil, startTime, time.Now())
 }
 
 func (n Network) networkInterface(nis net.InterfaceStat) (NetworkInterface, error) {

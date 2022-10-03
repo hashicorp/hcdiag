@@ -1,6 +1,8 @@
 package host
 
 import (
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
@@ -33,21 +35,22 @@ func (p Process) ID() string {
 }
 
 func (p Process) Run() op.Op {
+	startTime := time.Now()
 	var procs []Proc
 
 	psProcs, err := ps.Processes()
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
-		return op.New(p.ID(), procs, op.Fail, err, nil)
+		return op.New(p.ID(), procs, op.Fail, err, nil, startTime, time.Now())
 	}
 
 	procs, err = p.procs(psProcs)
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
-		return op.New(p.ID(), procs, op.Fail, err, nil)
+		return op.New(p.ID(), procs, op.Fail, err, nil, startTime, time.Now())
 	}
 
-	return op.New(p.ID(), procs, op.Success, nil, nil)
+	return op.New(p.ID(), procs, op.Success, nil, nil, startTime, time.Now())
 }
 
 func (p Process) procs(psProcs []ps.Process) ([]Proc, error) {

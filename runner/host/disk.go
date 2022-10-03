@@ -2,6 +2,7 @@ package host
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
@@ -39,22 +40,23 @@ func (d Disk) ID() string {
 
 func (d Disk) Run() op.Op {
 	var partitions []Partition
+	startTime := time.Now()
 
 	dp, err := disk.Partitions(true)
 	if err != nil {
 		hclog.L().Trace("runner/host.Disk.Run()", "error", err)
 		err1 := fmt.Errorf("error getting disk information err=%w", err)
-		return op.New(d.ID(), partitions, op.Unknown, err1, nil)
+		return op.New(d.ID(), partitions, op.Unknown, err1, nil, startTime, time.Now())
 	}
 
 	partitions, err = d.partitions(dp)
 	if err != nil {
 		hclog.L().Trace("runner/host.Disk.Run() failed to convert partition info", "error", err)
 		err1 := fmt.Errorf("error converting partition information err=%w", err)
-		return op.New(d.ID(), partitions, op.Fail, err1, nil)
+		return op.New(d.ID(), partitions, op.Fail, err1, nil, startTime, time.Now())
 	}
 
-	return op.New(d.ID(), partitions, op.Success, nil, nil)
+	return op.New(d.ID(), partitions, op.Success, nil, nil, startTime, time.Now())
 }
 
 func (d Disk) partitions(dps []disk.PartitionStat) ([]Partition, error) {

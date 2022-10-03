@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
@@ -35,6 +36,8 @@ func (c Commander) ID() string {
 
 // Run executes the Command
 func (c Commander) Run() op.Op {
+	startTime := time.Now()
+
 	bits := strings.Split(c.Command, " ")
 	cmd := bits[0]
 	args := bits[1:]
@@ -42,14 +45,14 @@ func (c Commander) Run() op.Op {
 	// Exit early with a wrapped error if the command isn't found on this system
 	_, err := util.HostCommandExists(cmd)
 	if err != nil {
-		return op.New(c.ID(), nil, op.Skip, err, Params(c))
+		return op.New(c.ID(), nil, op.Skip, err, Params(c), startTime, time.Now())
 	}
 
 	// Execute command
 	bts, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
-		return op.New(c.ID(), string(bts), op.Unknown, err1, Params(c))
+		return op.New(c.ID(), string(bts), op.Unknown, err1, Params(c), startTime, time.Now())
 	}
 
 	// Parse result format
@@ -58,10 +61,10 @@ func (c Commander) Run() op.Op {
 	case c.Format == "string":
 		redBts, err := redact.Bytes(bts, c.Redactions)
 		if err != nil {
-			return op.New(c.ID(), nil, op.Fail, err, Params(c))
+			return op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
 		}
 		redResult := strings.TrimSuffix(string(redBts), "\n")
-		return op.New(c.ID(), redResult, op.Success, nil, Params(c))
+		return op.New(c.ID(), redResult, op.Success, nil, Params(c), startTime, time.Now())
 
 	case c.Format == "json":
 		var obj any
@@ -70,29 +73,29 @@ func (c Commander) Run() op.Op {
 			// Redact the string to return the failed-to-parse JSON
 			redBts, redErr := redact.Bytes(bts, c.Redactions)
 			if redErr != nil {
-				return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+				return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
 			}
 			return op.New(c.ID(), string(redBts), op.Unknown,
 				UnmarshalError{
 					command: c.Command,
 					err:     marshErr,
-				}, Params(c))
+				}, Params(c), startTime, time.Now())
 		}
 		redResult, redErr := redact.JSON(obj, c.Redactions)
 		if redErr != nil {
-			return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+			return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
 		}
-		return op.New(c.ID(), redResult, op.Success, nil, Params(c))
+		return op.New(c.ID(), redResult, op.Success, nil, Params(c), startTime, time.Now())
 	default:
 		redBts, redErr := redact.Bytes(bts, c.Redactions)
 		if redErr != nil {
-			return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
+			return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
 		}
 		return op.New(c.ID(), string(redBts), op.Fail,
 			FormatUnknownError{
 				command: c.Command,
 				format:  c.Format,
-			}, Params(c))
+			}, Params(c), startTime, time.Now())
 	}
 }
 
