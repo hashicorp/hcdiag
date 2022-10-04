@@ -1,3 +1,4 @@
+The diagnostic run has completed. The results bundle can be found at /this/is/a/test/path/bundle.tar.gz.
 product  success  fail  skip  unknown  total  
 consul   2        1     1     1        5      
 nomad    0        1     1     1        3      

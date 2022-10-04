@@ -3,14 +3,10 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
-	"text/tabwriter"
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
@@ -54,6 +50,7 @@ type Agent struct {
 	results     map[product.Name]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
+	resultsFile string
 	Start       time.Time       `json:"started_at"`
 	End         time.Time       `json:"ended_at"`
 	Duration    string          `json:"duration"`
@@ -404,6 +401,7 @@ func (a *Agent) WriteOutput() (err error) {
 		a.l.Error("util.TarGz", "error", err)
 		return err
 	}
+	a.resultsFile = resultsDest
 	a.l.Info("Compressed and archived output file", "dest", resultsDest)
 
 	return nil
@@ -507,83 +505,8 @@ func (a *Agent) Setup() error {
 	return nil
 }
 
-// WriteSummary writes a summary report that includes the products and op statuses present in the agent's
-// ManifestOps. The intended use case is to write to output at the end of the Agent's Run.
-func (a *Agent) WriteSummary(writer io.Writer) error {
-	t := tabwriter.NewWriter(writer, 0, 0, 2, ' ', 0)
-	headers := []string{
-		"product",
-		string(op.Success),
-		string(op.Fail),
-		string(op.Skip),
-		string(op.Unknown),
-		"total",
-	}
-
-	_, err := fmt.Fprint(t, formatReportLine(headers...))
-	if err != nil {
-		return err
-	}
-
-	// For deterministic output, we sort the products in alphabetical order. Otherwise, ranging over the map
-	// a.ManifestOps directly, we wouldn't know for certain which order the keys - and therefore the rows - would be in.
-	var products []string
-	for k := range a.ManifestOps {
-		products = append(products, k)
-	}
-	sort.Strings(products)
-
-	for _, prod := range products {
-		var success, fail, skip, unknown int
-		ops := a.ManifestOps[prod]
-
-		for _, o := range ops {
-			switch o.Status {
-			case op.Success:
-				success++
-			case op.Fail:
-				fail++
-			case op.Skip:
-				skip++
-			default:
-				unknown++
-			}
-		}
-
-		_, err := fmt.Fprint(t, formatReportLine(
-			prod,
-			strconv.Itoa(success),
-			strconv.Itoa(fail),
-			strconv.Itoa(skip),
-			strconv.Itoa(unknown),
-			strconv.Itoa(len(ops))))
-		if err != nil {
-			return err
-		}
-	}
-
-	err = t.Flush()
-	if err != nil {
-		return err
-	}
-
-	return err
-}
-
-func formatReportLine(cells ...string) string {
-	format := ""
-
-	// The coercion from the argument of type []string to type []interface is required for the later
-	// call to fmt.Sprintf, in which variadic arguments must be of type any/interface{}.
-	strValues := make([]interface{}, len(cells))
-	for i, cell := range cells {
-		format += "%s\t"
-		strValues[i] = cell
-	}
-
-	format += "\n"
-
-	return fmt.Sprintf(format, strValues...)
+func (a *Agent) ResultsFile() string {
+	return a.resultsFile
 }
 
 // agentRedactions returns the default agent-level redactions that we ship with hcdiag

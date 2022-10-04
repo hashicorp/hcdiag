@@ -6,10 +6,14 @@ import (
 	"io"
 	"os"
 	"path"
+	"sort"
+	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/hcdiag/agent"
@@ -185,10 +189,10 @@ func (c *RunCommand) Run(args []string) int {
 		return AgentExecutionError
 	}
 
-	// TODO (nwchandler): Pass in the client UI for output
-	if err = a.WriteSummary(os.Stdout); err != nil {
+	resultsFile := a.ResultsFile()
+	if err = writeSummary(os.Stdout, resultsFile, a.ManifestOps); err != nil {
 		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
-		return AgentExecutionError
+		return RunError
 	}
 
 	return Success
@@ -301,4 +305,89 @@ func setTime(cfg agent.Config, now time.Time, since time.Duration) agent.Config 
 	cfg.Until = time.Time{}
 
 	return cfg
+}
+
+func writeSummary(writer io.Writer, resultsFile string, manifestOps map[string][]agent.ManifestOp) error {
+	if resultsFile == "" {
+		resultsFile = "<unknown>"
+	}
+	helpText := fmt.Sprintf("The diagnostic run has completed. The results bundle can be found at %s.\n", resultsFile)
+	_, err := writer.Write([]byte(helpText))
+	if err != nil {
+		return err
+	}
+
+	t := tabwriter.NewWriter(writer, 0, 0, 2, ' ', 0)
+	headers := []string{
+		"product",
+		string(op.Success),
+		string(op.Fail),
+		string(op.Skip),
+		string(op.Unknown),
+		"total",
+	}
+
+	_, err = fmt.Fprint(t, formatReportLine(headers...))
+	if err != nil {
+		return err
+	}
+
+	// For deterministic output, we sort the products in alphabetical order. Otherwise, ranging over the map
+	// a.ManifestOps directly, we wouldn't know for certain which order the keys - and therefore the rows - would be in.
+	var products []string
+	for k := range manifestOps {
+		products = append(products, k)
+	}
+	sort.Strings(products)
+
+	for _, prod := range products {
+		var success, fail, skip, unknown int
+		ops := manifestOps[prod]
+
+		for _, o := range ops {
+			switch o.Status {
+			case op.Success:
+				success++
+			case op.Fail:
+				fail++
+			case op.Skip:
+				skip++
+			default:
+				unknown++
+			}
+		}
+
+		_, err := fmt.Fprint(t, formatReportLine(
+			prod,
+			strconv.Itoa(success),
+			strconv.Itoa(fail),
+			strconv.Itoa(skip),
+			strconv.Itoa(unknown),
+			strconv.Itoa(len(ops))))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = t.Flush()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func formatReportLine(cells ...string) string {
+	format := ""
+
+	// The coercion from the argument of type []string to type []interface is required for the later
+	// call to fmt.Sprintf, in which variadic arguments must be of type any/interface{}.
+	strValues := make([]interface{}, len(cells))
+	for i, cell := range cells {
+		format += "%s\t"
+		strValues[i] = cell
+	}
+
+	format += "\n"
+
+	return fmt.Sprintf(format, strValues...)
 }
