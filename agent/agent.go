@@ -246,8 +246,7 @@ func (a *Agent) TempDir() string {
 }
 
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
-//
-//	artifact.
+// artifact.
 func (a *Agent) CreateTemp() error {
 	tmp, err := os.MkdirTemp(a.Config.Destination, a.TempDir())
 	if err != nil {
@@ -312,8 +311,7 @@ func (a *Agent) CopyIncludes() (err error) {
 
 // RunProducts executes all ops for this run.
 // TODO(mkcp): We can avoid locking and waiting on results if all results are generated async. Then they can get streamed
-//
-//	back to the dispatcher and merged into either a sync.Map or a purpose-built results map with insert(), read(), and merge().
+// back to the dispatcher and merged into either a sync.Map or a purpose-built results map with insert(), read(), and merge().
 func (a *Agent) RunProducts() error {
 	// Set up our waitgroup to make sure we don't proceed until all products execute.
 	wg := sync.WaitGroup{}
