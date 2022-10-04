@@ -357,7 +357,7 @@ func (a *Agent) RecordManifest() {
 	for name, ops := range a.results {
 		for _, o := range ops {
 			// duration string, in nanoseconds
-			dur := fmt.Sprintf("%d nanoseconds", o.EndTime.Sub(o.StartTime).Nanoseconds())
+			dur := fmt.Sprintf("%d nanoseconds", o.End.Sub(o.Start).Nanoseconds())
 
 			m := ManifestOp{
 				ID:       o.Identifier,

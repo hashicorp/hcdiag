@@ -32,8 +32,8 @@ type Op struct {
 	Error      error                  `json:"-"`
 	Status     Status                 `json:"status"`
 	Params     map[string]interface{} `json:"params,omitempty"`
-	StartTime  time.Time              `json:"start_time"`
-	EndTime    time.Time              `json:"end_time"`
+	Start      time.Time              `json:"start"`
+	End        time.Time              `json:"end"`
 }
 
 // New takes a runner its results, serializing it into an immutable Op struct.
@@ -50,8 +50,8 @@ func New(id string, result interface{}, status Status, err error, params map[str
 		ErrString:  message,
 		Status:     status,
 		Params:     params,
-		StartTime:  start,
-		EndTime:    end,
+		Start:      start,
+		End:        end,
 	}
 }
 
