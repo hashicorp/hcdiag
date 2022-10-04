@@ -50,7 +50,7 @@ type Agent struct {
 	results     map[product.Name]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
-	resultsFile string
+	resultsDest string
 	Start       time.Time       `json:"started_at"`
 	End         time.Time       `json:"ended_at"`
 	Duration    string          `json:"duration"`
@@ -401,7 +401,7 @@ func (a *Agent) WriteOutput() (err error) {
 		a.l.Error("util.TarGz", "error", err)
 		return err
 	}
-	a.resultsFile = resultsDest
+	a.resultsDest = resultsDest
 	a.l.Info("Compressed and archived output file", "dest", resultsDest)
 
 	return nil
@@ -505,8 +505,12 @@ func (a *Agent) Setup() error {
 	return nil
 }
 
-func (a *Agent) ResultsFile() string {
-	return a.resultsFile
+// ResultsDest is provided for read-only access to the destination where the agent writes its results. The particular
+// destination is determined by the agent while running; it is unexported to avoid accidental overwrite by external
+// packages. However, its value is useful to know for downstream user interaction, so this method intends to provide
+// that ability.
+func (a *Agent) ResultsDest() string {
+	return a.resultsDest
 }
 
 // agentRedactions returns the default agent-level redactions that we ship with hcdiag

@@ -189,7 +189,7 @@ func (c *RunCommand) Run(args []string) int {
 		return AgentExecutionError
 	}
 
-	resultsFile := a.ResultsFile()
+	resultsFile := a.ResultsDest()
 	if err = writeSummary(os.Stdout, resultsFile, a.ManifestOps); err != nil {
 		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
 		return RunError
