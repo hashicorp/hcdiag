@@ -52,7 +52,8 @@ func (c Commander) Run() op.Op {
 	bts, err := exec.Command(p.cmd, p.args...).CombinedOutput()
 	if err != nil {
 		err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
-		return op.New(c.ID(), string(bts), op.Unknown, err1, Params(c))
+		result := map[string]any{"text": string(bts)}
+		return op.New(c.ID(), result, op.Unknown, err1, Params(c))
 	}
 
 	// Parse result format
@@ -64,7 +65,8 @@ func (c Commander) Run() op.Op {
 			return op.New(c.ID(), nil, op.Fail, err, Params(c))
 		}
 		redResult := strings.TrimSuffix(string(redBts), "\n")
-		return op.New(c.ID(), redResult, op.Success, nil, Params(c))
+		result := map[string]any{"text": redResult}
+		return op.New(c.ID(), result, op.Success, nil, Params(c))
 
 	case c.Format == "json":
 		var obj any
@@ -75,7 +77,8 @@ func (c Commander) Run() op.Op {
 			if redErr != nil {
 				return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
 			}
-			return op.New(c.ID(), string(redBts), op.Unknown,
+			result := map[string]any{"json": string(redBts)}
+			return op.New(c.ID(), result, op.Unknown,
 				UnmarshalError{
 					command: c.Command,
 					err:     marshErr,
@@ -85,13 +88,15 @@ func (c Commander) Run() op.Op {
 		if redErr != nil {
 			return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
 		}
-		return op.New(c.ID(), redResult, op.Success, nil, Params(c))
+		result := map[string]any{"json": redResult}
+		return op.New(c.ID(), result, op.Success, nil, Params(c))
 	default:
 		redBts, redErr := redact.Bytes(bts, c.Redactions)
 		if redErr != nil {
 			return op.New(c.ID(), nil, op.Fail, redErr, Params(c))
 		}
-		return op.New(c.ID(), string(redBts), op.Fail,
+		result := map[string]any{"out": string(redBts)}
+		return op.New(c.ID(), result, op.Fail,
 			FormatUnknownError{
 				command: c.Command,
 				format:  c.Format,

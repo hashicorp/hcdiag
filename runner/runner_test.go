@@ -12,7 +12,7 @@ import (
 
 var (
 	mockID            = "mock"
-	mockResult        = "get mock'd"
+	mockResult        = map[string]any{"mock": "get mock'd"}
 	errFake           = errors.New("uh oh a fake error")
 	testStatus        = op.Status("test")
 	_          Runner = MockRunner{}
@@ -44,13 +44,9 @@ func (r MockRunner) Run() op.Op {
 func TestRunner_Run(t *testing.T) {
 	r := NewMockRunner(mockID)
 	o := r.Run()
-
-	// assert that return values are also being stored as struct fields
+	assert.Equal(t, mockResult, o.Result, "returned result does not match Op Result field")
 	if o.Identifier != mockID {
 		t.Errorf("returned result (%s) does not match Op Result field (%s)", mockID, o.Identifier)
-	}
-	if o.Result != mockResult {
-		t.Errorf("returned result (%s) does not match Op Result field (%s)", mockResult, o.Result)
 	}
 	if o.Error != errFake {
 		t.Errorf("returned err (%s) does not match Op Error field (%s)", errFake, o.Error)

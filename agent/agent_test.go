@@ -143,8 +143,8 @@ func TestRunProducts(t *testing.T) {
 	assert.NoError(t, err)
 	p[product.Host] = h
 
-	err = a.RunProducts()
-	assert.NoError(t, err)
+	err1 := a.RunProducts()
+	assert.NoError(t, err1)
 	assert.Len(t, a.products, 1, "has one product")
 	assert.NotNil(t, a.products["host"], "product is under \"host\" key")
 }

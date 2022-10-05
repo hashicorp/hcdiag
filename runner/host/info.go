@@ -48,20 +48,22 @@ func (i Info) ID() string {
 func (i Info) Run() op.Op {
 	// third party
 	var hostInfo InfoStat
+
 	hi, err := host.Info()
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run()", "error", err)
-		return op.New(i.ID(), hostInfo, op.Fail, err, nil)
+		return op.New(i.ID(), nil, op.Fail, err, runner.Params(i))
 	}
 
 	hostInfo, err = i.infoStat(hi)
+	result := map[string]any{"hostInfo": hostInfo}
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run() failed to convert host info", "error", err)
 		err1 := fmt.Errorf("error converting host information err=%w", err)
-		return op.New(i.ID(), hostInfo, op.Fail, err1, nil)
+		return op.New(i.ID(), result, op.Fail, err1, runner.Params(i))
 	}
 
-	return op.New(i.ID(), hostInfo, op.Success, nil, nil)
+	return op.New(i.ID(), result, op.Success, nil, runner.Params(i))
 }
 
 func (i Info) infoStat(hi *host.InfoStat) (InfoStat, error) {

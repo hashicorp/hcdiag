@@ -38,16 +38,18 @@ func (p Process) Run() op.Op {
 	psProcs, err := ps.Processes()
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
-		return op.New(p.ID(), procs, op.Fail, err, nil)
+		results := map[string]any{"procs": psProcs}
+		return op.New(p.ID(), results, op.Fail, err, runner.Params(p))
 	}
 
 	procs, err = p.procs(psProcs)
+	results := map[string]any{"procs": procs}
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
-		return op.New(p.ID(), procs, op.Fail, err, nil)
+		return op.New(p.ID(), results, op.Fail, err, runner.Params(p))
 	}
 
-	return op.New(p.ID(), procs, op.Success, nil, nil)
+	return op.New(p.ID(), results, op.Success, nil, runner.Params(p))
 }
 
 func (p Process) procs(psProcs []ps.Process) ([]Proc, error) {

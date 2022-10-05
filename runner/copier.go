@@ -82,7 +82,8 @@ func (c Copier) Run() op.Op {
 		}
 	}
 
-	return op.New(c.ID(), files, op.Success, nil, Params(c))
+	result := map[string]any{"files": files}
+	return op.New(c.ID(), result, op.Success, nil, Params(c))
 }
 
 type MakeDirError struct {

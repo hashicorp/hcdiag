@@ -21,7 +21,7 @@ func TestSheller(t *testing.T) {
 	c := NewSheller("echo hiii | grep hi > cooltestfile", nil)
 	defer os.Remove("cooltestfile")
 	o := c.Run()
-	assert.Equal(t, "", o.Result)
+	assert.Equal(t, map[string]any{"shell": ""}, o.Result)
 	assert.NoError(t, o.Error)
 
 	bts, err := os.ReadFile("cooltestfile")

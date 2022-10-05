@@ -71,7 +71,7 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	// Add built-in runners
-	builtInRunners, err := nomadRunners(cfg, api)
+	builtInRunners, err := nomadRunners(cfg, api, product.l)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // nomadRunners generates a slice of runners to inspect nomad
-func nomadRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
+func nomadRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	runners := []runner.Runner{
 		runner.NewCommander("nomad version", "string", cfg.Redactions),
 		runner.NewCommander("nomad node status -self -json", "json", cfg.Redactions),

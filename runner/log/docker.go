@@ -40,18 +40,18 @@ func (d Docker) ID() string {
 // Run executes the runner
 func (d Docker) Run() op.Op {
 	// Check that docker exists
-	o := runner.NewSheller("docker version", d.Redactions).Run()
-	if o.Error != nil {
-		return op.New(d.ID(), o.Result, op.Skip, DockerNotFoundError{
+	version := runner.NewSheller("docker version", d.Redactions).Run()
+	if version.Error != nil {
+		return op.New(d.ID(), version.Result, op.Skip, DockerNotFoundError{
 			container: d.Container,
-			err:       o.Error,
+			err:       version.Error,
 		},
 			runner.Params(d))
 	}
 
 	// Check whether the container can be found on the system
 	if !d.containerExists() {
-		return op.New(d.ID(), "", op.Skip, ContainerNotFoundError{
+		return op.New(d.ID(), map[string]any{}, op.Skip, ContainerNotFoundError{
 			container: d.Container,
 		},
 			runner.Params(d))
@@ -59,12 +59,13 @@ func (d Docker) Run() op.Op {
 
 	// Retrieve logs
 	cmd := DockerLogCmd(d.Container, d.DestDir, d.Since)
-	o = runner.NewSheller(cmd, d.Redactions).Run()
-	if o.Error != nil {
-		return op.New(d.ID(), o.Result, o.Status, o.Error, runner.Params(d))
+
+	logs := runner.NewSheller(cmd, d.Redactions).Run()
+	if logs.Error != nil {
+		return op.New(d.ID(), logs.Result, logs.Status, logs.Error, runner.Params(d))
 	}
 
-	return op.New(d.ID(), o.Result, op.Success, nil, runner.Params(d))
+	return op.New(d.ID(), logs.Result, op.Success, nil, runner.Params(d))
 }
 
 func DockerLogCmd(container, destDir string, since time.Time) string {

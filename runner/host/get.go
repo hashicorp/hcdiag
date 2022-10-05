@@ -34,5 +34,4 @@ func (g Get) Run() op.Op {
 	format := "string"
 	o := runner.NewCommander(cmd, format, g.Redactions).Run()
 	return op.New(g.ID(), o.Result, o.Status, o.Error, runner.Params(g))
-
 }

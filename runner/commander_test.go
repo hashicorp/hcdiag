@@ -33,15 +33,15 @@ func TestCommander_Run(t *testing.T) {
 			desc:    "can run with string format",
 			command: "echo hello",
 			format:  "string",
-			expect:  "hello",
+			expect:  map[string]any{"text": "hello"},
 		},
 		{
 			desc:    "can run with json format",
 			command: "echo '{\"hi\":\"there\"}'",
 			format:  "json",
 			expect: func() interface{} {
-				expect := make(map[string]interface{})
-				expect["hi"] = "there"
+				expect := make(map[string]any)
+				expect["json"] = map[string]any{"hi": "there"}
 				return expect
 			}(),
 		},
@@ -70,14 +70,14 @@ func TestCommander_RunError(t *testing.T) {
 			desc:    "errors and unknown when bash returns error",
 			command: "cat no-file-to-see-here",
 			format:  "string",
-			expect:  "cat: no-file-to-see-here: No such file or directory\n",
+			expect:  map[string]any{"text": "cat: no-file-to-see-here: No such file or directory\n"},
 			status:  op.Unknown,
 		},
 		{
 			desc:    "errors and fails on bad json",
 			command: `echo '{"bad",}'`,
 			format:  "json",
-			expect:  "{\"bad\",}\n",
+			expect:  map[string]any{"json": "{\"bad\",}\n"},
 			status:  op.Unknown,
 		},
 		{
@@ -96,7 +96,9 @@ func TestCommander_RunError(t *testing.T) {
 			assert.Error(t, o.Error)
 			hclog.L().Trace("commander.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
 			assert.Equal(t, tc.status, o.Status)
-			assert.Equal(t, tc.expect, o.Result)
+			if tc.expect != nil {
+				assert.Equal(t, tc.expect, o.Result)
+			}
 		})
 	}
 }

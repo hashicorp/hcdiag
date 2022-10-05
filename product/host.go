@@ -3,13 +3,14 @@ package product
 import (
 	"runtime"
 
+	"github.com/hashicorp/hcdiag/runner/host"
+
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/runner"
-	"github.com/hashicorp/hcdiag/runner/host"
 )
 
 // NewHost takes a logger, config, and HCL, and it creates a Product with all the host's default runners.
@@ -52,15 +53,15 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 
 	// TODO(mkcp): Host can have an API client now and it would simplify quite a bit.
 	// Add built-in runners
-	builtInRunners := hostRunners(os, cfg.Redactions)
+	builtInRunners := hostRunners(os, cfg.Redactions, product.l)
 	product.Runners = append(product.Runners, builtInRunners...)
 
 	return product, nil
 }
 
 // hostRunners generates a slice of runners to inspect the host.
-func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
-	return []runner.Runner{
+func hostRunners(os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
+	runners := []runner.Runner{
 		host.NewOS(os, redactions),
 		host.NewDisk(redactions),
 		host.NewInfo(redactions),
@@ -68,10 +69,12 @@ func hostRunners(os string, redactions []*redact.Redact) []runner.Runner {
 		host.NewProcess(redactions),
 		host.NewNetwork(redactions),
 		host.NewEtcHosts(redactions),
-		host.NewIPTables(redactions),
+		host.NewIPTables(os, redactions),
 		host.NewProcFile(os, redactions),
 		host.NewFSTab(os, redactions),
 	}
+	// Execute asynchronously
+	return runners
 }
 
 // hostRedactions returns a slice of default redactions for this product

@@ -29,11 +29,10 @@ func (h HTTPer) ID() string {
 
 // Run executes a GET request to the Path using the Client
 func (h HTTPer) Run() op.Op {
-	result, err := h.Client.RedactGet(h.Path, h.Redactions)
+	redactedResponse, err := h.Client.RedactGet(h.Path, h.Redactions)
+	result := map[string]any{"response": redactedResponse}
 	if err != nil {
 		op.New(h.ID(), result, op.Fail, err, Params(h))
 	}
-
-	// Check type of result to see if we can return a redacted result in the op
 	return op.New(h.ID(), result, op.Success, nil, Params(h))
 }
