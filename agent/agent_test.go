@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"bytes"
-	"flag"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var update = flag.Bool("update", false, "update golden files")
 
 // TODO: abstract away filesystem-related actions,
 // so mocks can be used instead of actually writing files?
@@ -242,111 +238,6 @@ func TestSetup(t *testing.T) {
 			err = a.Setup()
 			assert.NoError(t, err)
 			assert.Len(t, a.products, tc.expectedLen)
-		})
-	}
-}
-
-func TestAgent_WriteSummary(t *testing.T) {
-	// NOTE: If you make changes to WriteSummary, you may break existing unit tests until the golden files are updated
-	// to reflect your changes. To update them, run `go test ./agent -update`, and then manually verify that the new
-	// files under testdata/WriteSummary look like you expect. If so, commit them to source control, and future
-	// test executions should succeed.
-	testCases := []struct {
-		name  string
-		agent *Agent
-	}{
-		{
-			name:  "Test Header Only",
-			agent: newTestAgent(t),
-		},
-		{
-			name: "Test with Products",
-			agent: &Agent{ManifestOps: map[string][]ManifestOp{
-				"consul": {
-					{
-						Status: op.Success,
-					},
-					{
-						Status: op.Success,
-					},
-					{
-						Status: op.Fail,
-					},
-					{
-						Status: op.Skip,
-					},
-					{
-						Status: op.Unknown,
-					},
-				},
-				"nomad": {
-					{
-						Status: op.Fail,
-					},
-					{
-						Status: op.Unknown,
-					},
-					{
-						Status: op.Skip,
-					},
-				},
-			}},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			agent := tc.agent
-			b := new(bytes.Buffer)
-
-			err := agent.WriteSummary(b)
-
-			assert.NoError(t, err)
-			golden := filepath.Join("testdata/WriteSummary", tc.name+".golden")
-
-			if *update {
-				writeErr := os.WriteFile(golden, b.Bytes(), 0644)
-				if writeErr != nil {
-					t.Errorf("Error writing golden file (%s): %s", golden, writeErr)
-				}
-			}
-
-			expected, readErr := os.ReadFile(golden)
-			if readErr != nil {
-				t.Errorf("Error reading golden file (%s): %s", golden, readErr)
-			}
-			assert.Equal(t, expected, b.Bytes())
-		})
-	}
-}
-
-func Test_formatReportLine(t *testing.T) {
-	testCases := []struct {
-		name   string
-		cells  []string
-		expect string
-	}{
-		{
-			name:   "Test Nil Input",
-			cells:  nil,
-			expect: "\n",
-		},
-		{
-			name:   "Test Empty Input",
-			cells:  []string{},
-			expect: "\n",
-		},
-		{
-			name:   "Test Sample Header Row",
-			cells:  []string{"product", "success", "failed", "skip", "unknown", "total"},
-			expect: "product\tsuccess\tfailed\tskip\tunknown\ttotal\t\n",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			res := formatReportLine(tc.cells...)
-			assert.Equal(t, tc.expect, res, tc.name)
 		})
 	}
 }
