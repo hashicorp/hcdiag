@@ -1,0 +1,6 @@
+```release-note:improvement
+cli: Add a message at the end of the run to more clearly indicate where the output bundle can be located on the user's system.
+```
+```release-note:improvement
+agent: Extract summary report display from agent, and move into the command package.
+```
