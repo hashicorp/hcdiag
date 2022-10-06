@@ -377,7 +377,7 @@ func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time, redactions []
 				return nil, err
 			}
 			// TODO(mkcp): Adding an agent.Now would help us pass an absolute now into this function. There's a subtle
-			//  bug: different runners have different now values but it's unlikely to ever cause an issues for users.
+			// bug: different runners have different now values but it's unlikely to ever cause an issues for users.
 			since = time.Now().Add(-dur)
 		}
 		runners[i] = log.NewDocker(d.Container, dest, since, runnerRedacts)
@@ -402,7 +402,7 @@ func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time, re
 				return nil, err
 			}
 			// TODO(mkcp): Adding an agent.Now would help us pass an absolute now into this function. There's a subtle
-			//  bug: different runners have different now values but it's unlikely to ever cause an issues for users.
+			// bug: different runners have different now values but it's unlikely to ever cause an issues for users.
 			now := time.Now()
 			since = now.Add(dur)
 			until = time.Time{}

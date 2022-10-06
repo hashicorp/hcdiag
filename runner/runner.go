@@ -19,8 +19,8 @@ type Runner interface {
 // Exclude takes a slice of matcher strings and a slice of ops. If any of the runner identifiers match the exclude
 // according to filepath.Match() then it will not be present in the returned runner slice.
 // NOTE(mkcp): This is precisely identical to Select() except we flip the match check. Maybe we can perform both rounds
-//  of filtering in one pass one rather than iterating over all the ops several times. Not likely to be a huge speed
-//  increase though... we're not even remotely bottlenecked on runner filtering.
+// of filtering in one pass one rather than iterating over all the ops several times. Not likely to be a huge speed
+// increase though... we're not even remotely bottlenecked on runner filtering.
 func Exclude(excludes []string, runners []Runner) ([]Runner, error) {
 	newRunners := make([]Runner, 0)
 	for _, r := range runners {

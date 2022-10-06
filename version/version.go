@@ -10,7 +10,6 @@ const (
 
 var (
 	// version is the main version number that is being run at the moment.
-	//
 	// version must be of the format <MAJOR>.<MINOR>.<PATCH>, as described in the semantic versioning specification.
 	version = "0.5.0"
 
@@ -68,7 +67,6 @@ func (v Version) SemanticVersion() string {
 }
 
 // FullVersionNumber produces a human-readable string representation of the Version object.
-//
 // In addition to a short slug that includes the product name (hcdiag) and the semantic version,
 // the Revision will be included if the optional argument, `rev`, is true. Further, if a buildDate
 // is set, it is also included in the output.

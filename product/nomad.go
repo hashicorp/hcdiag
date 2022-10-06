@@ -43,8 +43,8 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 
 	// Apply nomad duration and interval default if CLI is using global defaults.
 	// NOTE(mkcp): The downside to this approach is that Nomad cannot be run with a 10s duration and 5s interval.
-	//  passing in a zero value from the agent would allow us to do that, but the flags library requires a default value
-	//  to be set in order to _show_ that default to the user, so we have to set the agent with that default.
+	// passing in a zero value from the agent would allow us to do that, but the flags library requires a default value
+	// to be set in order to _show_ that default to the user, so we have to set the agent with that default.
 	if DefaultDuration == cfg.DebugDuration {
 		cfg.DebugDuration = NomadDebugDuration
 	}
