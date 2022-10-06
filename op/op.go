@@ -15,8 +15,8 @@ const (
 	Fail Status = "fail"
 
 	// Unknown means that we detected an error and the result is indeterminate (e.g. some side effect like disk or
-	//   network may or may not have completed) or we don't recognize the error. If we don't recognize the error that's
-	//   a signal to improve the error handling to account for it.
+	// network may or may not have completed) or we don't recognize the error. If we don't recognize the error that's
+	// a signal to improve the error handling to account for it.
 	Unknown Status = "unknown"
 
 	// Skip means that this Op was intentionally not run

@@ -83,7 +83,7 @@ func Apply(redactions []*Redact, w io.Writer, r io.Reader) error {
 // String takes a string result and a slice of redactions, and wraps it with a reader and writer to apply the
 // redactions, returning a string back.
 // TODO(mkcp): Speed improvement & out of memory error: JSON responses can be really big, so we're going to have to
-//  chunk extremely large strings down.
+// chunk extremely large strings down.
 func String(result string, redactions []*Redact) (string, error) {
 	if len(redactions) == 0 {
 		return result, nil
@@ -101,7 +101,7 @@ func String(result string, redactions []*Redact) (string, error) {
 // Bytes takes a byte slice and a slice of redactions, and wraps it with a reader and writer to apply the
 // redactions, returning a string back.
 // TODO(mkcp): Speed improvement & out of memory error: JSON responses can be really big, so we're going to have to
-//  chunk extremely large byte arrays down.
+// chunk extremely large byte arrays down.
 func Bytes(b []byte, redactions []*Redact) ([]byte, error) {
 	if len(redactions) == 0 {
 		return b, nil
