@@ -38,11 +38,11 @@ func (c Commander) ID() string {
 
 // Run executes the Command
 func (c Commander) Run() op.Op {
-  startTime := time.Now()
+	startTime := time.Now()
 
 	p, err := parseCommand(c.Command)
 	if err != nil {
-		return op.New(c.ID(), nil, op.Fail, err, Params(c))
+		return op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
 	}
 
 	// Exit early with a wrapped error if the command isn't found on this system
@@ -68,7 +68,7 @@ func (c Commander) Run() op.Op {
 			return op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
 		}
 		redResult := strings.TrimSuffix(string(redBts), "\n")
-  
+
 		result := map[string]any{"text": redResult}
 		return op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
 
