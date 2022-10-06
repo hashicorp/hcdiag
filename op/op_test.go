@@ -28,7 +28,7 @@ func Test_StatusCounts(t *testing.T) {
 			},
 		},
 		{
-			desc: "returns an error if a op doesn't have a status",
+			desc: "returns an error if an op doesn't have a status",
 			ops: map[string]Op{
 				"1": {Status: Unknown},
 				"2": {Status: Success},
@@ -42,12 +42,14 @@ func Test_StatusCounts(t *testing.T) {
 	}
 
 	for _, tc := range testTable {
-		statuses, err := StatusCounts(tc.ops)
-		assert.Equal(t, tc.expect, statuses)
-		if tc.expect == nil {
-			assert.Error(t, err)
-			break
-		}
-		assert.NoError(t, err)
+		t.Run(tc.desc, func(t *testing.T) {
+			statuses, err := StatusCounts(tc.ops)
+			assert.Equal(t, tc.expect, statuses)
+			if tc.expect == nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }

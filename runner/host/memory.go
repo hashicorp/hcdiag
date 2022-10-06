@@ -22,10 +22,11 @@ func (m Memory) Run() op.Op {
 	startTime := time.Now()
 
 	memoryInfo, err := mem.VirtualMemory()
+	result := map[string]any{"memoryInfo": memoryInfo}
 	if err != nil {
 		hclog.L().Trace("runner/host.Memory.Run()", "error", err)
-		return op.New(m.ID(), memoryInfo, op.Fail, err, nil, startTime, time.Now())
+		return op.New(m.ID(), result, op.Fail, err, runner.Params(m), startTime, time.Now())
 	}
 
-	return op.New(m.ID(), memoryInfo, op.Success, nil, nil, startTime, time.Now())
+	return op.New(m.ID(), result, op.Success, nil, runner.Params(m), startTime, time.Now())
 }

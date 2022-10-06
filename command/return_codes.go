@@ -3,13 +3,16 @@ package command
 // Success indicates a successful command execution.
 const Success int = 0
 
-// The following error group is intended for issues within the initial setup process of a command's execution.
+// The following error group is intended for issues within the command's execution.
 const (
 	// FlagParseError indicates that a command was unable to successfully parse the flags/arguments provided to it.
 	FlagParseError int = iota + 16
 
 	// ConfigError indicates that there was an error in the hcdiag configuration.
 	ConfigError
+
+	// RunError indicates an error in the runner or its supporting unexported procedures.
+	RunError
 )
 
 // The following error group is intended for issues with the Agent.

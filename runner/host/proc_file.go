@@ -37,17 +37,16 @@ func (p ProcFile) ID() string {
 
 func (p ProcFile) Run() op.Op {
 	startTime := time.Now()
-
+	result := make(map[string]any)
 	if p.OS != "linux" {
 		return op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p), startTime, time.Now())
 	}
-	m := make(map[string]interface{})
 	for _, c := range p.Commands {
 		sheller := runner.NewSheller(c, p.Redactions).Run()
-		m[c] = sheller.Result
 		if sheller.Error != nil {
-			return op.New(p.ID(), m, op.Fail, sheller.Error, runner.Params(p), startTime, time.Now())
+			return op.New(p.ID(), sheller.Result, op.Fail, sheller.Error, runner.Params(p), startTime, time.Now())
 		}
+		result[sheller.Identifier] = sheller.Result
 	}
-	return op.New(p.ID(), m, op.Success, nil, runner.Params(p), startTime, time.Now())
+	return op.New(p.ID(), result, op.Success, nil, runner.Params(p), startTime, time.Now())
 }

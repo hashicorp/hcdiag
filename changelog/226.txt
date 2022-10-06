@@ -1,0 +1,9 @@
+```release-note:breaking
+Op: Change the response type from any to map[string]any. Results for every runner are now stored under a key. This change enables Ops to return other ops, keyed by ID, and will allow runners to reference the ops from previous runners' results.
+```
+```release-note:improvement
+runner: Add new Runner implementation. `Do` takes a slice of Runners and executes all of them concurrently.
+```
+```release-note:improvement
+runner: Add new Runner implementation: `DoSync` takes a slice of Runners and executes them in linear order. If the status is not Success, subsequent Runners do not execute. DoSync enables dependent Runner sets.
+```

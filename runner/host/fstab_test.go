@@ -11,7 +11,7 @@ import (
 )
 
 type mockShellRunner struct {
-	result interface{}
+	result map[string]any
 	status op.Status
 	err    error
 }
@@ -32,7 +32,7 @@ var _ runner.Runner = mockShellRunner{}
 
 func TestFSTab_Run(t *testing.T) {
 	type response struct {
-		result    interface{}
+		result    map[string]any
 		status    op.Status
 		expectErr bool
 	}
@@ -67,13 +67,13 @@ func TestFSTab_Run(t *testing.T) {
 			fstab: FSTab{
 				OS: "linux",
 				Sheller: &mockShellRunner{
-					result: "contents",
+					result: map[string]any{"shell": "contents"},
 					status: op.Success,
 					err:    nil,
 				},
 			},
 			expected: response{
-				result:    "contents",
+				result:    map[string]any{"shell": "contents"},
 				status:    op.Success,
 				expectErr: false,
 			},
@@ -83,13 +83,11 @@ func TestFSTab_Run(t *testing.T) {
 			fstab: FSTab{
 				OS: "linux",
 				Sheller: &mockShellRunner{
-					result: nil,
 					status: op.Unknown,
 					err:    fmt.Errorf("an error"),
 				},
 			},
 			expected: response{
-				result:    nil,
 				status:    op.Fail,
 				expectErr: true,
 			},

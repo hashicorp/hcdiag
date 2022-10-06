@@ -52,13 +52,15 @@ func (s Sheller) Run() op.Op {
 		return op.New(s.ID(), nil, op.Fail, redErr, Params(s), startTime, time.Now())
 	}
 	if cmdErr != nil {
-		return op.New(s.ID(), string(redBts), op.Unknown,
+		result := map[string]any{"shell": string(redBts)}
+		return op.New(s.ID(), result, op.Unknown,
 			ShellExecError{
 				command: s.Command,
 				err:     cmdErr,
 			}, Params(s), startTime, time.Now())
 	}
-	return op.New(s.ID(), string(redBts), op.Success, nil, Params(s), startTime, time.Now())
+	result := map[string]any{"shell": string(redBts)}
+	return op.New(s.ID(), result, op.Success, nil, Params(s), startTime, time.Now())
 }
 
 type ShellExecError struct {

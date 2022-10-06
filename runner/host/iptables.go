@@ -16,11 +16,13 @@ var _ runner.Runner = IPTables{}
 type IPTables struct {
 	Commands   []string         `json:"commands"`
 	Redactions []*redact.Redact `json:"redactions"`
+	OS         string           `json:"os"`
 }
 
 // NewIPTables returns a runner configured to run several iptables commands
-func NewIPTables(redactions []*redact.Redact) *IPTables {
+func NewIPTables(os string, redactions []*redact.Redact) *IPTables {
 	return &IPTables{
+		OS: os,
 		Commands: []string{
 			"iptables -L -n -v",
 			"iptables -L -n -v -t nat",
@@ -36,22 +38,13 @@ func (r IPTables) ID() string {
 
 func (r IPTables) Run() op.Op {
 	startTime := time.Now()
-
-	if runtime.GOOS != "linux" {
+	if r.OS == "linux" {
 		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS), runner.Params(r), startTime, time.Now())
 	}
-	result := make(map[string]string)
+	result := make(map[string]any)
 	for _, c := range r.Commands {
 		o := runner.NewCommander(c, "string", r.Redactions).Run()
-
-		if o.Result != nil {
-			result[c] = o.Result.(string)
-		}
-
-		if o.Error != nil {
-			// If there's an error, pass through the Op's status and Error
-			return op.New(r.ID(), result, o.Status, o.Error, runner.Params(r), startTime, time.Now())
-		}
+		result[c] = o.Result
 	}
 	return op.New(r.ID(), result, op.Success, nil, runner.Params(r), startTime, time.Now())
 }

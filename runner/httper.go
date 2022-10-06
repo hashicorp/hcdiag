@@ -33,11 +33,11 @@ func (h HTTPer) ID() string {
 func (h HTTPer) Run() op.Op {
 	startTime := time.Now()
 
-	result, err := h.Client.RedactGet(h.Path, h.Redactions)
+	redactedResponse, err := h.Client.RedactGet(h.Path, h.Redactions)
+	result := map[string]any{"response": redactedResponse}
 	if err != nil {
 		op.New(h.ID(), result, op.Fail, err, Params(h), startTime, time.Now())
 	}
 
-	// Check type of result to see if we can return a redacted result in the op
 	return op.New(h.ID(), result, op.Success, nil, Params(h), startTime, time.Now())
 }
