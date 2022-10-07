@@ -2,6 +2,7 @@ package host
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
@@ -35,16 +36,17 @@ func (p ProcFile) ID() string {
 }
 
 func (p ProcFile) Run() op.Op {
+	startTime := time.Now()
 	result := make(map[string]any)
 	if p.OS != "linux" {
-		return op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p))
+		return op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p), startTime, time.Now())
 	}
 	for _, c := range p.Commands {
 		sheller := runner.NewSheller(c, p.Redactions).Run()
 		if sheller.Error != nil {
-			return op.New(p.ID(), sheller.Result, op.Fail, sheller.Error, runner.Params(p))
+			return op.New(p.ID(), sheller.Result, op.Fail, sheller.Error, runner.Params(p), startTime, time.Now())
 		}
 		result[sheller.Identifier] = sheller.Result
 	}
-	return op.New(p.ID(), result, op.Success, nil, runner.Params(p))
+	return op.New(p.ID(), result, op.Success, nil, runner.Params(p), startTime, time.Now())
 }

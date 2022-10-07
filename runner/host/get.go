@@ -2,6 +2,7 @@ package host
 
 import (
 	"strings"
+	"time"
 
 	"github.com/hashicorp/hcdiag/redact"
 
@@ -29,9 +30,11 @@ func (g Get) ID() string {
 }
 
 func (g Get) Run() op.Op {
+	startTime := time.Now()
+
 	cmd := strings.Join([]string{"curl -s", g.Path}, " ")
 	// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
 	format := "string"
 	o := runner.NewCommander(cmd, format, g.Redactions).Run()
-	return op.New(g.ID(), o.Result, o.Status, o.Error, runner.Params(g))
+	return op.New(g.ID(), o.Result, o.Status, o.Error, runner.Params(g), startTime, time.Now())
 }

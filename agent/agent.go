@@ -353,10 +353,14 @@ func (a *Agent) RunProducts() error {
 func (a *Agent) RecordManifest() {
 	for name, ops := range a.results {
 		for _, o := range ops {
+			// duration string, in nanoseconds
+			dur := fmt.Sprintf("%d nanoseconds", o.End.Sub(o.Start).Nanoseconds())
+
 			m := ManifestOp{
-				ID:     o.Identifier,
-				Error:  o.ErrString,
-				Status: o.Status,
+				ID:       o.Identifier,
+				Error:    o.ErrString,
+				Status:   o.Status,
+				Duration: dur,
 			}
 			a.ManifestOps[string(name)] = append(a.ManifestOps[string(name)], m)
 		}

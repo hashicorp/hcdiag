@@ -49,6 +49,8 @@ func (c Copier) ID() string {
 
 // Run satisfies the Runner interface and copies the filtered source files to the destination.
 func (c Copier) Run() op.Op {
+	startTime := time.Now()
+
 	// Ensure destination directory exists
 	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
@@ -56,7 +58,7 @@ func (c Copier) Run() op.Op {
 			MakeDirError{
 				path: c.DestDir,
 				err:  err,
-			}, Params(c))
+			}, Params(c), startTime, time.Now())
 	}
 
 	// Find all the files
@@ -66,7 +68,7 @@ func (c Copier) Run() op.Op {
 			FindFilesError{
 				path: c.SourceDir,
 				err:  err,
-			}, Params(c))
+			}, Params(c), startTime, time.Now())
 	}
 
 	// Copy the files
@@ -78,12 +80,12 @@ func (c Copier) Run() op.Op {
 					dest:  c.DestDir,
 					files: files,
 					err:   err,
-				}, Params(c))
+				}, Params(c), startTime, time.Now())
 		}
 	}
 
 	result := map[string]any{"files": files}
-	return op.New(c.ID(), result, op.Success, nil, Params(c))
+	return op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
 }
 
 type MakeDirError struct {

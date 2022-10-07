@@ -2,6 +2,7 @@ package host
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/op"
@@ -46,13 +47,15 @@ func (i Info) ID() string {
 }
 
 func (i Info) Run() op.Op {
+	startTime := time.Now()
+
 	// third party
 	var hostInfo InfoStat
 
 	hi, err := host.Info()
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run()", "error", err)
-		return op.New(i.ID(), nil, op.Fail, err, runner.Params(i))
+		return op.New(i.ID(), nil, op.Fail, err, runner.Params(i), startTime, time.Now())
 	}
 
 	hostInfo, err = i.infoStat(hi)
@@ -60,10 +63,10 @@ func (i Info) Run() op.Op {
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run() failed to convert host info", "error", err)
 		err1 := fmt.Errorf("error converting host information err=%w", err)
-		return op.New(i.ID(), result, op.Fail, err1, runner.Params(i))
+		return op.New(i.ID(), result, op.Fail, err1, runner.Params(i), startTime, time.Now())
 	}
 
-	return op.New(i.ID(), result, op.Success, nil, runner.Params(i))
+	return op.New(i.ID(), result, op.Success, nil, runner.Params(i), startTime, time.Now())
 }
 
 func (i Info) infoStat(hi *host.InfoStat) (InfoStat, error) {

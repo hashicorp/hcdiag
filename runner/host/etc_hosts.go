@@ -3,6 +3,7 @@ package host
 import (
 	"fmt"
 	"runtime"
+	"time"
 
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
@@ -29,14 +30,16 @@ func (r EtcHosts) ID() string {
 }
 
 func (r EtcHosts) Run() op.Op {
+	startTime := time.Now()
+
 	// Not compatible with windows
 	if r.OS == "windows" {
 		err := fmt.Errorf(" EtcHosts.Run() not available on os, os=%s", r.OS)
-		return op.New(r.ID(), nil, op.Skip, err, runner.Params(r))
+		return op.New(r.ID(), nil, op.Skip, err, runner.Params(r), startTime, time.Now())
 	}
 	s := runner.NewSheller("cat /etc/hosts", r.Redactions).Run()
 	if s.Error != nil {
-		return op.New(r.ID(), s.Result, op.Fail, s.Error, runner.Params(r))
+		return op.New(r.ID(), s.Result, op.Fail, s.Error, runner.Params(r), startTime, time.Now())
 	}
-	return op.New(r.ID(), s.Result, op.Success, nil, runner.Params(r))
+	return op.New(r.ID(), s.Result, op.Success, nil, runner.Params(r), startTime, time.Now())
 }

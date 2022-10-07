@@ -2,6 +2,7 @@ package do
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/hcdiag/runner"
 
@@ -37,6 +38,7 @@ func (d Sync) ID() string {
 
 // Run executes the Command
 func (d Sync) Run() op.Op {
+	startTime := time.Now()
 	results := make(map[string]any, 0)
 
 	for _, r := range d.Runners {
@@ -50,11 +52,11 @@ func (d Sync) Run() op.Op {
 				Parent: d.ID(),
 				Child:  o.Identifier,
 				err:    o.Error,
-			}, runner.Params(d))
+			}, runner.Params(d), startTime, time.Now())
 		}
 	}
 	// Return runner ops, adding one at the end for our successful DoSync run
-	return op.New(d.ID(), results, op.Success, nil, runner.Params(d))
+	return op.New(d.ID(), results, op.Success, nil, runner.Params(d), startTime, time.Now())
 }
 
 type ChildRunnerError struct {

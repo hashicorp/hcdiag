@@ -3,6 +3,7 @@ package runner
 import (
 	"fmt"
 	"os/exec"
+	"time"
 
 	"github.com/hashicorp/hcdiag/redact"
 
@@ -32,10 +33,12 @@ func (s Sheller) ID() string {
 
 // Run ensures a shell exists and optimistically executes the given Command string
 func (s Sheller) Run() op.Op {
+	startTime := time.Now()
+
 	// Read the shell from the environment
 	shell, err := util.GetShell()
 	if err != nil {
-		return op.New(s.ID(), nil, op.Fail, err, Params(s))
+		return op.New(s.ID(), nil, op.Fail, err, Params(s), startTime, time.Now())
 	}
 	s.Shell = shell
 
@@ -46,7 +49,7 @@ func (s Sheller) Run() op.Op {
 	redBts, redErr := redact.Bytes(bts, s.Redactions)
 	// Fail run if unable to redact
 	if redErr != nil {
-		return op.New(s.ID(), nil, op.Fail, redErr, Params(s))
+		return op.New(s.ID(), nil, op.Fail, redErr, Params(s), startTime, time.Now())
 	}
 	if cmdErr != nil {
 		result := map[string]any{"shell": string(redBts)}
@@ -54,10 +57,10 @@ func (s Sheller) Run() op.Op {
 			ShellExecError{
 				command: s.Command,
 				err:     cmdErr,
-			}, Params(s))
+			}, Params(s), startTime, time.Now())
 	}
 	result := map[string]any{"shell": string(redBts)}
-	return op.New(s.ID(), result, op.Success, nil, Params(s))
+	return op.New(s.ID(), result, op.Success, nil, Params(s), startTime, time.Now())
 }
 
 type ShellExecError struct {

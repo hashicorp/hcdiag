@@ -3,6 +3,7 @@ package host
 import (
 	"fmt"
 	"runtime"
+	"time"
 
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
@@ -36,13 +37,14 @@ func (r IPTables) ID() string {
 }
 
 func (r IPTables) Run() op.Op {
+	startTime := time.Now()
 	if r.OS == "linux" {
-		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS), runner.Params(r))
+		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS), runner.Params(r), startTime, time.Now())
 	}
 	result := make(map[string]any)
 	for _, c := range r.Commands {
 		o := runner.NewCommander(c, "string", r.Redactions).Run()
 		result[c] = o.Result
 	}
-	return op.New(r.ID(), result, op.Success, nil, runner.Params(r))
+	return op.New(r.ID(), result, op.Success, nil, runner.Params(r), startTime, time.Now())
 }

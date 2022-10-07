@@ -2,6 +2,7 @@ package op
 
 import (
 	"fmt"
+	"time"
 )
 
 // Status describes the result of an operation.
@@ -31,10 +32,12 @@ type Op struct {
 	Error      error                  `json:"-"`
 	Status     Status                 `json:"status"`
 	Params     map[string]interface{} `json:"params,omitempty"`
+	Start      time.Time              `json:"start"`
+	End        time.Time              `json:"end"`
 }
 
 // New takes a runner its results, serializing it into an immutable Op struct.
-func New(id string, result map[string]any, status Status, err error, params map[string]any) Op {
+func New(id string, result map[string]any, status Status, err error, params map[string]any, start time.Time, end time.Time) Op {
 	// We store the error directly to make JSON serialization easier
 	var message string
 	if err != nil {
@@ -47,6 +50,8 @@ func New(id string, result map[string]any, status Status, err error, params map[
 		ErrString:  message,
 		Status:     status,
 		Params:     params,
+		Start:      start,
+		End:        end,
 	}
 }
 

@@ -3,6 +3,7 @@ package do
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcdiag/runner"
 
@@ -37,6 +38,7 @@ func (d Do) ID() string {
 
 // Run asynchronously executes all Runners and returns the resulting ops when the last one has finished
 func (d Do) Run() op.Op {
+	startTime := time.Now()
 	var wg sync.WaitGroup
 	m := sync.Map{}
 
@@ -50,7 +52,7 @@ func (d Do) Run() op.Op {
 	}
 	wg.Wait()
 
-	return op.New(d.ID(), snapshot(&m), op.Success, nil, runner.Params(d))
+	return op.New(d.ID(), snapshot(&m), op.Success, nil, runner.Params(d), startTime, time.Now())
 }
 
 func snapshot(s *sync.Map) map[string]any {
