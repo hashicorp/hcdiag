@@ -52,12 +52,39 @@ func New(id string, result map[string]any, status Status, err error, params map[
 
 // StatusCounts takes a slice of op references and returns a map containing sums of each Status
 func StatusCounts(ops map[string]Op) (map[Status]int, error) {
-	statuses := make(map[Status]int)
-	for _, o := range ops {
-		if o.Status == "" {
-			return nil, fmt.Errorf("unable to build Statuses map, op not run: op=%s", o.Identifier)
-		}
-		statuses[o.Status]++
+	// copy our input into a new map that conforms to our Walk input type
+	m := make(map[string]any, len(ops))
+	for k, v := range ops {
+		m[k] = v
+	}
+
+	// Create our accumulator and Walk ops
+	acc := make(map[Status]int, 0)
+	statuses := WalkStatuses(acc, m)
+
+	if val, ok := statuses[""]; ok {
+		return nil, fmt.Errorf("op.StatusCounts received ops that did not have a status, count=%d", val)
 	}
 	return statuses, nil
+}
+
+// WalkStatuses performs a depth-first search of a tree of results and accumulates a map of status counts
+func WalkStatuses(statuses map[Status]int, results map[string]any) map[Status]int {
+	for _, res := range results {
+		switch res := res.(type) {
+
+		case map[string]any:
+			statuses = WalkStatuses(statuses, res)
+
+		case Op:
+			// Increment and recur
+			statuses[res.Status]++
+			statuses = WalkStatuses(statuses, res.Result)
+
+		// End of branch reached
+		default:
+			continue
+		}
+	}
+	return statuses
 }
