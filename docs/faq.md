@@ -92,3 +92,15 @@ root@3891043f2342:/tmp/vault-hcdiag# md5sum *.tar.gz
 017bed533ecbf4745edb29b832d755c8  hcdiag-2022-09-01T133045Z.tar.gz
 017bed533ecbf4745edb29b832d755c8  reconstituted_bundle.tar.gz
 ```
+
+### Why are the results of my Command or Shell runner empty when the command works if I run it in my terminal?
+Sometimes, programs or scripts may be coded to behave differently when they are executed within a terminal
+than when they are not inside a terminal. When you execute these commands directly, you are likely running
+within a virtual terminal, a TTY, and you see the output you expect. However, `hcdiag` does not execute them
+within a TTY.
+
+In a situation where the program believes it is attached to a TTY even when run by `hcdiag`, it is possible
+that the program may complete successfully, but `hcdiag` results don't show any output. In general, we
+expect the programs called by `hcdiag` to recognize that they aren't attached to a TTY. However, if the
+command calls out, eventually, to something like `docker exec`, please ensure that Docker does not try to
+allocate a TTY to the container (in other words, no `-i` or `-t` flags).
