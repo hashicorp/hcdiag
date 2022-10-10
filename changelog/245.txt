@@ -1,0 +1,3 @@
+```release-note:improvement
+op: add op.WalkStatuses(), which recursively walks a tree of result ops to accumulate statuscounts.
+```
