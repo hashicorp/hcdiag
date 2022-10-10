@@ -1,0 +1,3 @@
+```release-note:improvement
+runner: Add a TFE command to collect the list of active nodes
+```
