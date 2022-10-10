@@ -59,7 +59,8 @@ func StatusCounts(ops map[string]Op) (map[Status]int, error) {
 	}
 
 	// Create our accumulator and Walk ops
-	acc := make(map[Status]int, 0)
+	// We'll always have at least len(ops) Ops; more if there are nested Ops
+	acc := make(map[Status]int, len(ops))
 	statuses := WalkStatuses(acc, m)
 
 	if val, ok := statuses[""]; ok {
