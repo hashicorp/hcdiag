@@ -58,10 +58,7 @@ func StatusCounts(ops map[string]Op) (map[Status]int, error) {
 		m[k] = v
 	}
 
-	// Create our accumulator and Walk ops
-	// We'll always have at least len(ops) Ops; more if there are nested Ops
-	acc := make(map[Status]int, len(ops))
-	statuses := WalkStatuses(acc, m)
+	statuses := WalkStatuses(m)
 
 	if val, ok := statuses[""]; ok {
 		return nil, fmt.Errorf("op.StatusCounts received ops that did not have a status, count=%d", val)
@@ -69,23 +66,29 @@ func StatusCounts(ops map[string]Op) (map[Status]int, error) {
 	return statuses, nil
 }
 
-// WalkStatuses performs a depth-first search of a tree of results and accumulates a map of status counts
-func WalkStatuses(statuses map[Status]int, results map[string]any) map[Status]int {
-	for _, res := range results {
-		switch res := res.(type) {
+// WalkStatuses performs a depth-first search of a tree of results and returns a map of status counts
+func WalkStatuses(results map[string]any) map[Status]int {
+	statuses := make(map[Status]int)
 
-		case map[string]any:
-			statuses = WalkStatuses(statuses, res)
+	var walkStatuses func(map[Status]int, map[string]any)
+	walkStatuses = func(accumulator map[Status]int, results map[string]any) {
+		for _, res := range results {
+			switch res := res.(type) {
 
-		case Op:
-			// Increment and recur
-			statuses[res.Status]++
-			statuses = WalkStatuses(statuses, res.Result)
+			case map[string]any:
+				walkStatuses(statuses, res)
 
-		// End of branch reached
-		default:
-			continue
+			case Op:
+				// Increment and recur
+				statuses[res.Status]++
+				walkStatuses(statuses, res.Result)
+
+			// End of branch reached
+			default:
+				continue
+			}
 		}
 	}
+	walkStatuses(statuses, results)
 	return statuses
 }

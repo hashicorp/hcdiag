@@ -59,20 +59,17 @@ func Test_WalkStatuses(t *testing.T) {
 		desc   string
 		opMap  map[string]any
 		expect map[Status]int
-		result map[Status]int
 	}{
 		{
 			desc:   "Empty case",
 			opMap:  map[string]any{},
 			expect: map[Status]int{},
-			result: make(map[Status]int, 0),
 		},
 		{
 			desc: "Walk a single nested Op",
 			opMap: map[string]any{
 				"1": map[string]any{"1-nested": Op{Status: Success, Result: map[string]any{"foo": "bar"}}}},
 			expect: map[Status]int{Success: 1},
-			result: make(map[Status]int, 0),
 		},
 		{
 			desc: "Walk multiple nested Ops",
@@ -87,13 +84,12 @@ func Test_WalkStatuses(t *testing.T) {
 				},
 			},
 			expect: map[Status]int{Success: 5},
-			result: make(map[Status]int, 0),
 		},
 	}
 
 	for _, tc := range testTable {
 		t.Run(tc.desc, func(t *testing.T) {
-			result := WalkStatuses(tc.result, tc.opMap)
+			result := WalkStatuses(tc.opMap)
 			assert.Equal(t, tc.expect, result)
 		})
 	}
