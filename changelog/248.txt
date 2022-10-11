@@ -1,0 +1,3 @@
+```release-note:improvement
+consul: add runners for 'consul operator raft list-peers' and /v1/agent/members
+```
