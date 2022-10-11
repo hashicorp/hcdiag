@@ -81,6 +81,7 @@ func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewCommander("replicatedctl app-config view -o json --group blob", "json", cfg.Redactions),
 		runner.NewCommander("replicatedctl app-config view -o json --group worker_image", "json", cfg.Redactions),
 		runner.NewCommander("replicatedctl params export --template '{{.Airgap}}'", "string", cfg.Redactions),
+		runner.NewCommander("replicated --no-tty admin list-nodes", "json", cfg.Redactions),
 
 		runner.NewSheller("getenforce", cfg.Redactions),
 		runner.NewSheller("env | grep -i proxy", cfg.Redactions),
