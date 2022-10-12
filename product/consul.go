@@ -72,6 +72,7 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	runners := []runner.Runner{
 		runner.NewCommander("consul version", "string", cfg.Redactions),
 		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
+		runner.NewCommander("consul operator raft list-peers -stale=true", "string", cfg.Redactions),
 
 		runner.NewHTTPer(api, "/v1/agent/self", cfg.Redactions),
 		runner.NewHTTPer(api, "/v1/agent/metrics", cfg.Redactions),
@@ -80,6 +81,7 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 		runner.NewHTTPer(api, "/v1/namespace", cfg.Redactions),
 		runner.NewHTTPer(api, "/v1/status/leader", cfg.Redactions),
 		runner.NewHTTPer(api, "/v1/status/peers", cfg.Redactions),
+		runner.NewHTTPer(api, "/v1/agent/members?cached", cfg.Redactions),
 
 		logs.NewDocker("consul", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
