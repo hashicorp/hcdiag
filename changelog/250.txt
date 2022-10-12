@@ -1,0 +1,3 @@
+```release-note:security
+security: update text package (GO-2022-1059), along with other dependencies
+```
