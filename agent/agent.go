@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -51,16 +52,28 @@ type Agent struct {
 	resultsLock sync.Mutex
 	tmpDir      string
 	resultsDest string
-	Start       time.Time       `json:"started_at"`
-	End         time.Time       `json:"ended_at"`
-	Duration    string          `json:"duration"`
-	NumOps      int             `json:"num_ops"`
-	Config      Config          `json:"configuration"`
-	Version     version.Version `json:"version"`
+	ctx         context.Context
+
+	Start    time.Time       `json:"started_at"`
+	End      time.Time       `json:"ended_at"`
+	Duration string          `json:"duration"`
+	NumOps   int             `json:"num_ops"`
+	Config   Config          `json:"configuration"`
+	Version  version.Version `json:"version"`
 	// ManifestOps holds a slice of ops with a subset of fields so we can safely render them in `manifest.json`
 	ManifestOps map[string][]ManifestOp `json:"ops"`
 	// Agent-level redactions are passed through to all products
 	Redactions []*redact.Redact `json:"redactions"`
+}
+
+func NewAgentWithContext(ctx context.Context, config Config, logger hclog.Logger) (*Agent, error) {
+	// TODO(nwc) Remove this constructor and add ctx to NewAgent after initial POC is done.
+	a, err := NewAgent(config, logger)
+	if err != nil {
+		return nil, err
+	}
+	a.ctx = ctx
+	return a, nil
 }
 
 func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
@@ -102,6 +115,7 @@ func (a *Agent) Run() []error {
 		return a.DryRun()
 	}
 
+	// TODO (nwc): Every main block in here should be updated to include context
 	a.l.Info("Ensuring destination directory exists", "directory", a.Config.Destination)
 	errDest := util.EnsureDirectory(a.Config.Destination)
 	if errDest != nil {
@@ -500,7 +514,7 @@ func (a *Agent) Setup() error {
 	}
 
 	// Build host and assign it to the product map.
-	newHost, err := product.NewHost(a.l, baseCfg, a.Config.HCL.Host)
+	newHost, err := product.NewHostWithContext(a.ctx, a.l, baseCfg, a.Config.HCL.Host)
 	if err != nil {
 		return err
 	}

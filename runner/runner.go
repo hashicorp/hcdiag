@@ -1,11 +1,13 @@
 package runner
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcdiag/redact"
 
 	"github.com/hashicorp/hcdiag/op"
 )
@@ -14,6 +16,15 @@ import (
 type Runner interface {
 	ID() string
 	Run() op.Op
+}
+
+// Meta includes fields that are common across all runners.
+type Meta struct {
+	// Redactions are the redactions that should be applied to a runner.
+	Redactions []*redact.Redact `json:"redactions"`
+
+	// Context is the base context that the runner should use.
+	Context context.Context `json:"-"`
 }
 
 // Exclude takes a slice of matcher strings and a slice of ops. If any of the runner identifiers match the exclude

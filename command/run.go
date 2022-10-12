@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -62,6 +63,9 @@ type RunCommand struct {
 
 	// debugInterval param for product debug bundles
 	debugInterval time.Duration
+
+	// maxRuntime to allow hcdiag to run before cancelling the run
+	maxRuntime time.Duration
 }
 
 func (c *RunCommand) init() {
@@ -82,6 +86,7 @@ func (c *RunCommand) init() {
 		destUsageText          = "Shorthand for -destination"
 		configUsageText        = "Path to HCL configuration file"
 		includesUsageText      = "DEPRECATED: Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead"
+		maxRuntimeUsageText    = "Maximum time to run hcdiag, usage examples: '5m', '30m', '1h'"
 	)
 
 	// flag.ContinueOnError allows flag.Parse to return an error if one comes up, rather than doing an `os.Exit(2)`
@@ -104,6 +109,8 @@ func (c *RunCommand) init() {
 	c.flags.StringVar(&c.destination, "dest", ".", destUsageText)
 	c.flags.StringVar(&c.config, "config", "", configUsageText)
 	c.flags.Var(&CSVFlag{&c.includes}, "includes", includesUsageText)
+
+	c.flags.DurationVar(&c.maxRuntime, "timeout", 0, maxRuntimeUsageText)
 
 	// Ensure f.Destination points to some kind of directory by its notation
 	// FIXME(mkcp): trailing slashes should be trimmed in path.Dir... why does a double slash end in a slash?
@@ -170,6 +177,15 @@ func (c *RunCommand) Run(args []string) int {
 	// Assign flag values to our agent.Config
 	cfg := c.mergeAgentConfig(config)
 
+	var ctx context.Context
+	if c.maxRuntime > 0 {
+		var cancelFunc context.CancelFunc
+		ctx, cancelFunc = context.WithTimeout(context.Background(), c.maxRuntime)
+		defer cancelFunc()
+	} else {
+		ctx = context.Background()
+	}
+
 	// Set config timestamps based on durations
 	now := time.Now()
 	since := pickSinceVsIncludeSince(l, c.since, c.includeSince)
@@ -177,7 +193,8 @@ func (c *RunCommand) Run(args []string) int {
 	l.Debug("merged cfg", "cfg", fmt.Sprintf("%+v", cfg))
 
 	// Create agent
-	a, err := agent.NewAgent(cfg, l)
+	//a, err := agent.NewAgent(cfg, l)
+	a, err := agent.NewAgentWithContext(ctx, cfg, l)
 	if err != nil {
 		l.Error("problem creating agent", err)
 		return AgentSetupError

@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"runtime"
 
 	"github.com/hashicorp/hcdiag/runner/host"
@@ -13,8 +14,11 @@ import (
 	"github.com/hashicorp/hcdiag/runner"
 )
 
-// NewHost takes a logger, config, and HCL, and it creates a Product with all the host's default runners.
 func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
+	return NewHostWithContext(context.Background(), logger, cfg, hcl2)
+}
+
+func NewHostWithContext(ctx context.Context, logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
 	defaultRedactions, err := hostRedactions()
 	if err != nil {
@@ -42,7 +46,7 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, cfg.Redactions)
+		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, cfg.Redactions, ctx)
 		if err != nil {
 			return nil, err
 		}

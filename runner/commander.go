@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -18,18 +19,27 @@ var _ Runner = Commander{}
 
 // Commander runs shell commands.
 type Commander struct {
-	Command    string           `json:"command"`
-	Format     string           `json:"format"`
-	Redactions []*redact.Redact `json:"redactions"`
+	Meta
+
+	Command string `json:"command"`
+	Format  string `json:"format"`
 }
 
 // NewCommander provides a runner for bin commands
 func NewCommander(command string, format string, redactions []*redact.Redact) *Commander {
 	return &Commander{
-		Command:    command,
-		Format:     format,
-		Redactions: redactions,
+		Meta: Meta{
+			Redactions: redactions,
+		},
+		Command: command,
+		Format:  format,
 	}
+}
+
+func NewCommanderWithContext(ctx context.Context, command string, format string, redactions []*redact.Redact) *Commander {
+	c := NewCommander(command, format, redactions)
+	c.Context = ctx
+	return c
 }
 
 func (c Commander) ID() string {
@@ -38,73 +48,87 @@ func (c Commander) ID() string {
 
 // Run executes the Command
 func (c Commander) Run() op.Op {
+	if c.Context == nil {
+		c.Context = context.Background()
+	}
 	startTime := time.Now()
 
-	p, err := parseCommand(c.Command)
-	if err != nil {
-		return op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
-	}
+	resultsCh := make(chan op.Op, 1)
 
-	// Exit early with a wrapped error if the command isn't found on this system
-	_, err = util.HostCommandExists(p.cmd)
-	if err != nil {
-		return op.New(c.ID(), nil, op.Skip, err, Params(c), startTime, time.Now())
-	}
-
-	// Execute command
-	bts, err := exec.Command(p.cmd, p.args...).CombinedOutput()
-	if err != nil {
-		err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
-		result := map[string]any{"text": string(bts)}
-		return op.New(c.ID(), result, op.Unknown, err1, Params(c), startTime, time.Now())
-	}
-
-	// Parse result format
-	// TODO(mkcp): This can be detected rather than branching on user input
-	switch {
-	case c.Format == "string":
-		redBts, err := redact.Bytes(bts, c.Redactions)
+	go func(results chan<- op.Op) {
+		p, err := parseCommand(c.Command)
 		if err != nil {
-			return op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
+			results <- op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
 		}
-		redResult := strings.TrimSuffix(string(redBts), "\n")
 
-		result := map[string]any{"text": redResult}
-		return op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
+		// Exit early with a wrapped error if the command isn't found on this system
+		_, err = util.HostCommandExists(p.cmd)
+		if err != nil {
+			results <- op.New(c.ID(), nil, op.Skip, err, Params(c), startTime, time.Now())
+		}
 
-	case c.Format == "json":
-		var obj any
-		marshErr := json.Unmarshal(bts, &obj)
-		if marshErr != nil {
-			// Redact the string to return the failed-to-parse JSON
+		// Execute command
+		bts, err := exec.CommandContext(c.Context, p.cmd, p.args...).CombinedOutput()
+		if err != nil {
+			err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
+			result := map[string]any{"text": string(bts)}
+			results <- op.New(c.ID(), result, op.Unknown, err1, Params(c), startTime, time.Now())
+		}
+
+		// Parse result format
+		// TODO(mkcp): This can be detected rather than branching on user input
+		switch {
+		case c.Format == "string":
+			redBts, err := redact.Bytes(bts, c.Redactions)
+			if err != nil {
+				results <- op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
+			}
+			redResult := strings.TrimSuffix(string(redBts), "\n")
+
+			result := map[string]any{"text": redResult}
+			results <- op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
+
+		case c.Format == "json":
+			var obj any
+			marshErr := json.Unmarshal(bts, &obj)
+			if marshErr != nil {
+				// Redact the string to return the failed-to-parse JSON
+				redBts, redErr := redact.Bytes(bts, c.Redactions)
+				if redErr != nil {
+					results <- op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
+				}
+				result := map[string]any{"json": string(redBts)}
+				results <- op.New(c.ID(), result, op.Unknown,
+					UnmarshalError{
+						command: c.Command,
+						err:     marshErr,
+					}, Params(c), startTime, time.Now())
+			}
+			redResult, redErr := redact.JSON(obj, c.Redactions)
+			if redErr != nil {
+				results <- op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
+			}
+			result := map[string]any{"json": redResult}
+			results <- op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
+		default:
 			redBts, redErr := redact.Bytes(bts, c.Redactions)
 			if redErr != nil {
-				return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
+				results <- op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
 			}
-			result := map[string]any{"json": string(redBts)}
-			return op.New(c.ID(), result, op.Unknown,
-				UnmarshalError{
+			result := map[string]any{"out": string(redBts)}
+			results <- op.New(c.ID(), result, op.Fail,
+				FormatUnknownError{
 					command: c.Command,
-					err:     marshErr,
+					format:  c.Format,
 				}, Params(c), startTime, time.Now())
 		}
-		redResult, redErr := redact.JSON(obj, c.Redactions)
-		if redErr != nil {
-			return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
-		}
-		result := map[string]any{"json": redResult}
-		return op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
-	default:
-		redBts, redErr := redact.Bytes(bts, c.Redactions)
-		if redErr != nil {
-			return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
-		}
-		result := map[string]any{"out": string(redBts)}
-		return op.New(c.ID(), result, op.Fail,
-			FormatUnknownError{
-				command: c.Command,
-				format:  c.Format,
-			}, Params(c), startTime, time.Now())
+	}(resultsCh)
+
+	select {
+	case <-c.Context.Done():
+		return op.New(c.ID(), nil, op.Timeout, c.Context.Err(), Params(c), startTime, time.Now())
+	case result := <-resultsCh:
+		return result
 	}
 }
 

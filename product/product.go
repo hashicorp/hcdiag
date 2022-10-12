@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -41,7 +42,9 @@ type Config struct {
 }
 
 type Product struct {
-	l        hclog.Logger
+	l   hclog.Logger
+	ctx context.Context
+
 	Name     Name
 	Runners  []runner.Runner
 	Excludes []string
@@ -68,7 +71,7 @@ func (p *Product) Run() map[string]op.Op {
 					"result", fmt.Sprintf("%s", o.Result),
 					"error", o.Error,
 				)
-			case op.Unknown:
+			case op.Unknown, op.Timeout:
 				p.l.Warn("result",
 					"runner", o.Identifier,
 					"status", o.Status,

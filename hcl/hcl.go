@@ -1,6 +1,7 @@
 package hcl
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -172,7 +173,7 @@ func Parse(path string) (HCL, error) {
 // BuildRunners steps through the HCLConfig structs and maps each runner config type to the corresponding New<Runner> function.
 // All custom runners are reduced into a linear slice of runners and served back up to the product.
 // No runners are returned if any config is invalid.
-func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
+func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since, until time.Time, redactions []*redact.Redact, ctx ...context.Context) ([]runner.Runner, error) {
 	var dest string
 	runners := make([]runner.Runner, 0)
 
@@ -261,7 +262,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, journaldLogs...)
 
 		// Build commanders and shellers
-		commands, err := mapCommands(cfg.Commands, redactions)
+		commands, err := mapCommands(cfg.Commands, redactions, ctx...)
 		if err != nil {
 			return nil, err
 		}
@@ -276,7 +277,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 	return runners, nil
 }
 
-func mapCommands(cfgs []Command, redactions []*redact.Redact) ([]runner.Runner, error) {
+func mapCommands(cfgs []Command, redactions []*redact.Redact, ctx ...context.Context) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		runnerRedacts, err := MapRedacts(c.Redactions)
@@ -285,7 +286,11 @@ func mapCommands(cfgs []Command, redactions []*redact.Redact) ([]runner.Runner, 
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewCommander(c.Run, c.Format, runnerRedacts)
+		if ctx != nil {
+			runners[i] = runner.NewCommanderWithContext(ctx[0], c.Run, c.Format, runnerRedacts)
+		} else {
+			runners[i] = runner.NewCommander(c.Run, c.Format, runnerRedacts)
+		}
 	}
 	return runners, nil
 }

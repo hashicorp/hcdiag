@@ -22,6 +22,9 @@ const (
 
 	// Skip means that this Op was intentionally not run
 	Skip Status = "skip"
+
+	// Timeout means that the Op timed out
+	Timeout Status = "timeout"
 )
 
 // Op seeks information via its Runner then stores the results.
