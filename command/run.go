@@ -189,6 +189,11 @@ func (c *RunCommand) Run(args []string) int {
 		return AgentExecutionError
 	}
 
+	// Skip any post-processing/reporting on dry runs because there are no results to handle
+	if c.dryrun {
+		return Success
+	}
+
 	resultsFile := a.ResultsDest()
 	if err = writeSummary(os.Stdout, resultsFile, a.ManifestOps); err != nil {
 		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
