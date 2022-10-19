@@ -99,22 +99,22 @@ Terraform Enterprise historically uses replicated to provide similar functionali
   - *Note:* The `=` is required here because it is a boolean flag.
 
 ### Flags
-| Argument        | Description                                                                                                                                            | Type   | Default Value |
-|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------|---------------|
-| `dryrun`        | Perform a dry run to display commands without executing them                                                                                           | bool   | false         |
-| `os`            | Override operating system detection                                                                                                                    | string | "auto"        |
-| `consul`        | Run Consul diagnostics                                                                                                                                 | bool   | false         |
-| `nomad`         | Run Nomad diagnostics                                                                                                                                  | bool   | false         |
-| `terraform-ent` | Run Terraform Enterprise/Cloud diagnostics                                                                                                             | bool   | false         |
-| `vault`         | Run Vault diagnostics                                                                                                                                  | bool   | false         |
-| `autodetect`    | Automatically detect which product CLIs are installed and gather diagnostics for each. If any product flags are provided, they override this one.      | bool   | true          |
-| `since`         | Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                | string | "72h"         |
-| `include-since` | Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                      | string | "72h"         |
-| `includes`      | files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | ""            |
-| `destination`   | Path to the directory the bundle should be written in                                                                                                  | string | "."           |
-| `dest`          | Shorthand for -destination                                                                                                                             | string | "."           |
-| `config`        | Path to HCL configuration file                                                                                                                         | string | ""            |
-| `serial`        | Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load.                   | bool   | false         |
+| Argument        | Description                                                                                                                                                         | Type   | Default Value |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|---------------|
+| `dryrun`        | Perform a dry run to display commands without executing them                                                                                                        | bool   | false         |
+| `os`            | Override operating system detection                                                                                                                                 | string | "auto"        |
+| `consul`        | Run Consul diagnostics                                                                                                                                              | bool   | false         |
+| `nomad`         | Run Nomad diagnostics                                                                                                                                               | bool   | false         |
+| `terraform-ent` | Run Terraform Enterprise/Cloud diagnostics                                                                                                                          | bool   | false         |
+| `vault`         | Run Vault diagnostics                                                                                                                                               | bool   | false         |
+| `autodetect`    | Automatically detect which product CLIs are installed and gather diagnostics for each. If any product flags are provided, they override this one.                   | bool   | true          |
+| `since`         | Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                             | string | "72h"         |
+| `include-since` | Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                                   | string | "72h"         |
+| `includes`      | (DEPRECATED) Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | ""            |
+| `destination`   | Path to the directory the bundle should be written in                                                                                                               | string | "."           |
+| `dest`          | Shorthand for -destination                                                                                                                                          | string | "."           |
+| `config`        | Path to HCL configuration file                                                                                                                                      | string | ""            |
+| `serial`        | (DEPRECATED) Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load.                   | bool   | false         |
 
 ### Installation
 
