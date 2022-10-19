@@ -92,8 +92,9 @@ func tfeRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Run
 		runner.NewSheller("env | grep -i proxy", cfg.Redactions),
 	}
 
-	runners := []runner.Runner{do.New(l, "tfe", "tfe runners", r)}
-
+	runners := []runner.Runner{
+		do.New(l, "tfe", "tfe runners", r),
+	}
 	return runners, nil
 }
 

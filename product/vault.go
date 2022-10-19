@@ -89,8 +89,9 @@ func vaultRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.R
 		r = append([]runner.Runner{logCopier}, r...)
 	}
 
-	runners := []runner.Runner{do.New(l, "vault", "vault runners", r)}
-
+	runners := []runner.Runner{
+		do.New(l, "vault", "vault runners", r),
+	}
 	return runners, nil
 }
 

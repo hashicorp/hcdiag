@@ -107,7 +107,6 @@ func nomadRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.R
 	runners := []runner.Runner{
 		do.New(l, "nomad", "nomad runners", r),
 	}
-
 	return runners, nil
 }
 

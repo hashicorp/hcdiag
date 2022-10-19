@@ -62,19 +62,21 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 
 // hostRunners generates a slice of runners to inspect the host.
 func hostRunners(os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
+	r := []runner.Runner{
+		host.NewOS(os, redactions),
+		host.NewDisk(redactions),
+		host.NewInfo(redactions),
+		host.Memory{},
+		host.NewProcess(redactions),
+		host.NewNetwork(redactions),
+		host.NewEtcHosts(redactions),
+		host.NewIPTables(os, redactions),
+		host.NewProcFile(os, redactions),
+		host.NewFSTab(os, redactions),
+	}
+
 	runners := []runner.Runner{
-		do.New(l, "host", "host runners", []runner.Runner{
-			host.NewOS(os, redactions),
-			host.NewDisk(redactions),
-			host.NewInfo(redactions),
-			host.Memory{},
-			host.NewProcess(redactions),
-			host.NewNetwork(redactions),
-			host.NewEtcHosts(redactions),
-			host.NewIPTables(os, redactions),
-			host.NewProcFile(os, redactions),
-			host.NewFSTab(os, redactions),
-		}),
+		do.New(l, "host", "host runners", r),
 	}
 	return runners
 }

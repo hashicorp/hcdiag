@@ -95,8 +95,9 @@ func consulRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.
 		r = append([]runner.Runner{logCopier}, r...)
 	}
 
-	runners := []runner.Runner{do.New(l, "consul", "consul runners", r)}
-
+	runners := []runner.Runner{
+		do.New(l, "consul", "consul runners", r),
+	}
 	return runners, nil
 }
 
