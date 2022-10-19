@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
 	"github.com/hashicorp/hcdiag/runner"
+	"github.com/hashicorp/hcdiag/runner/do"
 )
 
 // NewTFE takes a logger and product config, and it creates a Product with all of TFE's default runners.
@@ -46,7 +47,7 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	// Add built-in runners
-	builtInRunners, err := tfeRunners(cfg, api)
+	builtInRunners, err := tfeRunners(cfg, api, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -56,11 +57,15 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // tfeRunners configures a set of default runners for TFE.
-func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
-	return []runner.Runner{
-		runner.NewCommander("replicatedctl support-bundle", "string", cfg.Redactions),
-
-		runner.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
+func tfeRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+	r := []runner.Runner{
+		do.NewSync(l, "support-bundle", "vault support bundle",
+			// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
+			// that these run serially.
+			[]runner.Runner{
+				runner.NewCommander("replicatedctl support-bundle", "string", cfg.Redactions),
+				runner.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
+			}),
 
 		runner.NewHTTPer(api, "/api/v2/admin/customization-settings", cfg.Redactions),
 		runner.NewHTTPer(api, "/api/v2/admin/general-settings", cfg.Redactions),
@@ -85,7 +90,11 @@ func tfeRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 
 		runner.NewSheller("getenforce", cfg.Redactions),
 		runner.NewSheller("env | grep -i proxy", cfg.Redactions),
-	}, nil
+	}
+
+	runners := []runner.Runner{do.New(l, "tfe", "tfe runners", r)}
+
+	return runners, nil
 }
 
 // tfeRedactions returns a slice of default redactions for this product
