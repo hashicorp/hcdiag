@@ -3,6 +3,7 @@ package product
 import (
 	"runtime"
 
+	"github.com/hashicorp/hcdiag/runner/do"
 	"github.com/hashicorp/hcdiag/runner/host"
 
 	"github.com/hashicorp/hcdiag/hcl"
@@ -61,7 +62,7 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 
 // hostRunners generates a slice of runners to inspect the host.
 func hostRunners(os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
-	runners := []runner.Runner{
+	r := []runner.Runner{
 		host.NewOS(os, redactions),
 		host.NewDisk(redactions),
 		host.NewInfo(redactions),
@@ -73,7 +74,10 @@ func hostRunners(os string, redactions []*redact.Redact, l hclog.Logger) []runne
 		host.NewProcFile(os, redactions),
 		host.NewFSTab(os, redactions),
 	}
-	// Execute asynchronously
+
+	runners := []runner.Runner{
+		do.New(l, "host", "host runners", r),
+	}
 	return runners
 }
 

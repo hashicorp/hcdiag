@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/do"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -58,7 +59,7 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	// Add built-in runners
-	builtInRunners, err := vaultRunners(cfg, api)
+	builtInRunners, err := vaultRunners(cfg, api, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +69,8 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // vaultRunners provides a list of default runners to inspect vault.
-func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
-	runners := []runner.Runner{
+func vaultRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+	r := []runner.Runner{
 		runner.NewCommander("vault version", "string", cfg.Redactions),
 		runner.NewCommander("vault status -format=json", "json", cfg.Redactions),
 		runner.NewCommander("vault read sys/health -format=json", "json", cfg.Redactions),
@@ -85,9 +86,12 @@ func vaultRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/vault")
 		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
-		runners = append([]runner.Runner{logCopier}, runners...)
+		r = append([]runner.Runner{logCopier}, r...)
 	}
 
+	runners := []runner.Runner{
+		do.New(l, "vault", "vault runners", r),
+	}
 	return runners, nil
 }
 

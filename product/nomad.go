@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/do"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -82,7 +83,7 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 
 // nomadRunners generates a slice of runners to inspect nomad
 func nomadRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
-	runners := []runner.Runner{
+	r := []runner.Runner{
 		runner.NewCommander("nomad version", "string", cfg.Redactions),
 		runner.NewCommander("nomad node status -self -json", "json", cfg.Redactions),
 		runner.NewCommander("nomad agent-info -json", "json", cfg.Redactions),
@@ -100,9 +101,12 @@ func nomadRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.R
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs", "nomad")
 		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
-		runners = append([]runner.Runner{logCopier}, runners...)
+		r = append([]runner.Runner{logCopier}, r...)
 	}
 
+	runners := []runner.Runner{
+		do.New(l, "nomad", "nomad runners", r),
+	}
 	return runners, nil
 }
 

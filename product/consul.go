@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/do"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -58,7 +59,7 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	// Add built-in runners
-	builtInRunners, err := consulRunners(cfg, api)
+	builtInRunners, err := consulRunners(cfg, api, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +69,8 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // consulRunners generates a slice of runners to inspect consul.
-func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
-	runners := []runner.Runner{
+func consulRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+	r := []runner.Runner{
 		runner.NewCommander("consul version", "string", cfg.Redactions),
 		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 		runner.NewCommander("consul operator raft list-peers -stale=true", "string", cfg.Redactions),
@@ -91,9 +92,12 @@ func consulRunners(cfg Config, api *client.APIClient) ([]runner.Runner, error) {
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/consul")
 		logCopier := runner.NewCopier(logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
-		runners = append([]runner.Runner{logCopier}, runners...)
+		r = append([]runner.Runner{logCopier}, r...)
 	}
 
+	runners := []runner.Runner{
+		do.New(l, "consul", "consul runners", r),
+	}
 	return runners, nil
 }
 

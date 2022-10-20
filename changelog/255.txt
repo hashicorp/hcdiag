@@ -1,0 +1,8 @@
+```release-note:deprecation
+cli: The serial flag is deprecated, as runners within products now run concurrently by default. The behavior of serial product
+execution, with concurrent runner execution was deemed to be a confusing user experience for a feature that is primarily used
+in development. If serial execution is required, please use HCL custom configuration with do-sync blocks instead.
+```
+```release-note:improvement
+runners: The default runners within products now run concurrently instead of serially.
+```
