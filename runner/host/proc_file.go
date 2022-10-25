@@ -42,11 +42,11 @@ func (p ProcFile) Run() op.Op {
 		return op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p), startTime, time.Now())
 	}
 	for _, c := range p.Commands {
-		sheller := runner.NewSheller(c, p.Redactions).Run()
-		if sheller.Error != nil {
-			return op.New(p.ID(), sheller.Result, op.Fail, sheller.Error, runner.Params(p), startTime, time.Now())
+		shell := runner.NewShell(c, p.Redactions).Run()
+		if shell.Error != nil {
+			return op.New(p.ID(), shell.Result, op.Fail, shell.Error, runner.Params(p), startTime, time.Now())
 		}
-		result[sheller.Identifier] = sheller.Result
+		result[shell.Identifier] = shell.Result
 	}
 	return op.New(p.ID(), result, op.Success, nil, runner.Params(p), startTime, time.Now())
 }

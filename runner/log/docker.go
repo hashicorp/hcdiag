@@ -42,7 +42,7 @@ func (d Docker) Run() op.Op {
 	startTime := time.Now()
 
 	// Check that docker exists
-	version := runner.NewSheller("docker version", d.Redactions).Run()
+	version := runner.NewShell("docker version", d.Redactions).Run()
 	if version.Error != nil {
 		return op.New(d.ID(), version.Result, op.Skip, DockerNotFoundError{
 			container: d.Container,
@@ -61,7 +61,7 @@ func (d Docker) Run() op.Op {
 
 	// Retrieve logs
 	cmd := DockerLogCmd(d.Container, d.DestDir, d.Since)
-	logs := runner.NewSheller(cmd, d.Redactions).Run()
+	logs := runner.NewShell(cmd, d.Redactions).Run()
 	if logs.Error != nil {
 		return op.New(d.ID(), logs.Result, logs.Status, logs.Error, runner.Params(d), startTime, time.Now())
 	}
@@ -86,7 +86,7 @@ func DockerLogCmd(container, destDir string, since time.Time) string {
 func (d Docker) containerExists() bool {
 	// attempt to inspect the container by name, to ensure it exists
 	cmd := fmt.Sprintf("docker container inspect %s > /dev/null 2>&1", d.Container)
-	o := runner.NewSheller(cmd, d.Redactions).Run()
+	o := runner.NewShell(cmd, d.Redactions).Run()
 	return o.Error == nil
 }
 

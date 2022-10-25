@@ -212,7 +212,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		}
 		runners = append(runners, journaldLogs...)
 
-		// Build commands and shellers
+		// Build commands and shells
 		commands, err := mapCommands(cfg.Commands, redactions)
 		if err != nil {
 			return nil, err
@@ -260,7 +260,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		}
 		runners = append(runners, journaldLogs...)
 
-		// Build commands and shellers
+		// Build commands and shells
 		commands, err := mapCommands(cfg.Commands, redactions)
 		if err != nil {
 			return nil, err
@@ -299,7 +299,7 @@ func mapShells(cfgs []Shell, redactions []*redact.Redact) ([]runner.Runner, erro
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewSheller(c.Run, runnerRedacts)
+		runners[i] = runner.NewShell(c.Run, runnerRedacts)
 	}
 	return runners, nil
 }

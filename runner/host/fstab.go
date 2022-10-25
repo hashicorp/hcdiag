@@ -13,14 +13,14 @@ import (
 var _ runner.Runner = FSTab{}
 
 type FSTab struct {
-	OS      string        `json:"os"`
-	Sheller runner.Runner `json:"sheller"`
+	OS    string        `json:"os"`
+	Shell runner.Runner `json:"shell"`
 }
 
 func NewFSTab(os string, redactions []*redact.Redact) *FSTab {
 	return &FSTab{
-		OS:      os,
-		Sheller: runner.NewSheller("cat /etc/fstab", redactions),
+		OS:    os,
+		Shell: runner.NewShell("cat /etc/fstab", redactions),
 	}
 }
 
@@ -35,7 +35,7 @@ func (r FSTab) Run() op.Op {
 	if r.OS != "linux" {
 		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.OS), runner.Params(r), startTime, time.Now())
 	}
-	o := r.Sheller.Run()
+	o := r.Shell.Run()
 	if o.Error != nil {
 		return op.New(r.ID(), o.Result, op.Fail, o.Error, runner.Params(r), startTime, time.Now())
 	}

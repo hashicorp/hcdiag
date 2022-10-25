@@ -66,7 +66,7 @@ func TestFSTab_Run(t *testing.T) {
 			name: "Test Successful Run",
 			fstab: FSTab{
 				OS: "linux",
-				Sheller: &mockShellRunner{
+				Shell: &mockShellRunner{
 					result: map[string]any{"shell": "contents"},
 					status: op.Success,
 					err:    nil,
@@ -82,7 +82,7 @@ func TestFSTab_Run(t *testing.T) {
 			name: "Test Unsuccessful Run",
 			fstab: FSTab{
 				OS: "linux",
-				Sheller: &mockShellRunner{
+				Shell: &mockShellRunner{
 					status: op.Unknown,
 					err:    fmt.Errorf("an error"),
 				},
