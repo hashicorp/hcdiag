@@ -184,7 +184,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 			return nil, fmt.Errorf("hcl.BuildRunners product received unexpected nil client, product=%s", cfg.Name)
 		}
 
-		// Build product's HTTPers
+		// Build product's HTTPs
 		gets, err := mapProductGETs(cfg.GETs, redactions, c)
 		if err != nil {
 			return nil, err
@@ -232,7 +232,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 			return nil, fmt.Errorf("hcl.BuildRunners host received a client when nil expected, client=%v", c)
 		}
 
-		// Build host's HTTPers
+		// Build host's HTTPs
 		gets, err := mapHostGets(cfg.GETs, redactions)
 		if err != nil {
 			return nil, err
@@ -339,7 +339,7 @@ func mapProductGETs(cfgs []GET, redactions []*redact.Redact, c *client.APIClient
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewHTTPer(c, g.Path, runnerRedacts)
+		runners[i] = runner.NewHTTP(c, g.Path, runnerRedacts)
 	}
 	return runners, nil
 }
