@@ -141,11 +141,11 @@ func parseCommand(command string) (parsedCommand, error) {
 		return parsed, e
 	}
 
-	// We only support a single command, without piping from one to the next, in Commander
+	// We only support a single command, without piping from one to the next, in Command
 	if len(p) > 1 {
 		e := CommandParseError{
 			command: command,
-			err:     fmt.Errorf("piped commands are unsupported, please use a Sheller runner or multiple Commander runners, command=%s", command),
+			err:     fmt.Errorf("piped commands are unsupported, please use a Sheller runner or multiple Command runners, command=%s", command),
 		}
 		parsed.err = e
 		return parsed, e
@@ -165,7 +165,7 @@ type CommandParseError struct {
 }
 
 func (e CommandParseError) Error() string {
-	return fmt.Sprintf("error parsing command in Commander runner, command=%s, error=%s", e.command, e.err.Error())
+	return fmt.Sprintf("error parsing command in Command runner, command=%s, error=%s", e.command, e.err.Error())
 }
 
 func (e CommandParseError) Unwrap() error {
