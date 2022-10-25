@@ -1,0 +1,3 @@
+```release-note:improvement
+runners: rename runners to drop 'er' endings.
+```
