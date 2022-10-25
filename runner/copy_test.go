@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewCopier(t *testing.T) {
+func TestNewCopy(t *testing.T) {
 	src := t.TempDir()
 	dest := t.TempDir()
 	since := time.Time{}
@@ -23,8 +23,8 @@ func TestNewCopier(t *testing.T) {
 		Since:     since,
 		Until:     until,
 	}
-	copier := NewCopy(src, dest, since, until, nil)
-	assert.Equal(t, expect, copier)
+	copy := NewCopy(src, dest, since, until, nil)
+	assert.Equal(t, expect, copy)
 }
 
 func setupFile(t *testing.T, dir, file, content string) {

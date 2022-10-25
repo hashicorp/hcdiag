@@ -192,12 +192,12 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, gets...)
 
 		// Identical code between Product and Host, but cfg's type must be resolved via the switch to access the fields
-		// Build copiers
-		copiers, err := mapCopies(cfg.Copies, redactions, dest)
+		// Build Copy runners
+		copys, err := mapCopies(cfg.Copies, redactions, dest)
 		if err != nil {
 			return nil, err
 		}
-		runners = append(runners, copiers...)
+		runners = append(runners, copys...)
 
 		// Build docker and journald logs
 		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since, redactions)
@@ -240,12 +240,12 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		runners = append(runners, gets...)
 
 		// Identical code between Product and Host, but cfg's type must be resolved via the switch
-		// Build copiers
-		copiers, err := mapCopies(cfg.Copies, redactions, dest)
+		// Build Copy runners
+		copys, err := mapCopies(cfg.Copies, redactions, dest)
 		if err != nil {
 			return nil, err
 		}
-		runners = append(runners, copiers...)
+		runners = append(runners, copys...)
 
 		// Build docker and journald logs
 		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since, redactions)
