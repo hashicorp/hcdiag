@@ -212,7 +212,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		}
 		runners = append(runners, journaldLogs...)
 
-		// Build commanders and shellers
+		// Build commands and shellers
 		commands, err := mapCommands(cfg.Commands, redactions)
 		if err != nil {
 			return nil, err
@@ -260,7 +260,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		}
 		runners = append(runners, journaldLogs...)
 
-		// Build commanders and shellers
+		// Build commands and shellers
 		commands, err := mapCommands(cfg.Commands, redactions)
 		if err != nil {
 			return nil, err
@@ -325,7 +325,7 @@ func mapCopies(cfgs []Copy, redactions []*redact.Redact, dest string) ([]runner.
 			// FIXME(mkcp): "Now" should be sourced from the agent to avoid clock sync issues
 			since = time.Now().Add(-sinceDur)
 		}
-		runners[i] = runner.NewCopier(c.Path, dest, since, time.Time{}, runnerRedacts)
+		runners[i] = runner.NewCopy(c.Path, dest, since, time.Time{}, runnerRedacts)
 	}
 	return runners, nil
 }

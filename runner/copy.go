@@ -18,10 +18,10 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-var _ Runner = Copier{}
+var _ Runner = Copy{}
 
-// Copier copies files to temp dir based on a filter.
-type Copier struct {
+// Copy copies files to temp dir based on a filter.
+type Copy struct {
 	SourceDir  string           `json:"source_directory"`
 	Filter     string           `json:"filter"`
 	DestDir    string           `json:"destination_directory"`
@@ -30,10 +30,10 @@ type Copier struct {
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-// NewCopier provides a Runner for copying files to temp dir based on a filter.
-func NewCopier(path, destDir string, since, until time.Time, redactions []*redact.Redact) *Copier {
+// NewCopy provides a Runner for copying files to temp dir based on a filter.
+func NewCopy(path, destDir string, since, until time.Time, redactions []*redact.Redact) *Copy {
 	sourceDir, filter := util.SplitFilepath(path)
-	return &Copier{
+	return &Copy{
 		SourceDir:  sourceDir,
 		Filter:     filter,
 		DestDir:    destDir,
@@ -43,12 +43,12 @@ func NewCopier(path, destDir string, since, until time.Time, redactions []*redac
 	}
 }
 
-func (c Copier) ID() string {
+func (c Copy) ID() string {
 	return "copy " + filepath.Join(c.SourceDir, c.Filter)
 }
 
 // Run satisfies the Runner interface and copies the filtered source files to the destination.
-func (c Copier) Run() op.Op {
+func (c Copy) Run() op.Op {
 	startTime := time.Now()
 
 	// Ensure destination directory exists

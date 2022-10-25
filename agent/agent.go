@@ -297,7 +297,7 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copier", "path", f)
-		o := runner.NewCopier(f, dest, a.Config.Since, a.Config.Until, nil).Run()
+		o := runner.NewCopy(f, dest, a.Config.Since, a.Config.Until, nil).Run()
 		if o.Error != nil {
 			return o.Error
 		}
@@ -414,13 +414,13 @@ func (a *Agent) WriteOutput() (err error) {
 // CheckAvailable runs healthchecks for each enabled product
 func (a *Agent) CheckAvailable() error {
 	if a.Config.Consul {
-		err := product.CommanderHealthCheck(product.ConsulClientCheck, product.ConsulAgentCheck)
+		err := product.CommandHealthCheck(product.ConsulClientCheck, product.ConsulAgentCheck)
 		if err != nil {
 			return err
 		}
 	}
 	if a.Config.Nomad {
-		err := product.CommanderHealthCheck(product.NomadClientCheck, product.NomadAgentCheck)
+		err := product.CommandHealthCheck(product.NomadClientCheck, product.NomadAgentCheck)
 		if err != nil {
 			return err
 		}
@@ -429,7 +429,7 @@ func (a *Agent) CheckAvailable() error {
 	// if cfg.TFE {
 	// }
 	if a.Config.Vault {
-		err := product.CommanderHealthCheck(product.VaultClientCheck, product.VaultAgentCheck)
+		err := product.CommandHealthCheck(product.VaultClientCheck, product.VaultAgentCheck)
 		if err != nil {
 			return err
 		}
