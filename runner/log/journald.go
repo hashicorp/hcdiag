@@ -45,7 +45,7 @@ func (j Journald) ID() string {
 func (j Journald) Run() op.Op {
 	startTime := time.Now()
 
-	version := runner.NewSheller("journalctl --version", j.Redactions).Run()
+	version := runner.NewShell("journalctl --version", j.Redactions).Run()
 	if version.Error != nil {
 		return op.New(j.ID(), version.Result, op.Skip, JournaldNotFound{
 			service: j.Service,
@@ -70,7 +70,7 @@ func (j Journald) Run() op.Op {
 
 	// check if user is able to read messages
 	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
-	permissions := runner.NewSheller(cmd, j.Redactions).Run()
+	permissions := runner.NewShell(cmd, j.Redactions).Run()
 	// permissions error detected
 	if permissions.Error == nil {
 		return op.New(j.ID(), permissions.Result, op.Fail, JournaldPermissionError{
@@ -83,7 +83,7 @@ func (j Journald) Run() op.Op {
 	}
 
 	cmd = j.LogsCmd()
-	logs := runner.NewSheller(cmd, j.Redactions).Run()
+	logs := runner.NewShell(cmd, j.Redactions).Run()
 
 	return op.New(j.ID(), logs.Result, logs.Status, logs.Error, runner.Params(j), startTime, time.Now())
 }

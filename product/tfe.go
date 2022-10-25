@@ -88,8 +88,8 @@ func tfeRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Run
 		runner.NewCommand("replicatedctl params export --template '{{.Airgap}}'", "string", cfg.Redactions),
 		runner.NewCommand("replicated --no-tty admin list-nodes", "json", cfg.Redactions),
 
-		runner.NewSheller("getenforce", cfg.Redactions),
-		runner.NewSheller("env | grep -i proxy", cfg.Redactions),
+		runner.NewShell("getenforce", cfg.Redactions),
+		runner.NewShell("env | grep -i proxy", cfg.Redactions),
 	}
 
 	runners := []runner.Runner{

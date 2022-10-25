@@ -12,27 +12,27 @@ import (
 	"github.com/hashicorp/hcdiag/util"
 )
 
-// Sheller runs shell commands in a real unix shell.
-type Sheller struct {
+// Shell runs shell commands in a real unix shell.
+type Shell struct {
 	Command    string           `json:"command"`
 	Shell      string           `json:"shell"`
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-// NewSheller provides a runner for arbitrary shell code.
-func NewSheller(command string, redactions []*redact.Redact) *Sheller {
-	return &Sheller{
+// NewShell provides a runner for arbitrary shell code.
+func NewShell(command string, redactions []*redact.Redact) *Shell {
+	return &Shell{
 		Command:    command,
 		Redactions: redactions,
 	}
 }
 
-func (s Sheller) ID() string {
+func (s Shell) ID() string {
 	return s.Command
 }
 
 // Run ensures a shell exists and optimistically executes the given Command string
-func (s Sheller) Run() op.Op {
+func (s Shell) Run() op.Op {
 	startTime := time.Now()
 
 	// Read the shell from the environment

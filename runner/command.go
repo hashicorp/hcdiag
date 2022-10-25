@@ -145,7 +145,7 @@ func parseCommand(command string) (parsedCommand, error) {
 	if len(p) > 1 {
 		e := CommandParseError{
 			command: command,
-			err:     fmt.Errorf("piped commands are unsupported, please use a Sheller runner or multiple Command runners, command=%s", command),
+			err:     fmt.Errorf("piped commands are unsupported, please use a Shell runner or multiple Command runners, command=%s", command),
 		}
 		parsed.err = e
 		return parsed, e
