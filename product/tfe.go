@@ -64,7 +64,7 @@ func tfeRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Run
 			// that these run serially.
 			[]runner.Runner{
 				runner.NewCommand("replicatedctl support-bundle", "string", cfg.Redactions),
-				runner.NewCopier("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
+				runner.NewCopy("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 			}),
 
 		runner.NewHTTPer(api, "/api/v2/admin/customization-settings", cfg.Redactions),

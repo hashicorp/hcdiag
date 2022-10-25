@@ -16,14 +16,14 @@ func TestNewCopier(t *testing.T) {
 	dest := t.TempDir()
 	since := time.Time{}
 	until := time.Now()
-	expect := &Copier{
+	expect := &Copy{
 		SourceDir: src,
 		Filter:    "*",
 		DestDir:   dest,
 		Since:     since,
 		Until:     until,
 	}
-	copier := NewCopier(src, dest, since, until, nil)
+	copier := NewCopy(src, dest, since, until, nil)
 	assert.Equal(t, expect, copier)
 }
 
