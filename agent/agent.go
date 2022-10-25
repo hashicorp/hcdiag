@@ -296,7 +296,7 @@ func (a *Agent) CopyIncludes() (err error) {
 			}
 		}
 
-		a.l.Debug("getting Copier", "path", f)
+		a.l.Debug("getting Copy", "path", f)
 		o := runner.NewCopy(f, dest, a.Config.Since, a.Config.Until, nil).Run()
 		if o.Error != nil {
 			return o.Error
