@@ -14,11 +14,11 @@ import (
 func TestNewCommander(t *testing.T) {
 	testCmd := "echo hello"
 	testFmt := "string"
-	expect := &Commander{
+	expect := &Command{
 		Command: testCmd,
 		Format:  testFmt,
 	}
-	actual := NewCommander(testCmd, testFmt, nil)
+	actual := NewCommand(testCmd, testFmt, nil)
 	assert.Equal(t, expect, actual)
 }
 
@@ -49,7 +49,7 @@ func TestCommander_Run(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			c := NewCommander(tc.command, tc.format, nil)
+			c := NewCommand(tc.command, tc.format, nil)
 			o := c.Run()
 			assert.NoError(t, o.Error)
 			assert.Equal(t, op.Success, o.Status)
@@ -91,7 +91,7 @@ func TestCommander_RunError(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			c := NewCommander(tc.command, tc.format, nil)
+			c := NewCommand(tc.command, tc.format, nil)
 			o := c.Run()
 			assert.Error(t, o.Error)
 			hclog.L().Trace("commander.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))

@@ -109,11 +109,11 @@ func (p *Product) Filter() error {
 
 // CommanderHealthCheck employs the CLI to check if the client and then the agent are available.
 func CommanderHealthCheck(client, agent string) error {
-	checkClient := runner.NewCommander(client, "string", nil).Run()
+	checkClient := runner.NewCommand(client, "string", nil).Run()
 	if checkClient.Error != nil {
 		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, checkClient.Result, checkClient.Error)
 	}
-	checkAgent := runner.NewCommander(agent, "string", nil).Run()
+	checkAgent := runner.NewCommand(agent, "string", nil).Run()
 	if checkAgent.Error != nil {
 		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, checkAgent.Result, checkAgent.Error)
 	}

@@ -14,30 +14,30 @@ import (
 	"github.com/hashicorp/hcdiag/util"
 )
 
-var _ Runner = Commander{}
+var _ Runner = Command{}
 
-// Commander runs shell commands.
-type Commander struct {
+// Command runs shell commands.
+type Command struct {
 	Command    string           `json:"command"`
 	Format     string           `json:"format"`
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-// NewCommander provides a runner for bin commands
-func NewCommander(command string, format string, redactions []*redact.Redact) *Commander {
-	return &Commander{
+// NewCommand provides a runner for bin commands
+func NewCommand(command string, format string, redactions []*redact.Redact) *Command {
+	return &Command{
 		Command:    command,
 		Format:     format,
 		Redactions: redactions,
 	}
 }
 
-func (c Commander) ID() string {
+func (c Command) ID() string {
 	return c.Command
 }
 
 // Run executes the Command
-func (c Commander) Run() op.Op {
+func (c Command) Run() op.Op {
 	startTime := time.Now()
 
 	p, err := parseCommand(c.Command)

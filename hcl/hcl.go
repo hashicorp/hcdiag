@@ -285,7 +285,7 @@ func mapCommands(cfgs []Command, redactions []*redact.Redact) ([]runner.Runner, 
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewCommander(c.Run, c.Format, runnerRedacts)
+		runners[i] = runner.NewCommand(c.Run, c.Format, runnerRedacts)
 	}
 	return runners, nil
 }
