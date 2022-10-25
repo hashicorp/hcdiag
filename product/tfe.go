@@ -67,15 +67,15 @@ func tfeRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Run
 				runner.NewCopy("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 			}),
 
-		runner.NewHTTPer(api, "/api/v2/admin/customization-settings", cfg.Redactions),
-		runner.NewHTTPer(api, "/api/v2/admin/general-settings", cfg.Redactions),
-		runner.NewHTTPer(api, "/api/v2/admin/organizations", cfg.Redactions),
-		runner.NewHTTPer(api, "/api/v2/admin/terraform-versions", cfg.Redactions),
-		runner.NewHTTPer(api, "/api/v2/admin/twilio-settings", cfg.Redactions),
+		runner.NewHTTP(api, "/api/v2/admin/customization-settings", cfg.Redactions),
+		runner.NewHTTP(api, "/api/v2/admin/general-settings", cfg.Redactions),
+		runner.NewHTTP(api, "/api/v2/admin/organizations", cfg.Redactions),
+		runner.NewHTTP(api, "/api/v2/admin/terraform-versions", cfg.Redactions),
+		runner.NewHTTP(api, "/api/v2/admin/twilio-settings", cfg.Redactions),
 		// page size 1 because we only actually care about total workspace count in the `meta` field
-		runner.NewHTTPer(api, "/api/v2/admin/workspaces?page[size]=1", cfg.Redactions),
-		runner.NewHTTPer(api, "/api/v2/admin/users?page[size]=1", cfg.Redactions),
-		runner.NewHTTPer(api, "/api/v2/admin/runs?page[size]=1", cfg.Redactions),
+		runner.NewHTTP(api, "/api/v2/admin/workspaces?page[size]=1", cfg.Redactions),
+		runner.NewHTTP(api, "/api/v2/admin/users?page[size]=1", cfg.Redactions),
+		runner.NewHTTP(api, "/api/v2/admin/runs?page[size]=1", cfg.Redactions),
 
 		runner.NewCommand("docker -v", "string", cfg.Redactions),
 		runner.NewCommand("replicatedctl app status --output json", "json", cfg.Redactions),

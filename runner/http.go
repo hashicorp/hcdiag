@@ -8,29 +8,29 @@ import (
 	"github.com/hashicorp/hcdiag/redact"
 )
 
-var _ Runner = HTTPer{}
+var _ Runner = HTTP{}
 
-// HTTPer hits APIs.
-type HTTPer struct {
+// HTTP hits APIs.
+type HTTP struct {
 	Path       string            `json:"path"`
 	Client     *client.APIClient `json:"client"`
 	Redactions []*redact.Redact  `json:"redactions"`
 }
 
-func NewHTTPer(client *client.APIClient, path string, redactions []*redact.Redact) *HTTPer {
-	return &HTTPer{
+func NewHTTP(client *client.APIClient, path string, redactions []*redact.Redact) *HTTP {
+	return &HTTP{
 		Client:     client,
 		Path:       path,
 		Redactions: redactions,
 	}
 }
 
-func (h HTTPer) ID() string {
+func (h HTTP) ID() string {
 	return "GET" + " " + h.Path
 }
 
 // Run executes a GET request to the Path using the Client
-func (h HTTPer) Run() op.Op {
+func (h HTTP) Run() op.Op {
 	startTime := time.Now()
 
 	redactedResponse, err := h.Client.RedactGet(h.Path, h.Redactions)

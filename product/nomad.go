@@ -89,9 +89,9 @@ func nomadRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.R
 		runner.NewCommand("nomad agent-info -json", "json", cfg.Redactions),
 		runner.NewCommand(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
-		runner.NewHTTPer(api, "/v1/agent/members?stale=true", cfg.Redactions),
-		runner.NewHTTPer(api, "/v1/operator/autopilot/configuration?stale=true", cfg.Redactions),
-		runner.NewHTTPer(api, "/v1/operator/raft/configuration?stale=true", cfg.Redactions),
+		runner.NewHTTP(api, "/v1/agent/members?stale=true", cfg.Redactions),
+		runner.NewHTTP(api, "/v1/operator/autopilot/configuration?stale=true", cfg.Redactions),
+		runner.NewHTTP(api, "/v1/operator/raft/configuration?stale=true", cfg.Redactions),
 
 		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
