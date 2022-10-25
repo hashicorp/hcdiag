@@ -71,9 +71,9 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 // consulRunners generates a slice of runners to inspect consul.
 func consulRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
-		runner.NewCommander("consul version", "string", cfg.Redactions),
-		runner.NewCommander(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
-		runner.NewCommander("consul operator raft list-peers -stale=true", "string", cfg.Redactions),
+		runner.NewCommand("consul version", "string", cfg.Redactions),
+		runner.NewCommand(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
+		runner.NewCommand("consul operator raft list-peers -stale=true", "string", cfg.Redactions),
 
 		runner.NewHTTPer(api, "/v1/agent/self", cfg.Redactions),
 		runner.NewHTTPer(api, "/v1/agent/metrics", cfg.Redactions),

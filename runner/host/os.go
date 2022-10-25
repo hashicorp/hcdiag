@@ -38,6 +38,6 @@ func (o OS) Run() op.Op {
 	startTime := time.Now()
 	// NOTE(mkcp): This runner can be made consistent between multiple operating systems if we parse the output of
 	// systeminfo to match uname's scope of concerns.
-	c := runner.NewCommander(o.Command, "string", o.Redactions).Run()
+	c := runner.NewCommand(o.Command, "string", o.Redactions).Run()
 	return op.New(o.ID(), c.Result, c.Status, c.Error, runner.Params(o), startTime, time.Now())
 }
