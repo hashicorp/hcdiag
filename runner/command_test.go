@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewCommander(t *testing.T) {
+func TestNewCommand(t *testing.T) {
 	testCmd := "echo hello"
 	testFmt := "string"
 	expect := &Command{
@@ -22,7 +22,7 @@ func TestNewCommander(t *testing.T) {
 	assert.Equal(t, expect, actual)
 }
 
-func TestCommander_Run(t *testing.T) {
+func TestCommand_Run(t *testing.T) {
 	tt := []struct {
 		desc    string
 		command string
@@ -58,7 +58,7 @@ func TestCommander_Run(t *testing.T) {
 	}
 }
 
-func TestCommander_RunError(t *testing.T) {
+func TestCommand_RunError(t *testing.T) {
 	tt := []struct {
 		desc    string
 		command string
@@ -94,7 +94,7 @@ func TestCommander_RunError(t *testing.T) {
 			c := NewCommand(tc.command, tc.format, nil)
 			o := c.Run()
 			assert.Error(t, o.Error)
-			hclog.L().Trace("commander.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
+			hclog.L().Trace("command.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
 			assert.Equal(t, tc.status, o.Status)
 			if tc.expect != nil {
 				assert.Equal(t, tc.expect, o.Result)
