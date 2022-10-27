@@ -1,0 +1,3 @@
+```release-note:improvement
+op: Add op statuses "Canceled" and "Timeout" to support the addition of runner cancellation/timeout.
+```
