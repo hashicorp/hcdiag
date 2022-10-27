@@ -59,7 +59,7 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 // tfeRunners configures a set of default runners for TFE.
 func tfeRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
-		do.NewSync(l, "support-bundle", "vault support bundle",
+		do.NewSync(l, "support-bundle", "replicated support bundle",
 			// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
 			// that these run serially.
 			[]runner.Runner{
