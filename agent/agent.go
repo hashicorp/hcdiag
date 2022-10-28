@@ -378,22 +378,22 @@ func (a *Agent) WriteOutput() (err error) {
 	a.l.Debug("Writing results and manifest, and creating tar.gz archive")
 
 	// Write out results
-	rFile := filepath.Join(a.tmpDir, "Results.json")
+	rFile := filepath.Join(a.tmpDir, "results.json")
 	err = util.WriteJSON(a.results, rFile)
 	if err != nil {
 		a.l.Error("util.WriteJSON", "error", err)
 		return err
 	}
-	a.l.Info("Created Results.json file", "dest", rFile)
+	a.l.Info("Created results.json file", "dest", rFile)
 
 	// Write out manifest
-	mFile := filepath.Join(a.tmpDir, "Manifest.json")
+	mFile := filepath.Join(a.tmpDir, "manifest.json")
 	err = util.WriteJSON(a, mFile)
 	if err != nil {
 		a.l.Error("util.WriteJSON", "error", err)
 		return err
 	}
-	a.l.Info("Created Manifest.json file", "dest", mFile)
+	a.l.Info("Created manifest.json file", "dest", mFile)
 
 	// Build bundle destination path from config
 	resultsFile := fmt.Sprintf("%s.tar.gz", a.TempDir())

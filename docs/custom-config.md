@@ -79,7 +79,7 @@ Read more about them [here](./redactions.md).
 * The Consul memberlist: `consul members`
 * Raft peer information: `consul operator raft list-peers`
 * A custom journalctl command that's different from the builtin: `journalctl -u consul --since=yesterday --output=json`
-* Another custom command (in this case, just running `cat` to collect a file's contents into the bundle `Results.json` file with no redactions)
+* Another custom command (in this case, just running `cat` to collect a file's contents into the bundle `results.json` file with no redactions)
 
 To do this, we create a custom config file named `hcdiag.hcl` with the following content:
 
