@@ -22,6 +22,12 @@ const (
 
 	// Skip means that this Op was intentionally not run
 	Skip Status = "skip"
+
+	// Timeout means that an operation timed out during execution.
+	Timeout Status = "timeout"
+
+	// Canceled means that an operation was canceled during execution.
+	Canceled Status = "canceled"
 )
 
 // Op seeks information via its Runner then stores the results.

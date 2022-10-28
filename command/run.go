@@ -330,6 +330,8 @@ func writeSummary(writer io.Writer, resultsFile string, manifestOps map[string][
 		string(op.Success),
 		string(op.Fail),
 		string(op.Skip),
+		string(op.Canceled),
+		string(op.Timeout),
 		string(op.Unknown),
 		"total",
 	}
@@ -348,7 +350,7 @@ func writeSummary(writer io.Writer, resultsFile string, manifestOps map[string][
 	sort.Strings(products)
 
 	for _, prod := range products {
-		var success, fail, skip, unknown int
+		var success, fail, skip, unknown, canceled, timeout int
 		ops := manifestOps[prod]
 
 		for _, o := range ops {
@@ -359,6 +361,10 @@ func writeSummary(writer io.Writer, resultsFile string, manifestOps map[string][
 				fail++
 			case op.Skip:
 				skip++
+			case op.Canceled:
+				canceled++
+			case op.Timeout:
+				timeout++
 			default:
 				unknown++
 			}
@@ -369,6 +375,8 @@ func writeSummary(writer io.Writer, resultsFile string, manifestOps map[string][
 			strconv.Itoa(success),
 			strconv.Itoa(fail),
 			strconv.Itoa(skip),
+			strconv.Itoa(canceled),
+			strconv.Itoa(timeout),
 			strconv.Itoa(unknown),
 			strconv.Itoa(len(ops))))
 		if err != nil {

@@ -67,6 +67,12 @@ func Test_writeSummary(t *testing.T) {
 					{
 						Status: op.Unknown,
 					},
+					{
+						Status: op.Timeout,
+					},
+					{
+						Status: op.Timeout,
+					},
 				},
 				"nomad": {
 					{
@@ -77,6 +83,9 @@ func Test_writeSummary(t *testing.T) {
 					},
 					{
 						Status: op.Skip,
+					},
+					{
+						Status: op.Canceled,
 					},
 				},
 			},
