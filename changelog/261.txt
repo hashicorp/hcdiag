@@ -1,0 +1,3 @@
+```release-note:improvement
+output: lowercase standard output filenames: Results.json -> results.json and Manifest.json -> manifest.json
+```
