@@ -132,8 +132,8 @@ func TestFunctional(t *testing.T) {
 					// ensure default and product-specific files are in our extracted directory
 					// these files must always exist in the archive
 					defaultFiles := []string{
-						"Manifest.json",
-						"Results.json",
+						"manifest.json",
+						"results.json",
 					}
 					files := append(defaultFiles, tc.outFiles...)
 					assertFilesExist(t, extractedDir, files)

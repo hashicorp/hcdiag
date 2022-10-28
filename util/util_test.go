@@ -162,19 +162,19 @@ func Test_getTarRelativePathName(t *testing.T) {
 			name: "Test Source Files that are not Nested in File Root",
 			args: arguments{
 				baseName: "hcdiag0123456",
-				filePath: "/tmp/a/b/c/Results.json",
+				filePath: "/tmp/a/b/c/results.json",
 				fileRoot: "/tmp/a/b/c",
 			},
-			expected: "hcdiag0123456/Results.json",
+			expected: "hcdiag0123456/results.json",
 		},
 		{
 			name: "Test Source Files that are Nested in File Root",
 			args: arguments{
 				baseName: "hcdiag0123456",
-				filePath: "/tmp/a/b/c/d/e/f/Results.json",
+				filePath: "/tmp/a/b/c/d/e/f/results.json",
 				fileRoot: "/tmp/a/b/c",
 			},
-			expected: "hcdiag0123456/d/e/f/Results.json",
+			expected: "hcdiag0123456/d/e/f/results.json",
 		},
 	}
 

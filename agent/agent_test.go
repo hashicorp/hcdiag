@@ -197,11 +197,12 @@ func TestWriteOutput(t *testing.T) {
 	}
 
 	expectFiles := []string{
-		filepath.Join(a.tmpDir, "Manifest.json"),
-		filepath.Join(a.tmpDir, "Results.json"),
+		filepath.Join(a.tmpDir, "manifest.json"),
+		filepath.Join(a.tmpDir, "results.json"),
 		resultsDest,
 	}
 	for _, f := range expectFiles {
+		// NOTE: OS X is case insensitive, so this test will never correctly check filename case on a dev machine
 		_, err := os.Stat(f)
 		assert.NoError(t, err, "Missing file %s", f)
 	}
