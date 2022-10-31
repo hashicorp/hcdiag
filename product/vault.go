@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -23,6 +24,11 @@ const (
 
 // NewVault takes a product config and creates a Product containing all of Vault's runners.
 func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
+	return NewVaultWithContext(context.Background(), logger, cfg)
+}
+
+// NewVaultWithContext takes a context, a logger, and a config and creates a Product containing all of Vault's runners.
+func NewVaultWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
 	defaultRedactions, err := vaultRedactions()
 	if err != nil {
@@ -49,7 +55,7 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, nil)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +65,7 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	// Add built-in runners
-	builtInRunners, err := vaultRunners(cfg, api, logger)
+	builtInRunners, err := vaultRunners(ctx, cfg, api, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +75,7 @@ func NewVault(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // vaultRunners provides a list of default runners to inspect vault.
-func vaultRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
 		runner.NewCommand("vault version", "string", cfg.Redactions),
 		runner.NewCommand("vault status -format=json", "json", cfg.Redactions),

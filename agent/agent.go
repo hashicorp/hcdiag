@@ -502,7 +502,7 @@ func (a *Agent) Setup() error {
 	if a.Config.Vault {
 		cfg := baseCfg
 		cfg.HCL = hclProducts["vault"]
-		newVault, err := product.NewVault(a.l, cfg)
+		newVault, err := product.NewVaultWithContext(a.ctx, a.l, cfg)
 		if err != nil {
 			return err
 		}
