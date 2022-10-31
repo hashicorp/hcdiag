@@ -1,9 +1,11 @@
 package agent
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
 
@@ -26,6 +28,19 @@ func newTestAgent(t *testing.T) *Agent {
 	require.NoError(t, err, "Error new test Agent")
 	require.NotNil(t, a)
 	return a
+}
+
+func TestNewAgentIncludesBackgroundContext(t *testing.T) {
+	a := newTestAgent(t)
+	assert.Equal(t, context.Background(), a.ctx)
+}
+
+func TestNewAgentWithContext(t *testing.T) {
+	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+	a, err := NewAgentWithContext(ctx, Config{}, hclog.Default())
+	require.NoError(t, err, "Error new test Agent with context")
+	require.NotNil(t, a)
+	require.Equal(t, ctx, a.ctx)
 }
 
 func TestStartAndEnd(t *testing.T) {

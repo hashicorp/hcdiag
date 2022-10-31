@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -45,25 +46,33 @@ type Config struct {
 
 // Agent stores the runtime state that we use throughout the Agent's lifecycle.
 type Agent struct {
+	ctx         context.Context
 	l           hclog.Logger
 	products    map[product.Name]*product.Product
 	results     map[product.Name]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
 	resultsDest string
-	Start       time.Time       `json:"started_at"`
-	End         time.Time       `json:"ended_at"`
-	Duration    string          `json:"duration"`
-	NumOps      int             `json:"num_ops"`
-	Config      Config          `json:"configuration"`
-	Version     version.Version `json:"version"`
+
+	Start    time.Time       `json:"started_at"`
+	End      time.Time       `json:"ended_at"`
+	Duration string          `json:"duration"`
+	NumOps   int             `json:"num_ops"`
+	Config   Config          `json:"configuration"`
+	Version  version.Version `json:"version"`
 	// ManifestOps holds a slice of ops with a subset of fields so we can safely render them in `manifest.json`
 	ManifestOps map[string][]ManifestOp `json:"ops"`
 	// Agent-level redactions are passed through to all products
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
+// NewAgent produces a new Agent, initialized for subsequent running.
 func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
+	return NewAgentWithContext(context.Background(), config, logger)
+}
+
+// NewAgentWithContext produces a new Agent that includes a custom context.Context, initialized for subsequent running.
+func NewAgentWithContext(ctx context.Context, config Config, logger hclog.Logger) (*Agent, error) {
 	redacts, err := agentRedactions()
 	if err != nil {
 		return nil, err
@@ -80,6 +89,7 @@ func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
 
 	return &Agent{
 		l:           logger,
+		ctx:         ctx,
 		Config:      config,
 		results:     make(map[product.Name]map[string]op.Op),
 		products:    make(map[product.Name]*product.Product),
