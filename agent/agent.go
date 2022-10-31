@@ -472,7 +472,7 @@ func (a *Agent) Setup() error {
 	if a.Config.Consul {
 		cfg := baseCfg
 		cfg.HCL = hclProducts["consul"]
-		newConsul, err := product.NewConsul(a.l, cfg)
+		newConsul, err := product.NewConsulWithContext(a.ctx, a.l, cfg)
 		if err != nil {
 			return err
 		}
