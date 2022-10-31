@@ -28,3 +28,7 @@
 
 # Vagrant box files
 .vagrant
+
+# Built binaries, etc.
+bin/
+
