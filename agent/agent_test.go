@@ -36,7 +36,9 @@ func TestNewAgentIncludesBackgroundContext(t *testing.T) {
 }
 
 func TestNewAgentWithContext(t *testing.T) {
-	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
 	a, err := NewAgentWithContext(ctx, Config{}, hclog.Default())
 	require.NoError(t, err, "Error new test Agent with context")
 	require.NotNil(t, a)
