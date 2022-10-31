@@ -482,7 +482,7 @@ func (a *Agent) Setup() error {
 	if a.Config.Nomad {
 		cfg := baseCfg
 		cfg.HCL = hclProducts["nomad"]
-		newNomad, err := product.NewNomad(a.l, cfg)
+		newNomad, err := product.NewNomadWithContext(a.ctx, a.l, cfg)
 		if err != nil {
 			return err
 		}
