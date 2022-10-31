@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -18,6 +19,8 @@ var _ Runner = Command{}
 
 // Command runs shell commands.
 type Command struct {
+	Timeout
+
 	Command    string           `json:"command"`
 	Format     string           `json:"format"`
 	Redactions []*redact.Redact `json:"redactions"`
@@ -25,7 +28,13 @@ type Command struct {
 
 // NewCommand provides a runner for bin commands
 func NewCommand(command string, format string, redactions []*redact.Redact) *Command {
+	return NewCommandWithContext(context.Background(), command, format, redactions)
+}
+
+// NewCommandWithContext provides a runner for bin commands that includes a context.
+func NewCommandWithContext(ctx context.Context, command string, format string, redactions []*redact.Redact) *Command {
 	return &Command{
+		Timeout:    Timeout{Context: ctx},
 		Command:    command,
 		Format:     format,
 		Redactions: redactions,

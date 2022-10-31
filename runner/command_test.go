@@ -1,8 +1,10 @@
 package runner
 
 import (
+	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -15,10 +17,27 @@ func TestNewCommand(t *testing.T) {
 	testCmd := "echo hello"
 	testFmt := "string"
 	expect := &Command{
+		Timeout: Timeout{Context: context.Background()},
 		Command: testCmd,
 		Format:  testFmt,
 	}
 	actual := NewCommand(testCmd, testFmt, nil)
+	assert.Equal(t, expect, actual)
+}
+
+func TestNewCommandWithContext(t *testing.T) {
+	testCmd := "echo hello"
+	testFmt := "string"
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	expect := &Command{
+		Timeout: Timeout{Context: ctx},
+		Command: testCmd,
+		Format:  testFmt,
+	}
+	actual := NewCommandWithContext(ctx, testCmd, testFmt, nil)
 	assert.Equal(t, expect, actual)
 }
 
