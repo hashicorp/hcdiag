@@ -1,6 +1,7 @@
 package hcl
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -273,7 +274,7 @@ func TestMapDockerLogs(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		runners, err := mapDockerLogs(tc.config, defaultDest, defaultSince, nil)
+		runners, err := mapDockerLogs(context.Background(), tc.config, defaultDest, defaultSince, nil)
 		assert.NoError(t, err)
 		assert.Len(t, runners, tc.expected)
 	}
@@ -337,7 +338,7 @@ func TestMapJournaldLogs(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		runners, err := mapJournaldLogs(tc.config, defaultDest, defaultSince, defaultUntil, tc.redactions)
+		runners, err := mapJournaldLogs(context.Background(), tc.config, defaultDest, defaultSince, defaultUntil, tc.redactions)
 		assert.NoError(t, err)
 		assert.Len(t, runners, tc.expected)
 	}
