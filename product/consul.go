@@ -26,7 +26,7 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 	return NewConsulWithContext(context.Background(), logger, cfg)
 }
 
-// NewConsulWithContext takes a context, a logger and product config, and it creates a Product with all of Consul's default runners.
+// NewConsulWithContext takes a context, a logger, and product config, and it creates a Product with all of Consul's default runners.
 func NewConsulWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
 	defaultRedactions, err := consulRedactions()
