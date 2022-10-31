@@ -156,7 +156,7 @@ func TestRunProducts(t *testing.T) {
 	a := newTestAgent(t)
 
 	a.products = p
-	h, err := product.NewHost(l, pCfg, &hcl.Host{})
+	h, err := product.NewHostWithContext(context.Background(), l, pCfg, &hcl.Host{})
 	assert.NoError(t, err)
 	p[product.Host] = h
 
