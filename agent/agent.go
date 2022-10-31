@@ -510,7 +510,7 @@ func (a *Agent) Setup() error {
 	}
 
 	// Build host and assign it to the product map.
-	newHost, err := product.NewHost(a.l, baseCfg, a.Config.HCL.Host)
+	newHost, err := product.NewHostWithContext(a.ctx, a.l, baseCfg, a.Config.HCL.Host)
 	if err != nil {
 		return err
 	}
