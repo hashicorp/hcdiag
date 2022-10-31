@@ -492,7 +492,7 @@ func (a *Agent) Setup() error {
 	if a.Config.TFE {
 		cfg := baseCfg
 		cfg.HCL = hclProducts["terraform-ent"]
-		newTFE, err := product.NewTFE(a.l, cfg)
+		newTFE, err := product.NewTFEWithContext(a.ctx, a.l, cfg)
 		if err != nil {
 			return err
 		}
