@@ -424,13 +424,13 @@ func (a *Agent) WriteOutput() (err error) {
 // CheckAvailable runs healthchecks for each enabled product
 func (a *Agent) CheckAvailable() error {
 	if a.Config.Consul {
-		err := product.CommandHealthCheck(product.ConsulClientCheck, product.ConsulAgentCheck)
+		err := product.CommandHealthCheckWithContext(a.ctx, product.ConsulClientCheck, product.ConsulAgentCheck)
 		if err != nil {
 			return err
 		}
 	}
 	if a.Config.Nomad {
-		err := product.CommandHealthCheck(product.NomadClientCheck, product.NomadAgentCheck)
+		err := product.CommandHealthCheckWithContext(a.ctx, product.NomadClientCheck, product.NomadAgentCheck)
 		if err != nil {
 			return err
 		}
@@ -439,7 +439,7 @@ func (a *Agent) CheckAvailable() error {
 	// if cfg.TFE {
 	// }
 	if a.Config.Vault {
-		err := product.CommandHealthCheck(product.VaultClientCheck, product.VaultAgentCheck)
+		err := product.CommandHealthCheckWithContext(a.ctx, product.VaultClientCheck, product.VaultAgentCheck)
 		if err != nil {
 			return err
 		}
