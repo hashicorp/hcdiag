@@ -77,9 +77,9 @@ func NewConsulWithContext(ctx context.Context, logger hclog.Logger, cfg Config) 
 // consulRunners generates a slice of runners to inspect consul.
 func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
-		runner.NewCommand("consul version", "string", cfg.Redactions),
-		runner.NewCommand(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
-		runner.NewCommand("consul operator raft list-peers -stale=true", "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "consul version", "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "consul operator raft list-peers -stale=true", "string", cfg.Redactions),
 
 		runner.NewHTTP(api, "/v1/agent/self", cfg.Redactions),
 		runner.NewHTTP(api, "/v1/agent/metrics", cfg.Redactions),
@@ -97,7 +97,7 @@ func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hcl
 	// try to detect log location to copy
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/consul")
-		logCopy := runner.NewCopy(logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
+		logCopy := runner.NewCopyWithContext(ctx, logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
 		r = append([]runner.Runner{logCopy}, r...)
 	}
 

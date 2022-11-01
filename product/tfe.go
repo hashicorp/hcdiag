@@ -70,8 +70,8 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 			// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
 			// that these run serially.
 			[]runner.Runner{
-				runner.NewCommand("replicatedctl support-bundle", "string", cfg.Redactions),
-				runner.NewCopy("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
+				runner.NewCommandWithContext(ctx, "replicatedctl support-bundle", "string", cfg.Redactions),
+				runner.NewCopyWithContext(ctx, "/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 			}),
 
 		runner.NewHTTP(api, "/api/v2/admin/customization-settings", cfg.Redactions),
@@ -84,16 +84,16 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 		runner.NewHTTP(api, "/api/v2/admin/users?page[size]=1", cfg.Redactions),
 		runner.NewHTTP(api, "/api/v2/admin/runs?page[size]=1", cfg.Redactions),
 
-		runner.NewCommand("docker -v", "string", cfg.Redactions),
-		runner.NewCommand("replicatedctl app status --output json", "json", cfg.Redactions),
-		runner.NewCommand("lsblk --json", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group capacity", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group production_type", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group log_forwarding", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group blob", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group worker_image", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl params export --template '{{.Airgap}}'", "string", cfg.Redactions),
-		runner.NewCommand("replicated --no-tty admin list-nodes", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "docker -v", "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "replicatedctl app status --output json", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "lsblk --json", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "replicatedctl app-config view -o json --group capacity", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "replicatedctl app-config view -o json --group production_type", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "replicatedctl app-config view -o json --group log_forwarding", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "replicatedctl app-config view -o json --group blob", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "replicatedctl app-config view -o json --group worker_image", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "replicatedctl params export --template '{{.Airgap}}'", "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "replicated --no-tty admin list-nodes", "json", cfg.Redactions),
 
 		runner.NewShell("getenforce", cfg.Redactions),
 		runner.NewShell("env | grep -i proxy", cfg.Redactions),

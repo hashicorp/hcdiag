@@ -90,10 +90,10 @@ func NewNomadWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (
 // nomadRunners generates a slice of runners to inspect nomad
 func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
-		runner.NewCommand("nomad version", "string", cfg.Redactions),
-		runner.NewCommand("nomad node status -self -json", "json", cfg.Redactions),
-		runner.NewCommand("nomad agent-info -json", "json", cfg.Redactions),
-		runner.NewCommand(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "nomad version", "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "nomad node status -self -json", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "nomad agent-info -json", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
 		runner.NewHTTP(api, "/v1/agent/members?stale=true", cfg.Redactions),
 		runner.NewHTTP(api, "/v1/operator/autopilot/configuration?stale=true", cfg.Redactions),
@@ -106,7 +106,7 @@ func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 	// try to detect log location to copy
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs", "nomad")
-		logCopy := runner.NewCopy(logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
+		logCopy := runner.NewCopyWithContext(ctx, logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
 		r = append([]runner.Runner{logCopy}, r...)
 	}
 

@@ -77,12 +77,12 @@ func NewVaultWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (
 // vaultRunners provides a list of default runners to inspect vault.
 func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
-		runner.NewCommand("vault version", "string", cfg.Redactions),
-		runner.NewCommand("vault status -format=json", "json", cfg.Redactions),
-		runner.NewCommand("vault read sys/health -format=json", "json", cfg.Redactions),
-		runner.NewCommand("vault read sys/seal-status -format=json", "json", cfg.Redactions),
-		runner.NewCommand("vault read sys/host-info -format=json", "json", cfg.Redactions),
-		runner.NewCommand(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "vault version", "string", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "vault status -format=json", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "vault read sys/health -format=json", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "vault read sys/seal-status -format=json", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, "vault read sys/host-info -format=json", "json", cfg.Redactions),
+		runner.NewCommandWithContext(ctx, fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
@@ -91,7 +91,7 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 	// try to detect log location to copy
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/vault")
-		logCopy := runner.NewCopy(logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
+		logCopy := runner.NewCopyWithContext(ctx, logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
 		r = append([]runner.Runner{logCopy}, r...)
 	}
 

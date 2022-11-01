@@ -291,7 +291,7 @@ func mapCommands(ctx context.Context, cfgs []Command, redactions []*redact.Redac
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewCommand(c.Run, c.Format, runnerRedacts)
+		runners[i] = runner.NewCommandWithContext(ctx, c.Run, c.Format, runnerRedacts)
 	}
 	return runners, nil
 }
@@ -331,7 +331,7 @@ func mapCopies(ctx context.Context, cfgs []Copy, redactions []*redact.Redact, de
 			// FIXME(mkcp): "Now" should be sourced from the agent to avoid clock sync issues
 			since = time.Now().Add(-sinceDur)
 		}
-		runners[i] = runner.NewCopy(c.Path, dest, since, time.Time{}, runnerRedacts)
+		runners[i] = runner.NewCopyWithContext(ctx, c.Path, dest, since, time.Time{}, runnerRedacts)
 	}
 	return runners, nil
 }

@@ -115,11 +115,11 @@ func CommandHealthCheck(client, agent string) error {
 
 // CommandHealthCheckWithContext employs the CLI to check if the client and then the agent are available.
 func CommandHealthCheckWithContext(ctx context.Context, client, agent string) error {
-	checkClient := runner.NewCommand(client, "string", nil).Run()
+	checkClient := runner.NewCommandWithContext(ctx, client, "string", nil).Run()
 	if checkClient.Error != nil {
 		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, checkClient.Result, checkClient.Error)
 	}
-	checkAgent := runner.NewCommand(agent, "string", nil).Run()
+	checkAgent := runner.NewCommandWithContext(ctx, agent, "string", nil).Run()
 	if checkAgent.Error != nil {
 		return fmt.Errorf("agent not available, healthcheck=%v, result=%v, error=%v", agent, checkAgent.Result, checkAgent.Error)
 	}
