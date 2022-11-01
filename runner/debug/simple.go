@@ -41,7 +41,6 @@ func NewSimpleDebug(cfg product.Config, filters []string, redactions []*redact.R
 
 	switch product {
 	case "nomad":
-		// runner.NewCommand(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 		cmdStr = fmt.Sprintf("nomad operator debug -log-level=TRACE -duration=%s -interval=%s -node-id=all -max-nodes=100 -output=%s/%s", cfg.DebugDuration, cfg.DebugInterval, cfg.TmpDir, filterString)
 	case "vault":
 		// TODO(dcohen): compress is currently true to maintain backwards compatibility, but I'd like to set this to false since everything gets compressed anyway
@@ -74,8 +73,8 @@ func (d SimpleDebug) Run() op.Op {
 	return op.New(d.ID(), o.Result, op.Success, nil, runner.Params(d), startTime, time.Now())
 }
 
-// productFilterString takes a product.Name and a slice of filter strings, and produces valid, product-specific filter flags
-// the returned string is in the form "-target=metrics -target=pprof" (for Vault), "-capture=host" (for Consul), or "-event-topic=Allocation" (for Nomad)
+// productFilterString takes a product.Name and a slice of filter strings, and produces valid, product-specific filter flags.
+// The returned string is in the form " -target=metrics -target=pprof" (for Vault), " -capture=host" (for Consul), or " -event-topic=Allocation" (for Nomad)
 func productFilterString(product product.Name, filters []string) (string, error) {
 	var filterString string
 	var legalFilters []string
@@ -103,7 +102,7 @@ func productFilterString(product product.Name, filters []string) (string, error)
 	}
 
 	for _, f := range filters {
-		// Skip empty entries
+		// Skip empty entries. TODO maybe this is something we shouldn't allow?
 		if f == "" {
 			continue
 		}
