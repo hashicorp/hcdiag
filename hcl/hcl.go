@@ -1,6 +1,7 @@
 package hcl
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -173,6 +174,11 @@ func Parse(path string) (HCL, error) {
 // All custom runners are reduced into a linear slice of runners and served back up to the product.
 // No runners are returned if any config is invalid.
 func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
+	return BuildRunnersWithContext(context.Background(), config, tmpDir, c, since, until, redactions)
+}
+
+// BuildRunnersWithContext is similar to BuildRunners but accepts a context.Context that will be passed into the runners.
+func BuildRunnersWithContext[T Blocks](ctx context.Context, config T, tmpDir string, c *client.APIClient, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
 	var dest string
 	runners := make([]runner.Runner, 0)
 
@@ -185,7 +191,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		}
 
 		// Build product's HTTPs
-		gets, err := mapProductGETs(cfg.GETs, redactions, c)
+		gets, err := mapProductGETs(ctx, cfg.GETs, redactions, c)
 		if err != nil {
 			return nil, err
 		}
@@ -193,33 +199,33 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 
 		// Identical code between Product and Host, but cfg's type must be resolved via the switch to access the fields
 		// Build Copy runners
-		copies, err := mapCopies(cfg.Copies, redactions, dest)
+		copies, err := mapCopies(ctx, cfg.Copies, redactions, dest)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, copies...)
 
 		// Build docker and journald logs
-		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since, redactions)
+		dockerLogs, err := mapDockerLogs(ctx, cfg.DockerLogs, dest, since, redactions)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, dockerLogs...)
 
-		journaldLogs, err := mapJournaldLogs(cfg.JournaldLogs, dest, since, until, redactions)
+		journaldLogs, err := mapJournaldLogs(ctx, cfg.JournaldLogs, dest, since, until, redactions)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, journaldLogs...)
 
 		// Build commands and shells
-		commands, err := mapCommands(cfg.Commands, redactions)
+		commands, err := mapCommands(ctx, cfg.Commands, redactions)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, commands...)
 
-		shells, err := mapShells(cfg.Shells, redactions)
+		shells, err := mapShells(ctx, cfg.Shells, redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +239,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 		}
 
 		// Build host's HTTPs
-		gets, err := mapHostGets(cfg.GETs, redactions)
+		gets, err := mapHostGets(ctx, cfg.GETs, redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -241,33 +247,33 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 
 		// Identical code between Product and Host, but cfg's type must be resolved via the switch
 		// Build Copy runners
-		copies, err := mapCopies(cfg.Copies, redactions, dest)
+		copies, err := mapCopies(ctx, cfg.Copies, redactions, dest)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, copies...)
 
 		// Build docker and journald logs
-		dockerLogs, err := mapDockerLogs(cfg.DockerLogs, dest, since, redactions)
+		dockerLogs, err := mapDockerLogs(ctx, cfg.DockerLogs, dest, since, redactions)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, dockerLogs...)
 
-		journaldLogs, err := mapJournaldLogs(cfg.JournaldLogs, dest, since, until, redactions)
+		journaldLogs, err := mapJournaldLogs(ctx, cfg.JournaldLogs, dest, since, until, redactions)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, journaldLogs...)
 
 		// Build commands and shells
-		commands, err := mapCommands(cfg.Commands, redactions)
+		commands, err := mapCommands(ctx, cfg.Commands, redactions)
 		if err != nil {
 			return nil, err
 		}
 		runners = append(runners, commands...)
 
-		shells, err := mapShells(cfg.Shells, redactions)
+		shells, err := mapShells(ctx, cfg.Shells, redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -276,7 +282,7 @@ func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since,
 	return runners, nil
 }
 
-func mapCommands(cfgs []Command, redactions []*redact.Redact) ([]runner.Runner, error) {
+func mapCommands(ctx context.Context, cfgs []Command, redactions []*redact.Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		runnerRedacts, err := MapRedacts(c.Redactions)
@@ -290,7 +296,7 @@ func mapCommands(cfgs []Command, redactions []*redact.Redact) ([]runner.Runner, 
 	return runners, nil
 }
 
-func mapShells(cfgs []Shell, redactions []*redact.Redact) ([]runner.Runner, error) {
+func mapShells(ctx context.Context, cfgs []Shell, redactions []*redact.Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		runnerRedacts, err := MapRedacts(c.Redactions)
@@ -304,7 +310,7 @@ func mapShells(cfgs []Shell, redactions []*redact.Redact) ([]runner.Runner, erro
 	return runners, nil
 }
 
-func mapCopies(cfgs []Copy, redactions []*redact.Redact, dest string) ([]runner.Runner, error) {
+func mapCopies(ctx context.Context, cfgs []Copy, redactions []*redact.Redact, dest string) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, c := range cfgs {
 		var since time.Time
@@ -330,7 +336,7 @@ func mapCopies(cfgs []Copy, redactions []*redact.Redact, dest string) ([]runner.
 	return runners, nil
 }
 
-func mapProductGETs(cfgs []GET, redactions []*redact.Redact, c *client.APIClient) ([]runner.Runner, error) {
+func mapProductGETs(ctx context.Context, cfgs []GET, redactions []*redact.Redact, c *client.APIClient) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
 		runnerRedacts, err := MapRedacts(g.Redactions)
@@ -344,7 +350,7 @@ func mapProductGETs(cfgs []GET, redactions []*redact.Redact, c *client.APIClient
 	return runners, nil
 }
 
-func mapHostGets(cfgs []GET, redactions []*redact.Redact) ([]runner.Runner, error) {
+func mapHostGets(ctx context.Context, cfgs []GET, redactions []*redact.Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 	for i, g := range cfgs {
 		runnerRedacts, err := MapRedacts(g.Redactions)
@@ -360,7 +366,7 @@ func mapHostGets(cfgs []GET, redactions []*redact.Redact) ([]runner.Runner, erro
 	return runners, nil
 }
 
-func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
+func mapDockerLogs(ctx context.Context, cfgs []DockerLog, dest string, since time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, d := range cfgs {
@@ -385,7 +391,7 @@ func mapDockerLogs(cfgs []DockerLog, dest string, since time.Time, redactions []
 	return runners, nil
 }
 
-func mapJournaldLogs(cfgs []JournaldLog, dest string, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
+func mapJournaldLogs(ctx context.Context, cfgs []JournaldLog, dest string, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
 	runners := make([]runner.Runner, len(cfgs))
 
 	for i, j := range cfgs {

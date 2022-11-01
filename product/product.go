@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -109,6 +110,11 @@ func (p *Product) Filter() error {
 
 // CommandHealthCheck employs the CLI to check if the client and then the agent are available.
 func CommandHealthCheck(client, agent string) error {
+	return CommandHealthCheckWithContext(context.Background(), client, agent)
+}
+
+// CommandHealthCheckWithContext employs the CLI to check if the client and then the agent are available.
+func CommandHealthCheckWithContext(ctx context.Context, client, agent string) error {
 	checkClient := runner.NewCommand(client, "string", nil).Run()
 	if checkClient.Error != nil {
 		return fmt.Errorf("client not available, healthcheck=%v, result=%v, error=%v", client, checkClient.Result, checkClient.Error)

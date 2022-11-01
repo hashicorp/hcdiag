@@ -1,6 +1,8 @@
 package product
 
 import (
+	"context"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/hcl"
@@ -11,6 +13,11 @@ import (
 
 // NewTFE takes a logger and product config, and it creates a Product with all of TFE's default runners.
 func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
+	return NewTFEWithContext(context.Background(), logger, cfg)
+}
+
+// NewTFEWithContext takes a context, a logger, and product config, and it creates a Product with all of TFE's default runners.
+func NewTFEWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
 	defaultRedactions, err := tfeRedactions()
 	if err != nil {
@@ -37,7 +44,7 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, nil)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +54,7 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	// Add built-in runners
-	builtInRunners, err := tfeRunners(cfg, api, logger)
+	builtInRunners, err := tfeRunners(ctx, cfg, api, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +64,7 @@ func NewTFE(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // tfeRunners configures a set of default runners for TFE.
-func tfeRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
 		do.NewSync(l, "support-bundle", "replicated support bundle",
 			// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure

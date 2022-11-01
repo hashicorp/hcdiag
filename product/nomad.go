@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -25,6 +26,11 @@ const (
 
 // NewNomad takes a logger and product config, and it creates a Product with all of Nomad's default runners.
 func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
+	return NewNomadWithContext(context.Background(), logger, cfg)
+}
+
+// NewNomadWithContext takes a context, a logger, and product config, and it creates a Product with all of Nomad's default runners.
+func NewNomadWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
 	defaultRedactions, err := nomadRedactions()
 	if err != nil {
@@ -62,7 +68,7 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, cfg.Redactions)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +78,7 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	// Add built-in runners
-	builtInRunners, err := nomadRunners(cfg, api, product.l)
+	builtInRunners, err := nomadRunners(ctx, cfg, api, product.l)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +88,7 @@ func NewNomad(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // nomadRunners generates a slice of runners to inspect nomad
-func nomadRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
 		runner.NewCommand("nomad version", "string", cfg.Redactions),
 		runner.NewCommand("nomad node status -self -json", "json", cfg.Redactions),

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -45,25 +46,33 @@ type Config struct {
 
 // Agent stores the runtime state that we use throughout the Agent's lifecycle.
 type Agent struct {
+	ctx         context.Context
 	l           hclog.Logger
 	products    map[product.Name]*product.Product
 	results     map[product.Name]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
 	resultsDest string
-	Start       time.Time       `json:"started_at"`
-	End         time.Time       `json:"ended_at"`
-	Duration    string          `json:"duration"`
-	NumOps      int             `json:"num_ops"`
-	Config      Config          `json:"configuration"`
-	Version     version.Version `json:"version"`
+
+	Start    time.Time       `json:"started_at"`
+	End      time.Time       `json:"ended_at"`
+	Duration string          `json:"duration"`
+	NumOps   int             `json:"num_ops"`
+	Config   Config          `json:"configuration"`
+	Version  version.Version `json:"version"`
 	// ManifestOps holds a slice of ops with a subset of fields so we can safely render them in `manifest.json`
 	ManifestOps map[string][]ManifestOp `json:"ops"`
 	// Agent-level redactions are passed through to all products
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
+// NewAgent produces a new Agent, initialized for subsequent running.
 func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
+	return NewAgentWithContext(context.Background(), config, logger)
+}
+
+// NewAgentWithContext produces a new Agent that includes a custom context.Context, initialized for subsequent running.
+func NewAgentWithContext(ctx context.Context, config Config, logger hclog.Logger) (*Agent, error) {
 	redacts, err := agentRedactions()
 	if err != nil {
 		return nil, err
@@ -80,6 +89,7 @@ func NewAgent(config Config, logger hclog.Logger) (*Agent, error) {
 
 	return &Agent{
 		l:           logger,
+		ctx:         ctx,
 		Config:      config,
 		results:     make(map[product.Name]map[string]op.Op),
 		products:    make(map[product.Name]*product.Product),
@@ -414,13 +424,13 @@ func (a *Agent) WriteOutput() (err error) {
 // CheckAvailable runs healthchecks for each enabled product
 func (a *Agent) CheckAvailable() error {
 	if a.Config.Consul {
-		err := product.CommandHealthCheck(product.ConsulClientCheck, product.ConsulAgentCheck)
+		err := product.CommandHealthCheckWithContext(a.ctx, product.ConsulClientCheck, product.ConsulAgentCheck)
 		if err != nil {
 			return err
 		}
 	}
 	if a.Config.Nomad {
-		err := product.CommandHealthCheck(product.NomadClientCheck, product.NomadAgentCheck)
+		err := product.CommandHealthCheckWithContext(a.ctx, product.NomadClientCheck, product.NomadAgentCheck)
 		if err != nil {
 			return err
 		}
@@ -429,7 +439,7 @@ func (a *Agent) CheckAvailable() error {
 	// if cfg.TFE {
 	// }
 	if a.Config.Vault {
-		err := product.CommandHealthCheck(product.VaultClientCheck, product.VaultAgentCheck)
+		err := product.CommandHealthCheckWithContext(a.ctx, product.VaultClientCheck, product.VaultAgentCheck)
 		if err != nil {
 			return err
 		}
@@ -462,7 +472,7 @@ func (a *Agent) Setup() error {
 	if a.Config.Consul {
 		cfg := baseCfg
 		cfg.HCL = hclProducts["consul"]
-		newConsul, err := product.NewConsul(a.l, cfg)
+		newConsul, err := product.NewConsulWithContext(a.ctx, a.l, cfg)
 		if err != nil {
 			return err
 		}
@@ -472,7 +482,7 @@ func (a *Agent) Setup() error {
 	if a.Config.Nomad {
 		cfg := baseCfg
 		cfg.HCL = hclProducts["nomad"]
-		newNomad, err := product.NewNomad(a.l, cfg)
+		newNomad, err := product.NewNomadWithContext(a.ctx, a.l, cfg)
 		if err != nil {
 			return err
 		}
@@ -482,7 +492,7 @@ func (a *Agent) Setup() error {
 	if a.Config.TFE {
 		cfg := baseCfg
 		cfg.HCL = hclProducts["terraform-ent"]
-		newTFE, err := product.NewTFE(a.l, cfg)
+		newTFE, err := product.NewTFEWithContext(a.ctx, a.l, cfg)
 		if err != nil {
 			return err
 		}
@@ -492,7 +502,7 @@ func (a *Agent) Setup() error {
 	if a.Config.Vault {
 		cfg := baseCfg
 		cfg.HCL = hclProducts["vault"]
-		newVault, err := product.NewVault(a.l, cfg)
+		newVault, err := product.NewVaultWithContext(a.ctx, a.l, cfg)
 		if err != nil {
 			return err
 		}
@@ -500,7 +510,7 @@ func (a *Agent) Setup() error {
 	}
 
 	// Build host and assign it to the product map.
-	newHost, err := product.NewHost(a.l, baseCfg, a.Config.HCL.Host)
+	newHost, err := product.NewHostWithContext(a.ctx, a.l, baseCfg, a.Config.HCL.Host)
 	if err != nil {
 		return err
 	}

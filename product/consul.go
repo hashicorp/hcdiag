@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -22,6 +23,11 @@ const (
 
 // NewConsul takes a logger and product config, and it creates a Product with all of Consul's default runners.
 func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
+	return NewConsulWithContext(context.Background(), logger, cfg)
+}
+
+// NewConsulWithContext takes a context, a logger, and product config, and it creates a Product with all of Consul's default runners.
+func NewConsulWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
 	defaultRedactions, err := consulRedactions()
 	if err != nil {
@@ -49,7 +55,7 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunners(cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, cfg.Redactions)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +65,7 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 	}
 
 	// Add built-in runners
-	builtInRunners, err := consulRunners(cfg, api, logger)
+	builtInRunners, err := consulRunners(ctx, cfg, api, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +75,7 @@ func NewConsul(logger hclog.Logger, cfg Config) (*Product, error) {
 }
 
 // consulRunners generates a slice of runners to inspect consul.
-func consulRunners(cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
 		runner.NewCommand("consul version", "string", cfg.Redactions),
 		runner.NewCommand(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),

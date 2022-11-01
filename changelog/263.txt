@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: Enable context propagation from agent down through to products, as enablement for runner timeouts/cancellation support.
+```

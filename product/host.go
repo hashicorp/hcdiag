@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"runtime"
 
 	"github.com/hashicorp/hcdiag/runner/do"
@@ -16,6 +17,11 @@ import (
 
 // NewHost takes a logger, config, and HCL, and it creates a Product with all the host's default runners.
 func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
+	return NewHostWithContext(context.Background(), logger, cfg, hcl2)
+}
+
+// NewHostWithContext takes a context, a logger, config, and HCL, and it creates a Product with all the host's default runners.
+func NewHostWithContext(ctx context.Context, logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
 	// Prepend product-specific redactions to agent-level redactions from cfg
 	defaultRedactions, err := hostRedactions()
 	if err != nil {
@@ -43,7 +49,7 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunners(hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, cfg.Redactions)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}
@@ -54,14 +60,14 @@ func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) 
 
 	// TODO(mkcp): Host can have an API client now and it would simplify quite a bit.
 	// Add built-in runners
-	builtInRunners := hostRunners(os, cfg.Redactions, product.l)
+	builtInRunners := hostRunners(ctx, os, cfg.Redactions, product.l)
 	product.Runners = append(product.Runners, builtInRunners...)
 
 	return product, nil
 }
 
 // hostRunners generates a slice of runners to inspect the host.
-func hostRunners(os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
+func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
 	r := []runner.Runner{
 		host.NewOS(os, redactions),
 		host.NewDisk(redactions),
