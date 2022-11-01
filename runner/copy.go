@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -22,6 +23,8 @@ var _ Runner = Copy{}
 
 // Copy copies files to temp dir based on a filter.
 type Copy struct {
+	Timeout
+
 	SourceDir  string           `json:"source_directory"`
 	Filter     string           `json:"filter"`
 	DestDir    string           `json:"destination_directory"`
@@ -32,8 +35,14 @@ type Copy struct {
 
 // NewCopy provides a Runner for copying files to temp dir based on a filter.
 func NewCopy(path, destDir string, since, until time.Time, redactions []*redact.Redact) *Copy {
+	return NewCopyWithContext(context.Background(), path, destDir, since, until, redactions)
+}
+
+// NewCopyWithContext provides a Runner for copying files to temp dir based on a filter and includes a context.
+func NewCopyWithContext(ctx context.Context, path, destDir string, since, until time.Time, redactions []*redact.Redact) *Copy {
 	sourceDir, filter := util.SplitFilepath(path)
 	return &Copy{
+		Timeout:    Timeout{Context: ctx},
 		SourceDir:  sourceDir,
 		Filter:     filter,
 		DestDir:    destDir,

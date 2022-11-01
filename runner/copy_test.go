@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,14 +18,37 @@ func TestNewCopy(t *testing.T) {
 	since := time.Time{}
 	until := time.Now()
 	expect := &Copy{
+		Timeout:   Timeout{Context: context.Background()},
 		SourceDir: src,
 		Filter:    "*",
 		DestDir:   dest,
 		Since:     since,
 		Until:     until,
 	}
-	copy := NewCopy(src, dest, since, until, nil)
-	assert.Equal(t, expect, copy)
+	c := NewCopy(src, dest, since, until, nil)
+	assert.Equal(t, expect, c)
+}
+
+func TestNewCopyWithContext(t *testing.T) {
+	src := t.TempDir()
+	dest := t.TempDir()
+	since := time.Time{}
+	until := time.Now()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	expect := &Copy{
+		SourceDir: src,
+		Filter:    "*",
+		DestDir:   dest,
+		Since:     since,
+		Until:     until,
+		Timeout:   Timeout{Context: ctx},
+	}
+
+	c := NewCopyWithContext(ctx, src, dest, since, until, nil)
+	assert.Equal(t, expect, c)
 }
 
 func setupFile(t *testing.T, dir, file, content string) {
