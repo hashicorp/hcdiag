@@ -26,9 +26,10 @@ type SimpleDebug struct {
 }
 
 func (d SimpleDebug) ID() string {
-	return fmt.Sprintf("simpledebug-%s", d.Product)
+	return fmt.Sprintf("SimpleDebug-%s", d.Product)
 }
 
+// NewSimpleDebug takes a product config, product debug filters, and redactions, returning a pointer to a new SimpleDebug
 func NewSimpleDebug(cfg product.Config, filters []string, redactions []*redact.Redact) *SimpleDebug {
 	var cmdStr string
 	var product = cfg.Name
@@ -43,8 +44,6 @@ func NewSimpleDebug(cfg product.Config, filters []string, redactions []*redact.R
 	case "nomad":
 		cmdStr = fmt.Sprintf("nomad operator debug -log-level=TRACE -duration=%s -interval=%s -node-id=all -max-nodes=100 -output=%s/%s", cfg.DebugDuration, cfg.DebugInterval, cfg.TmpDir, filterString)
 	case "vault":
-		// TODO(dcohen): compress is currently true to maintain backwards compatibility, but I'd like to set this to false since everything gets compressed anyway
-		// TODO loglevel TRACE?
 		cmdStr = fmt.Sprintf("vault debug -compress=true -duration=%s -interval=%s -output=%s/VaultDebug.tar.gz%s", cfg.DebugDuration, cfg.DebugInterval, cfg.TmpDir, filterString)
 	case "consul":
 		cmdStr = fmt.Sprintf("consul debug -duration=%s -interval=%s -output=%s/ConsulDebug%s", cfg.DebugDuration, cfg.DebugInterval, cfg.TmpDir, filterString)
