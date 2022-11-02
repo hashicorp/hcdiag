@@ -113,6 +113,13 @@ func TestProductFilterString(t *testing.T) {
 			expect:    "",
 			expectErr: true,
 		},
+		{
+			name:      "Incorrectly capitalized filters should return correctly-cased versions",
+			product:   "nomad",
+			filters:   []string{"aclpolicy", "acltoken"},
+			expect:    " -event-topic=ACLPolicy -event-topic=ACLToken",
+			expectErr: false,
+		},
 	}
 
 	for _, tc := range tcs {
@@ -179,6 +186,45 @@ func TestIndexOf(t *testing.T) {
 			found, idx := indexOf(tc.s, tc.search)
 			assert.Equal(t, tc.expectFound, found)
 			assert.Equal(t, tc.expectIdx, idx)
+		})
+	}
+}
+
+func TestVaultDebug(t *testing.T) {
+	tcs := []struct {
+		name            string
+		vdb             *VaultDebug
+		expectedCommand string
+	}{
+		{
+			name: "a small vault config should produce the correct vault debug command",
+			vdb: NewVaultDebug(
+				product.Config{
+					Name:          "vault",
+					TmpDir:        "/tmp/hcdiag",
+					DebugDuration: 2 * time.Minute,
+					DebugInterval: 30 * time.Second,
+				},
+				"false",
+				"2m",
+				"30s",
+				"standard",
+				"10s",
+				[]string{"metrics", "pprof", "replication-status"},
+				[]*redact.Redact{},
+			),
+			expectedCommand: "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug -target=metrics -target=pprof -target=replication-status",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			d := tc.vdb
+			cmdString := d.Command.Command
+
+			if tc.expectedCommand != cmdString {
+				t.Error(tc.name, cmdString)
+			}
 		})
 	}
 }
