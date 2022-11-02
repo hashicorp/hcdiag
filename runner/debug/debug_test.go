@@ -197,7 +197,34 @@ func TestVaultDebug(t *testing.T) {
 		expectedCommand string
 	}{
 		{
-			name: "a small vault config should produce the correct vault debug command",
+			name: "a new VaultDebug (using defaults) should have correct vault debug command",
+			vdb: NewVaultDebug(
+				product.Config{
+					Name:          "vault",
+					TmpDir:        "/tmp/hcdiag",
+					DebugDuration: 2 * time.Minute,
+					DebugInterval: 30 * time.Second,
+				},
+				[]*redact.Redact{},
+			),
+			expectedCommand: "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug",
+		},
+		{
+			name: "turning on compression should make the resulting -output end with .tar.gz",
+			vdb: NewVaultDebug(
+				product.Config{
+					Name:          "vault",
+					TmpDir:        "/tmp/hcdiag",
+					DebugDuration: 2 * time.Minute,
+					DebugInterval: 30 * time.Second,
+				},
+				[]*redact.Redact{},
+				WithCompress("true"),
+			),
+			expectedCommand: "vault debug -compress=true -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
+		},
+		{
+			name: "a new VaultDebug (with options) should have correct vault debug command",
 			vdb: NewVaultDebug(
 				product.Config{
 					Name:          "vault",
