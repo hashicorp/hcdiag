@@ -12,34 +12,47 @@ import (
 
 var _ runner.Runner = VaultDebug{}
 
-// VaultDebugConfig wraps all command options except 'output' (which is always the hcdiag directory): https://developer.hashicorp.com/vault/docs/commands/debug#command-options
-// type VaultDebugConfig struct {
-// 	// No compression because the hcdiag bundle will get compressed anyway
-// 	Compress string
-// 	Duration string
-// 	Interval string
-// 	LogFormat string
-// 	MetricsInterval string
-// 	Output string
-// 	Targets []string
-// 	Command runner.Command
-// 	Redactions []*redact.Redact
-// }
+// Functional Options pattern
+type vaultDebugOption func(*VaultDebug)
 
-// func newVaultDebugConfig() *VaultDebugConfig {
-// 	return &VaultDebugConfig{
-// 		// No compression because the hcdiag bundle will get compressed anyway
-// 		Compress:        "false",
-// 		Duration:        "2m",
-// 		Interval:        "30s",
-// 		LogFormat:       "standard",
-// 		MetricsInterval: "10s",
-// 		Output:          fmt.Sprintf("%s/VaultDebug", cfg.TmpDir),
-// 		Targets:         []string{},
-// 		Command:         runner.Command{},
-// 		Redactions:      []*redact.Redact{},
-// 	}
-// }
+func WithCompress(s string) vaultDebugOption {
+	return func(d *VaultDebug) {
+		d.Compress = s
+		if s == "true" {
+			d.Output = d.Output + ".tar.gz"
+		}
+	}
+}
+
+func WithDuration(s string) vaultDebugOption {
+	return func(d *VaultDebug) {
+		d.Duration = s
+	}
+}
+
+func WithInterval(s string) vaultDebugOption {
+	return func(d *VaultDebug) {
+		d.Interval = s
+	}
+}
+
+func WithLogFormat(s string) vaultDebugOption {
+	return func(d *VaultDebug) {
+		d.LogFormat = s
+	}
+}
+
+func WithMetricsInterval(s string) vaultDebugOption {
+	return func(d *VaultDebug) {
+		d.MetricsInterval = s
+	}
+}
+
+func WithTargets(s []string) vaultDebugOption {
+	return func(d *VaultDebug) {
+		d.Targets = s
+	}
+}
 
 type VaultDebug struct {
 	Compress        string           `json:"compress"`
@@ -57,8 +70,8 @@ func (d VaultDebug) ID() string {
 	return "VaultDebug"
 }
 
-// NewVaultDebug TODO TODO
-func NewVaultDebug(cfg product.Config, compress string, duration string, interval string, logformat string, metricsinterval string, targets []string, redactions []*redact.Redact) *VaultDebug {
+// NewVaultDebug takes a product config, a slice of redactions, and any number of vaultDebugOptions and returns a valid VaultDebug runner
+func NewVaultDebug(cfg product.Config, redactions []*redact.Redact, opts ...vaultDebugOption) *VaultDebug {
 	dbg := VaultDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
 		Compress:        "false",
@@ -72,23 +85,9 @@ func NewVaultDebug(cfg product.Config, compress string, duration string, interva
 		Redactions:      redactions,
 	}
 
-	if len(compress) > 0 {
-		dbg.Compress = compress
-		if dbg.Compress == "true" {
-			dbg.Output = dbg.Output + ".tar.gz"
-		}
-	}
-	if len(duration) > 0 {
-		dbg.Duration = duration
-	}
-	if len(interval) > 0 {
-		dbg.Interval = interval
-	}
-	if len(logformat) > 0 {
-		dbg.LogFormat = logformat
-	}
-	if len(metricsinterval) > 0 {
-		dbg.MetricsInterval = metricsinterval
+	// Apply functional options
+	for _, opt := range opts {
+		opt(&dbg)
 	}
 
 	filterString, err := productFilterString(cfg.Name, dbg.Targets)
@@ -108,9 +107,10 @@ func NewVaultDebug(cfg product.Config, compress string, duration string, interva
 		dbg.Output,
 		filterString,
 	)
+
 	// Vault's 'format' and runner.Command's 'format' are different
 	cmdFormat := "json"
-	if logformat == "standard" {
+	if dbg.LogFormat == "standard" {
 		cmdFormat = "string"
 	}
 
