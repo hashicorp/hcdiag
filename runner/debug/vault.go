@@ -12,48 +12,21 @@ import (
 
 var _ runner.Runner = VaultDebug{}
 
-// Functional Options pattern
-type vaultDebugOption func(*VaultDebug)
-
-func WithCompress(s string) vaultDebugOption {
-	return func(d *VaultDebug) {
-		d.Compress = s
-		if s == "true" {
-			d.Output = d.Output + ".tar.gz"
-		}
-	}
+// VaultDebugConfig is a config struct for VaultDebug runners
+type VaultDebugConfig struct {
+	ProductConfig product.Config
+	// No compression because the hcdiag bundle will get compressed anyway
+	Compress        string
+	Duration        string
+	Interval        string
+	LogFormat       string
+	MetricsInterval string
+	Output          string
+	Targets         []string
+	Redactions      []*redact.Redact
 }
 
-func WithDuration(s string) vaultDebugOption {
-	return func(d *VaultDebug) {
-		d.Duration = s
-	}
-}
-
-func WithInterval(s string) vaultDebugOption {
-	return func(d *VaultDebug) {
-		d.Interval = s
-	}
-}
-
-func WithLogFormat(s string) vaultDebugOption {
-	return func(d *VaultDebug) {
-		d.LogFormat = s
-	}
-}
-
-func WithMetricsInterval(s string) vaultDebugOption {
-	return func(d *VaultDebug) {
-		d.MetricsInterval = s
-	}
-}
-
-func WithTargets(s []string) vaultDebugOption {
-	return func(d *VaultDebug) {
-		d.Targets = s
-	}
-}
-
+// VaultDebug represents a VaultDebug runner
 type VaultDebug struct {
 	Compress        string           `json:"compress"`
 	Duration        string           `json:"duration"`
@@ -69,8 +42,7 @@ func (d VaultDebug) ID() string {
 	return "VaultDebug"
 }
 
-// NewVaultDebug takes a product config, a slice of redactions, and any number of vaultDebugOptions and returns a valid VaultDebug runner
-func NewVaultDebug(cfg product.Config, redactions []*redact.Redact, opts ...vaultDebugOption) *VaultDebug {
+func NewVaultDebug(cfg VaultDebugConfig) *VaultDebug {
 	dbg := VaultDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
 		Compress:        "false",
@@ -78,14 +50,28 @@ func NewVaultDebug(cfg product.Config, redactions []*redact.Redact, opts ...vaul
 		Interval:        "30s",
 		LogFormat:       "standard",
 		MetricsInterval: "10s",
-		Output:          fmt.Sprintf("%s/VaultDebug", cfg.TmpDir),
-		Targets:         []string{},
-		Redactions:      redactions,
+		Output:          fmt.Sprintf("%s/VaultDebug", cfg.ProductConfig.TmpDir),
+		Targets:         cfg.Targets,
+		Redactions:      cfg.Redactions,
 	}
 
-	// Apply functional options
-	for _, opt := range opts {
-		opt(&dbg)
+	if len(cfg.Compress) > 0 {
+		dbg.Compress = cfg.Compress
+		if dbg.Compress == "true" {
+			dbg.Output = dbg.Output + ".tar.gz"
+		}
+	}
+	if len(cfg.Duration) > 0 {
+		dbg.Duration = cfg.Duration
+	}
+	if len(cfg.Interval) > 0 {
+		dbg.Interval = cfg.Interval
+	}
+	if len(cfg.LogFormat) > 0 {
+		dbg.LogFormat = cfg.LogFormat
+	}
+	if len(cfg.MetricsInterval) > 0 {
+		dbg.MetricsInterval = cfg.MetricsInterval
 	}
 
 	return &dbg
@@ -96,8 +82,7 @@ func (dbg VaultDebug) Run() op.Op {
 
 	filterString, err := productFilterString("vault", dbg.Targets)
 	if err != nil {
-		// TODO figure out error handling inside of a runner constructor -- no other runners need this
-		panic(err)
+		return op.New(dbg.ID(), map[string]any{}, op.Fail, err, runner.Params(dbg), startTime, time.Now())
 	}
 
 	// Assemble the vault debug command to execute

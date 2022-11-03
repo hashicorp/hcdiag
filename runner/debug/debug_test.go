@@ -129,59 +129,64 @@ func TestProductFilterString(t *testing.T) {
 	}
 }
 
-func TestVaultCmdString(t *testing.T) {
+func TestVaultDebug(t *testing.T) {
 	tcs := []struct {
 		name         string
-		vdb          *VaultDebug
+		cfg          VaultDebugConfig
 		filterString string
 		expected     string
 	}{
 		{
 			name: "a new VaultDebug (using defaults) should have correct vault debug command",
-			vdb: NewVaultDebug(
-				product.Config{
+			cfg: VaultDebugConfig{
+				ProductConfig: product.Config{
 					Name:          "vault",
 					TmpDir:        "/tmp/hcdiag",
 					DebugDuration: 2 * time.Minute,
 					DebugInterval: 30 * time.Second,
 				},
-				[]*redact.Redact{},
-			),
+				Compress:        "false",
+				Duration:        "3m",
+				Interval:        "30s",
+				LogFormat:       "standard",
+				MetricsInterval: "10s",
+				Targets:         []string{},
+				Redactions:      []*redact.Redact{},
+			},
 			filterString: "",
-			expected:     "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug",
+			expected:     "vault debug -compress=false -duration=3m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug",
 		},
 		{
 			name: "turning on compression should make the resulting -output end with .tar.gz",
-			vdb: NewVaultDebug(
-				product.Config{
+			cfg: VaultDebugConfig{
+				ProductConfig: product.Config{
 					Name:          "vault",
 					TmpDir:        "/tmp/hcdiag",
 					DebugDuration: 2 * time.Minute,
 					DebugInterval: 30 * time.Second,
 				},
-				[]*redact.Redact{},
-				WithCompress("true"),
-			),
+				Compress: "true",
+			},
 			filterString: "",
 			expected:     "vault debug -compress=true -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
 		},
 		{
 			name: "a new VaultDebug (with options) should have correct vault debug command",
-			vdb: NewVaultDebug(
-				product.Config{
+			cfg: VaultDebugConfig{
+				ProductConfig: product.Config{
 					Name:          "vault",
 					TmpDir:        "/tmp/hcdiag",
 					DebugDuration: 2 * time.Minute,
 					DebugInterval: 30 * time.Second,
 				},
-				[]*redact.Redact{},
-				WithCompress("false"),
-				WithDuration("2m"),
-				WithInterval("30s"),
-				WithLogFormat("standard"),
-				WithMetricsInterval("10s"),
-				WithTargets([]string{"metrics", "pprof", "replication-status"}),
-			),
+				Compress:        "false",
+				Duration:        "2m",
+				Interval:        "30s",
+				LogFormat:       "standard",
+				MetricsInterval: "10s",
+				Targets:         []string{"metrics", "pprof", "replication-status"},
+				Redactions:      []*redact.Redact{},
+			},
 			filterString: " -target=metrics -target=pprof -target=replication-status",
 			expected:     "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug -target=metrics -target=pprof -target=replication-status",
 		},
@@ -189,7 +194,8 @@ func TestVaultCmdString(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			cmdString := vaultCmdString(*tc.vdb, tc.filterString)
+			d := NewVaultDebug(tc.cfg)
+			cmdString := vaultCmdString(*d, tc.filterString)
 
 			if tc.expected != cmdString {
 				t.Error(tc.name, cmdString)
