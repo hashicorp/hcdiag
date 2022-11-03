@@ -62,7 +62,6 @@ type VaultDebug struct {
 	MetricsInterval string           `json:"metricsinterval"`
 	Output          string           `json:"output"`
 	Targets         []string         `json:"targets"`
-	Command         runner.Command   `json:"command"`
 	Redactions      []*redact.Redact `json:"redactions"`
 }
 
@@ -81,7 +80,6 @@ func NewVaultDebug(cfg product.Config, redactions []*redact.Redact, opts ...vaul
 		MetricsInterval: "10s",
 		Output:          fmt.Sprintf("%s/VaultDebug", cfg.TmpDir),
 		Targets:         []string{},
-		Command:         runner.Command{},
 		Redactions:      redactions,
 	}
 
@@ -90,14 +88,45 @@ func NewVaultDebug(cfg product.Config, redactions []*redact.Redact, opts ...vaul
 		opt(&dbg)
 	}
 
-	filterString, err := productFilterString(cfg.Name, dbg.Targets)
+	return &dbg
+}
+
+func (dbg VaultDebug) Run() op.Op {
+	startTime := time.Now()
+
+	filterString, err := productFilterString("vault", dbg.Targets)
 	if err != nil {
 		// TODO figure out error handling inside of a runner constructor -- no other runners need this
 		panic(err)
 	}
 
-	// Create the commandstring
-	var cmdStr = fmt.Sprintf(
+	// Assemble the vault debug command to execute
+	cmdStr := vaultCmdString(dbg, filterString)
+
+	// Vault's 'format' and runner.Command's 'format' are different
+	cmdFormat := "json"
+	if dbg.LogFormat == "standard" {
+		cmdFormat = "string"
+	}
+
+	// Create and set the Command
+	cmd := runner.Command{
+		Command:    cmdStr,
+		Format:     cmdFormat,
+		Redactions: dbg.Redactions,
+	}
+
+	o := cmd.Run()
+	if o.Error != nil {
+		return op.New(dbg.ID(), o.Result, op.Fail, o.Error, runner.Params(dbg), startTime, time.Now())
+	}
+
+	return op.New(dbg.ID(), o.Result, op.Success, nil, runner.Params(dbg), startTime, time.Now())
+}
+
+// vaultCmdString takes a VaultDebug and a filterString, and creates a valid Vault debug command string
+func vaultCmdString(dbg VaultDebug, filterString string) string {
+	return fmt.Sprintf(
 		"vault debug -compress=%s -duration=%s -interval=%s -logformat=%s -metricsinterval=%s -output=%s%s",
 		dbg.Compress,
 		dbg.Duration,
@@ -107,30 +136,4 @@ func NewVaultDebug(cfg product.Config, redactions []*redact.Redact, opts ...vaul
 		dbg.Output,
 		filterString,
 	)
-
-	// Vault's 'format' and runner.Command's 'format' are different
-	cmdFormat := "json"
-	if dbg.LogFormat == "standard" {
-		cmdFormat = "string"
-	}
-
-	// Create and set the Command
-	dbg.Command = runner.Command{
-		Command:    cmdStr,
-		Format:     cmdFormat,
-		Redactions: redactions,
-	}
-
-	return &dbg
-}
-
-func (d VaultDebug) Run() op.Op {
-	startTime := time.Now()
-
-	o := d.Command.Run()
-	if o.Error != nil {
-		return op.New(d.ID(), o.Result, op.Fail, o.Error, runner.Params(d), startTime, time.Now())
-	}
-
-	return op.New(d.ID(), o.Result, op.Success, nil, runner.Params(d), startTime, time.Now())
 }

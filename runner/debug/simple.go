@@ -2,7 +2,6 @@ package debug
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
@@ -76,15 +75,45 @@ func (d SimpleDebug) Run() op.Op {
 // The returned string is in the form " -target=metrics -target=pprof" (for Vault), " -capture=host" (for Consul), or " -event-topic=Allocation" (for Nomad)
 func productFilterString(product product.Name, filters []string) (string, error) {
 	var filterString string
-	var legalFilters []string
+	var legalFilters map[string]bool
 	var optFlag string
 
-	nomadFilters := []string{"*", "ACLToken", "ACLPolicy", "ACLRole", "Job", "Allocation", "Deployment", "Evaluation", "Node", "Service"}
+	// Define valid filter flagnames and values for all products
 	nomadOptFlag := "event-topic"
-	vaultFilters := []string{"config", "host", "metrics", "pprof", "replication-status", "server-status"}
+	nomadFilters := map[string]bool{
+		"*":          true,
+		"ACLToken":   true,
+		"ACLPolicy":  true,
+		"ACLRole":    true,
+		"Job":        true,
+		"Allocation": true,
+		"Deployment": true,
+		"Evaluation": true,
+		"Node":       true,
+		"Service":    true,
+	}
+
 	vaultOptFlag := "target"
-	consulFilters := []string{"agent", "host", "members", "metrics", "logs", "pprof"}
+	vaultFilters := map[string]bool{
+		// TODO(dcohen) is "all" or "*" valid?
+		"config":             true,
+		"host":               true,
+		"metrics":            true,
+		"pprof":              true,
+		"replication-status": true,
+		"server-status":      true,
+	}
+
 	consulOptFlag := "capture"
+	consulFilters := map[string]bool{
+		// TODO(dcohen) is "all" or "*" valid?
+		"agent":   true,
+		"host":    true,
+		"members": true,
+		"metrics": true,
+		"logs":    true,
+		"pprof":   true,
+	}
 
 	switch product {
 	case "nomad":
@@ -101,37 +130,13 @@ func productFilterString(product product.Name, filters []string) (string, error)
 	}
 
 	for _, f := range filters {
-		// Skip empty entries. TODO maybe this is something we shouldn't allow?
-		if f == "" {
-			continue
-		}
-
-		found, idx := indexOf(legalFilters, f)
-		if found {
+		if legalFilters[f] {
 			// includes leading space
-			// legalFilters[idx] (as opposed to s) ensures the correct filter option capitalization
-			filterString = fmt.Sprintf("%s -%s=%s", filterString, optFlag, legalFilters[idx])
+			filterString = fmt.Sprintf("%s -%s=%s", filterString, optFlag, f)
 		} else {
 			return "", fmt.Errorf("invalid filter string (%s) for %s used in debug.productFilterString()", f, product)
 		}
 	}
 
 	return filterString, nil
-}
-
-// This can't really be necessary in Go, right?
-// Searches s for presence of val: returns true and index of val, or false and 0
-func indexOf(s []string, val string) (found bool, idx int) {
-	// Early exit
-	if len(s) == 0 || len(val) == 0 {
-		return false, 0
-	}
-
-	for i, v := range s {
-		// compare case-insensitive strings to avoid erroring on capitalization
-		if strings.EqualFold(v, val) {
-			return true, i
-		}
-	}
-	return false, 0
 }

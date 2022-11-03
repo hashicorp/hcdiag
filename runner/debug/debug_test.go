@@ -17,18 +17,18 @@ func TestSimpleDebug(t *testing.T) {
 		expect  string
 	}{
 		{
-			name: "lower-cased filter values should produce correctly-cased options",
+			name: "nomad config should produce valid command",
 			cfg: product.Config{
 				Name:          "nomad",
 				TmpDir:        "/tmp/hcdiag",
 				DebugDuration: 2 * time.Minute,
 				DebugInterval: 30 * time.Second,
 			},
-			filters: []string{"allocation", "job"},
+			filters: []string{"Allocation", "Job"},
 			expect:  "nomad operator debug -log-level=TRACE -duration=2m0s -interval=30s -node-id=all -max-nodes=100 -output=/tmp/hcdiag/ -event-topic=Allocation -event-topic=Job",
 		},
 		{
-			name: "a small vault config should produce the correct vault debug command",
+			name: "vault config should produce valid command",
 			cfg: product.Config{
 				Name:          "vault",
 				TmpDir:        "/tmp/hcdiag",
@@ -39,7 +39,7 @@ func TestSimpleDebug(t *testing.T) {
 			expect:  "vault debug -compress=true -duration=2m0s -interval=30s -output=/tmp/hcdiag/VaultDebug.tar.gz -target=metrics -target=pprof -target=replication-status",
 		},
 		{
-			name: "a small consul config should produce the correct consul debug command",
+			name: "consul config should produce valid command",
 			cfg: product.Config{
 				Name:          "consul",
 				TmpDir:        "/tmp/hcdiag",
@@ -72,25 +72,18 @@ func TestProductFilterString(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			name:      "empty filters should return empty string 1",
+			name:      "empty filters should produce an error 1",
 			product:   "nomad",
 			filters:   []string{""},
 			expect:    "",
-			expectErr: false,
+			expectErr: true,
 		},
 		{
-			name:      "empty filters should return empty string 2",
-			product:   "vault",
-			filters:   []string{},
-			expect:    "",
-			expectErr: false,
-		},
-		{
-			name:      "empty filters inside valid ones should be ignored",
+			name:      "empty filters inside valid ones should produce an error",
 			product:   "consul",
 			filters:   []string{"members", "", "logs"},
-			expect:    " -capture=members -capture=logs",
-			expectErr: false,
+			expect:    "",
+			expectErr: true,
 		},
 		{
 			name:      "test a valid nomad filter",
@@ -109,16 +102,16 @@ func TestProductFilterString(t *testing.T) {
 		{
 			name:      "test an invalid consul filter",
 			product:   "consul",
-			filters:   []string{"ACLToken"},
+			filters:   []string{"floob"},
 			expect:    "",
 			expectErr: true,
 		},
 		{
-			name:      "Incorrectly capitalized filters should return correctly-cased versions",
+			name:      "Incorrectly capitalized filters should produce an error",
 			product:   "nomad",
 			filters:   []string{"aclpolicy", "acltoken"},
 			expect:    " -event-topic=ACLPolicy -event-topic=ACLToken",
-			expectErr: false,
+			expectErr: true,
 		},
 	}
 
@@ -136,65 +129,12 @@ func TestProductFilterString(t *testing.T) {
 	}
 }
 
-func TestIndexOf(t *testing.T) {
+func TestVaultCmdString(t *testing.T) {
 	tcs := []struct {
-		name        string
-		s           []string
-		search      string
-		expectFound bool
-		expectIdx   int
-	}{
-		{
-			name:        "empty slice should return false",
-			s:           []string{},
-			search:      "empty",
-			expectFound: false,
-			expectIdx:   0,
-		},
-		{
-			name:        "empty search string should return false",
-			s:           []string{"foo", "bar"},
-			search:      "",
-			expectFound: false,
-			expectIdx:   0,
-		},
-		{
-			name:        "non-matching search string should return false",
-			s:           []string{"foo", "bar"},
-			search:      "doesn'texist",
-			expectFound: false,
-			expectIdx:   0,
-		},
-		{
-			name:        "matching search string should return (true, correct index) 1",
-			s:           []string{"foo", "bar", "baz"},
-			search:      "foo",
-			expectFound: true,
-			expectIdx:   0,
-		},
-		{
-			name:        "matching search string should return (true, correct index) 2",
-			s:           []string{"foo", "bar", "baz"},
-			search:      "baz",
-			expectFound: true,
-			expectIdx:   2,
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			found, idx := indexOf(tc.s, tc.search)
-			assert.Equal(t, tc.expectFound, found)
-			assert.Equal(t, tc.expectIdx, idx)
-		})
-	}
-}
-
-func TestVaultDebug(t *testing.T) {
-	tcs := []struct {
-		name            string
-		vdb             *VaultDebug
-		expectedCommand string
+		name         string
+		vdb          *VaultDebug
+		filterString string
+		expected     string
 	}{
 		{
 			name: "a new VaultDebug (using defaults) should have correct vault debug command",
@@ -207,7 +147,8 @@ func TestVaultDebug(t *testing.T) {
 				},
 				[]*redact.Redact{},
 			),
-			expectedCommand: "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug",
+			filterString: "",
+			expected:     "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug",
 		},
 		{
 			name: "turning on compression should make the resulting -output end with .tar.gz",
@@ -221,7 +162,8 @@ func TestVaultDebug(t *testing.T) {
 				[]*redact.Redact{},
 				WithCompress("true"),
 			),
-			expectedCommand: "vault debug -compress=true -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
+			filterString: "",
+			expected:     "vault debug -compress=true -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
 		},
 		{
 			name: "a new VaultDebug (with options) should have correct vault debug command",
@@ -240,16 +182,16 @@ func TestVaultDebug(t *testing.T) {
 				WithMetricsInterval("10s"),
 				WithTargets([]string{"metrics", "pprof", "replication-status"}),
 			),
-			expectedCommand: "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug -target=metrics -target=pprof -target=replication-status",
+			filterString: " -target=metrics -target=pprof -target=replication-status",
+			expected:     "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug -target=metrics -target=pprof -target=replication-status",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			d := tc.vdb
-			cmdString := d.Command.Command
+			cmdString := vaultCmdString(*tc.vdb, tc.filterString)
 
-			if tc.expectedCommand != cmdString {
+			if tc.expected != cmdString {
 				t.Error(tc.name, cmdString)
 			}
 		})
