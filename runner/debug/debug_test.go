@@ -9,12 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSimpleDebug(t *testing.T) {
+func TestSimpleCmdString(t *testing.T) {
 	tcs := []struct {
-		name    string
-		cfg     product.Config
-		filters []string
-		expect  string
+		name         string
+		cfg          product.Config
+		filters      []string
+		filterString string
+		expect       string
 	}{
 		{
 			name: "nomad config should produce valid command",
@@ -24,8 +25,9 @@ func TestSimpleDebug(t *testing.T) {
 				DebugDuration: 2 * time.Minute,
 				DebugInterval: 30 * time.Second,
 			},
-			filters: []string{"Allocation", "Job"},
-			expect:  "nomad operator debug -log-level=TRACE -duration=2m0s -interval=30s -node-id=all -max-nodes=100 -output=/tmp/hcdiag/ -event-topic=Allocation -event-topic=Job",
+			filters:      []string{"Allocation", "Job"},
+			filterString: " -event-topic=Allocation -event-topic=Job",
+			expect:       "nomad operator debug -log-level=TRACE -duration=2m0s -interval=30s -node-id=all -max-nodes=100 -output=/tmp/hcdiag/ -event-topic=Allocation -event-topic=Job",
 		},
 		{
 			name: "vault config should produce valid command",
@@ -35,8 +37,9 @@ func TestSimpleDebug(t *testing.T) {
 				DebugDuration: 2 * time.Minute,
 				DebugInterval: 30 * time.Second,
 			},
-			filters: []string{"metrics", "pprof", "replication-status"},
-			expect:  "vault debug -compress=true -duration=2m0s -interval=30s -output=/tmp/hcdiag/VaultDebug.tar.gz -target=metrics -target=pprof -target=replication-status",
+			filters:      []string{"metrics", "pprof", "replication-status"},
+			filterString: " -target=metrics -target=pprof -target=replication-status",
+			expect:       "vault debug -compress=true -duration=2m0s -interval=30s -output=/tmp/hcdiag/VaultDebug.tar.gz -target=metrics -target=pprof -target=replication-status",
 		},
 		{
 			name: "consul config should produce valid command",
@@ -46,16 +49,17 @@ func TestSimpleDebug(t *testing.T) {
 				DebugDuration: 2 * time.Minute,
 				DebugInterval: 30 * time.Second,
 			},
-			filters: []string{"members", "metrics"},
-			expect:  "consul debug -duration=2m0s -interval=30s -output=/tmp/hcdiag/ConsulDebug -capture=members -capture=metrics",
+			filters:      []string{"members", "metrics"},
+			filterString: " -capture=members -capture=metrics",
+			expect:       "consul debug -duration=2m0s -interval=30s -output=/tmp/hcdiag/ConsulDebug -capture=members -capture=metrics",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			d := NewSimpleDebug(tc.cfg, tc.filters, []*redact.Redact{})
-			cmdString := d.Command.Command
 
+			cmdString := simpleCmdString(*d, tc.filterString)
 			if tc.expect != cmdString {
 				t.Error(tc.name, cmdString)
 			}
@@ -129,7 +133,7 @@ func TestProductFilterString(t *testing.T) {
 	}
 }
 
-func TestVaultDebug(t *testing.T) {
+func TestVaultCmdString(t *testing.T) {
 	tcs := []struct {
 		name         string
 		cfg          VaultDebugConfig

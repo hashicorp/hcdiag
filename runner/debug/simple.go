@@ -15,60 +15,85 @@ var _ runner.Runner = SimpleDebug{}
 // The "Simple" debug wrapper can be used for Nomad, Vault, and Consul.
 // It only deals with flags common to all three 'debug' commands
 type SimpleDebug struct {
-	Product product.Name `json:"product"`
+	ProductConfig product.Config `json:"productconfig"`
 	// "Filters" is a generic name for the target/topic/capture option (depending on the product)
-	Filters []string       `json:"filters"`
-	Command runner.Command `json:"command"`
+	Filters []string `json:"filters"`
 	// TODO maybe simpleDebugs don't have redactions, since they're always going to be created inside of hcdiag default product runners?
 	// Maybe only custom productDebugs have hcl/redactions?
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
 func (d SimpleDebug) ID() string {
-	return fmt.Sprintf("SimpleDebug-%s", d.Product)
+	return fmt.Sprintf("SimpleDebug-%s", d.ProductConfig.Name)
 }
 
 // NewSimpleDebug takes a product config, product debug filters, and redactions, returning a pointer to a new SimpleDebug
 func NewSimpleDebug(cfg product.Config, filters []string, redactions []*redact.Redact) *SimpleDebug {
-	var cmdStr string
-	var product = cfg.Name
-
-	filterString, err := productFilterString(product, filters)
-	if err != nil {
-		// TODO figure out error handling inside of a runner constructor -- no other runners need this
-		panic(err)
-	}
-
-	switch product {
-	case "nomad":
-		cmdStr = fmt.Sprintf("nomad operator debug -log-level=TRACE -duration=%s -interval=%s -node-id=all -max-nodes=100 -output=%s/%s", cfg.DebugDuration, cfg.DebugInterval, cfg.TmpDir, filterString)
-	case "vault":
-		cmdStr = fmt.Sprintf("vault debug -compress=true -duration=%s -interval=%s -output=%s/VaultDebug.tar.gz%s", cfg.DebugDuration, cfg.DebugInterval, cfg.TmpDir, filterString)
-	case "consul":
-		cmdStr = fmt.Sprintf("consul debug -duration=%s -interval=%s -output=%s/ConsulDebug%s", cfg.DebugDuration, cfg.DebugInterval, cfg.TmpDir, filterString)
-	}
-
 	return &SimpleDebug{
-		Product: product,
-		Filters: filters,
-		Command: runner.Command{
-			Command:    cmdStr,
-			Format:     "string",
-			Redactions: redactions,
-		},
-		Redactions: redactions,
+		ProductConfig: cfg,
+		Filters:       filters,
+		Redactions:    redactions,
 	}
 }
 
 func (d SimpleDebug) Run() op.Op {
 	startTime := time.Now()
 
-	o := d.Command.Run()
+	filterString, err := productFilterString(d.ProductConfig.Name, d.Filters)
+	if err != nil {
+		return op.New(d.ID(), map[string]any{}, op.Fail, err, runner.Params(d), startTime, time.Now())
+	}
+
+	// Assemble the debug command to execute
+	cmdStr := simpleCmdString(d, filterString)
+
+	cmd := runner.Command{
+		Command:    cmdStr,
+		Format:     "string",
+		Redactions: d.Redactions,
+	}
+
+	o := cmd.Run()
 	if o.Error != nil {
 		return op.New(d.ID(), o.Result, op.Fail, o.Error, runner.Params(d), startTime, time.Now())
 	}
 
 	return op.New(d.ID(), o.Result, op.Success, nil, runner.Params(d), startTime, time.Now())
+}
+
+func simpleCmdString(d SimpleDebug, filterString string) string {
+	var cmdStr string
+
+	switch d.ProductConfig.Name {
+	case "nomad":
+		cmdStr = fmt.Sprintf(
+			"nomad operator debug -log-level=TRACE -duration=%s -interval=%s -node-id=all -max-nodes=100 -output=%s/%s",
+			d.ProductConfig.DebugDuration,
+			d.ProductConfig.DebugInterval,
+			d.ProductConfig.TmpDir,
+			filterString,
+		)
+
+	case "vault":
+		cmdStr = fmt.Sprintf(
+			"vault debug -compress=true -duration=%s -interval=%s -output=%s/VaultDebug.tar.gz%s",
+			d.ProductConfig.DebugDuration,
+			d.ProductConfig.DebugInterval,
+			d.ProductConfig.TmpDir,
+			filterString,
+		)
+
+	case "consul":
+		cmdStr = fmt.Sprintf(
+			"consul debug -duration=%s -interval=%s -output=%s/ConsulDebug%s",
+			d.ProductConfig.DebugDuration,
+			d.ProductConfig.DebugInterval,
+			d.ProductConfig.TmpDir,
+			filterString,
+		)
+	}
+
+	return cmdStr
 }
 
 // productFilterString takes a product.Name and a slice of filter strings, and produces valid, product-specific filter flags.
