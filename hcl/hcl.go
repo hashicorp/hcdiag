@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/redact"
 	"github.com/hashicorp/hcdiag/runner"
+	"github.com/hashicorp/hcdiag/runner/debug"
 	"github.com/hashicorp/hcdiag/runner/host"
 	"github.com/hashicorp/hcdiag/runner/log"
 	"github.com/hashicorp/hcl/v2/hclsimple"
@@ -65,6 +66,7 @@ type Product struct {
 	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
+	VaultDebugs  []VaultDebug  `hcl:"vaultdebug,block" json:"vaultdebug,omitempty"`
 	Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
 	Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
 	Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
@@ -85,6 +87,7 @@ type Do struct {
 	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
+	VaultDebugs  []VaultDebug  `hcl:"vaultdebug,block" json:"vaultdebug,omitempty"`
 
 	// Filters
 	// Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
@@ -109,6 +112,7 @@ type DoSync struct {
 	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
+	VaultDebugs  []VaultDebug  `hcl:"vaultdebug,block" json:"vaultdebug,omitempty"`
 
 	// Filters
 	// Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
@@ -160,6 +164,17 @@ type JournaldLog struct {
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
+type VaultDebug struct {
+	Compress        string   `hcl:"compress" json:"compress"`
+	Duration        string   `hcl:"duration,optional" json:"duration"`
+	Interval        string   `hcl:"interval,optional" json:"interval"`
+	LogFormat       string   `hcl:"logformat,optional" json:"logformat"`
+	MetricsInterval string   `hcl:"metricsinterval,optional" json:"metricsinterval"`
+	Output          string   `hcl:"output,optional" json:"output"`
+	Targets         []string `hcl:"targets,optional" json:"targets"`
+	Redactions      []Redact `hcl:"redact,block" json:"redactions"`
+}
+
 // Parse takes a file path and decodes the file from disk into HCL types.
 func Parse(path string) (HCL, error) {
 	var h HCL
@@ -173,12 +188,12 @@ func Parse(path string) (HCL, error) {
 // BuildRunners steps through the HCLConfig structs and maps each runner config type to the corresponding New<Runner> function.
 // All custom runners are reduced into a linear slice of runners and served back up to the product.
 // No runners are returned if any config is invalid.
-func BuildRunners[T Blocks](config T, tmpDir string, c *client.APIClient, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
-	return BuildRunnersWithContext(context.Background(), config, tmpDir, c, since, until, redactions)
+func BuildRunners[T Blocks](config T, tmpDir string, debugDuration time.Duration, debugInterval time.Duration, c *client.APIClient, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
+	return BuildRunnersWithContext(context.Background(), config, tmpDir, debugDuration, debugInterval, c, since, until, redactions)
 }
 
 // BuildRunnersWithContext is similar to BuildRunners but accepts a context.Context that will be passed into the runners.
-func BuildRunnersWithContext[T Blocks](ctx context.Context, config T, tmpDir string, c *client.APIClient, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
+func BuildRunnersWithContext[T Blocks](ctx context.Context, config T, tmpDir string, debugDuration time.Duration, debugInterval time.Duration, c *client.APIClient, since, until time.Time, redactions []*redact.Redact) ([]runner.Runner, error) {
 	var dest string
 	runners := make([]runner.Runner, 0)
 
@@ -217,6 +232,13 @@ func BuildRunnersWithContext[T Blocks](ctx context.Context, config T, tmpDir str
 			return nil, err
 		}
 		runners = append(runners, journaldLogs...)
+
+		// Build debug runners
+		vaultDebugs, err := mapVaultDebugs(ctx, cfg.VaultDebugs, tmpDir, debugDuration, debugInterval, redactions)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, vaultDebugs...)
 
 		// Build commands and shells
 		commands, err := mapCommands(ctx, cfg.Commands, redactions)
@@ -414,6 +436,34 @@ func mapJournaldLogs(ctx context.Context, cfgs []JournaldLog, dest string, since
 			until = time.Time{}
 		}
 		runners[i] = log.NewJournald(j.Service, dest, since, until, runnerRedacts)
+	}
+	return runners, nil
+}
+
+func mapVaultDebugs(ctx context.Context, cfgs []VaultDebug, tmpDir string, debugDuration time.Duration, debugInterval time.Duration, redactions []*redact.Redact) ([]runner.Runner, error) {
+	runners := make([]runner.Runner, len(cfgs))
+
+	for i, d := range cfgs {
+		runnerRedacts, err := MapRedacts(d.Redactions)
+		if err != nil {
+			return nil, err
+		}
+		// Prepend runner-level redactions to those passed in
+		runnerRedacts = append(runnerRedacts, redactions...)
+
+		// Create the runner
+		cfg := debug.VaultDebugConfig{
+			Compress:        d.Compress,
+			Duration:        d.Duration,
+			Interval:        d.Interval,
+			LogFormat:       d.LogFormat,
+			MetricsInterval: d.MetricsInterval,
+			Output:          d.Output,
+			Targets:         d.Targets,
+			Redactions:      runnerRedacts,
+		}
+
+		runners[i] = debug.NewVaultDebug(cfg, tmpDir, debugDuration, debugInterval)
 	}
 	return runners, nil
 }

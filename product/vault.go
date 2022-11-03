@@ -2,11 +2,11 @@ package product
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/debug"
 	"github.com/hashicorp/hcdiag/runner/do"
 
 	"github.com/hashicorp/go-hclog"
@@ -55,7 +55,7 @@ func NewVaultWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, nil)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval, api, cfg.Since, cfg.Until, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,18 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		runner.NewCommand("vault read sys/health -format=json", "json", cfg.Redactions),
 		runner.NewCommand("vault read sys/seal-status -format=json", "json", cfg.Redactions),
 		runner.NewCommand("vault read sys/host-info -format=json", "json", cfg.Redactions),
-		runner.NewCommand(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
+
+		// Cross-product SimpleDebug vs. Fully-Configurable VaultDebug
+		// debug.NewSimpleDebug("vault", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval, []string{}, cfg.Redactions),
+		debug.NewVaultDebug(
+			debug.VaultDebugConfig{
+				Compress:   "true",
+				Redactions: cfg.Redactions,
+			},
+			cfg.TmpDir,
+			cfg.DebugDuration,
+			cfg.DebugInterval,
+		),
 
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
-	"github.com/hashicorp/hcdiag/product"
 	"github.com/hashicorp/hcdiag/redact"
 	"github.com/hashicorp/hcdiag/runner"
 )
@@ -15,31 +14,36 @@ var _ runner.Runner = SimpleDebug{}
 // The "Simple" debug wrapper can be used for Nomad, Vault, and Consul.
 // It only deals with flags common to all three 'debug' commands
 type SimpleDebug struct {
-	ProductConfig product.Config `json:"productconfig"`
+	ProductName string
+	Duration    string
+	Interval    string
+	Output      string
 	// "Filters" is a generic name for the target/topic/capture option (depending on the product)
-	Filters []string `json:"filters"`
-	// TODO maybe simpleDebugs don't have redactions, since they're always going to be created inside of hcdiag default product runners?
-	// Maybe only custom productDebugs have hcl/redactions?
-	Redactions []*redact.Redact `json:"redactions"`
+	Filters    []string
+	Redactions []*redact.Redact
 }
 
 func (d SimpleDebug) ID() string {
-	return fmt.Sprintf("SimpleDebug-%s", d.ProductConfig.Name)
+	return fmt.Sprintf("SimpleDebug-%s", d.ProductName)
 }
 
 // NewSimpleDebug takes a product config, product debug filters, and redactions, returning a pointer to a new SimpleDebug
-func NewSimpleDebug(cfg product.Config, filters []string, redactions []*redact.Redact) *SimpleDebug {
+func NewSimpleDebug(productName string, output string, debugDuration time.Duration, debugInterval time.Duration, filters []string, redactions []*redact.Redact) *SimpleDebug {
 	return &SimpleDebug{
-		ProductConfig: cfg,
-		Filters:       filters,
-		Redactions:    redactions,
+		ProductName: productName,
+		Duration:    debugDuration.String(),
+		Interval:    debugInterval.String(),
+		// TODO should we worry about possible name collisions here? It would be strange to run multiple vault debugs.
+		Output:     output,
+		Filters:    filters,
+		Redactions: redactions,
 	}
 }
 
 func (d SimpleDebug) Run() op.Op {
 	startTime := time.Now()
 
-	filterString, err := productFilterString(d.ProductConfig.Name, d.Filters)
+	filterString, err := productFilterString(d.ProductName, d.Filters)
 	if err != nil {
 		return op.New(d.ID(), map[string]any{}, op.Fail, err, runner.Params(d), startTime, time.Now())
 	}
@@ -64,31 +68,31 @@ func (d SimpleDebug) Run() op.Op {
 func simpleCmdString(d SimpleDebug, filterString string) string {
 	var cmdStr string
 
-	switch d.ProductConfig.Name {
+	switch d.ProductName {
 	case "nomad":
 		cmdStr = fmt.Sprintf(
-			"nomad operator debug -log-level=TRACE -duration=%s -interval=%s -node-id=all -max-nodes=100 -output=%s/%s",
-			d.ProductConfig.DebugDuration,
-			d.ProductConfig.DebugInterval,
-			d.ProductConfig.TmpDir,
+			"nomad operator debug -log-level=TRACE -duration=%s -interval=%s -node-id=all -max-nodes=100 -output=%s%s",
+			d.Duration,
+			d.Interval,
+			d.Output,
 			filterString,
 		)
 
 	case "vault":
 		cmdStr = fmt.Sprintf(
 			"vault debug -compress=true -duration=%s -interval=%s -output=%s/VaultDebug.tar.gz%s",
-			d.ProductConfig.DebugDuration,
-			d.ProductConfig.DebugInterval,
-			d.ProductConfig.TmpDir,
+			d.Duration,
+			d.Interval,
+			d.Output,
 			filterString,
 		)
 
 	case "consul":
 		cmdStr = fmt.Sprintf(
-			"consul debug -duration=%s -interval=%s -output=%s/ConsulDebug%s",
-			d.ProductConfig.DebugDuration,
-			d.ProductConfig.DebugInterval,
-			d.ProductConfig.TmpDir,
+			"consul debug -duration=%s -interval=%s -output=%s%s",
+			d.Duration,
+			d.Interval,
+			d.Output,
 			filterString,
 		)
 	}

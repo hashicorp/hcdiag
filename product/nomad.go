@@ -68,7 +68,7 @@ func NewNomadWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, cfg.Redactions)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval, api, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}

@@ -49,7 +49,7 @@ func NewHostWithContext(ctx context.Context, logger hclog.Logger, cfg Config, hc
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunnersWithContext(ctx, hcl2, cfg.TmpDir, nil, cfg.Since, cfg.Until, cfg.Redactions)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, hcl2, cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval, nil, cfg.Since, cfg.Until, cfg.Redactions)
 		if err != nil {
 			return nil, err
 		}

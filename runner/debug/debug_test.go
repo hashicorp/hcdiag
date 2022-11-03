@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/hcdiag/product"
 	"github.com/hashicorp/hcdiag/redact"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,52 +11,37 @@ import (
 func TestSimpleCmdString(t *testing.T) {
 	tcs := []struct {
 		name         string
-		cfg          product.Config
+		product      string
 		filters      []string
 		filterString string
 		expect       string
 	}{
 		{
-			name: "nomad config should produce valid command",
-			cfg: product.Config{
-				Name:          "nomad",
-				TmpDir:        "/tmp/hcdiag",
-				DebugDuration: 2 * time.Minute,
-				DebugInterval: 30 * time.Second,
-			},
+			name:         "nomad config should produce valid command",
+			product:      "nomad",
 			filters:      []string{"Allocation", "Job"},
 			filterString: " -event-topic=Allocation -event-topic=Job",
-			expect:       "nomad operator debug -log-level=TRACE -duration=2m0s -interval=30s -node-id=all -max-nodes=100 -output=/tmp/hcdiag/ -event-topic=Allocation -event-topic=Job",
+			expect:       "nomad operator debug -log-level=TRACE -duration=2m0s -interval=30s -node-id=all -max-nodes=100 -output=/tmp/hcdiag -event-topic=Allocation -event-topic=Job",
 		},
 		{
-			name: "vault config should produce valid command",
-			cfg: product.Config{
-				Name:          "vault",
-				TmpDir:        "/tmp/hcdiag",
-				DebugDuration: 2 * time.Minute,
-				DebugInterval: 30 * time.Second,
-			},
+			name:         "vault config should produce valid command",
+			product:      "vault",
 			filters:      []string{"metrics", "pprof", "replication-status"},
 			filterString: " -target=metrics -target=pprof -target=replication-status",
 			expect:       "vault debug -compress=true -duration=2m0s -interval=30s -output=/tmp/hcdiag/VaultDebug.tar.gz -target=metrics -target=pprof -target=replication-status",
 		},
 		{
-			name: "consul config should produce valid command",
-			cfg: product.Config{
-				Name:          "consul",
-				TmpDir:        "/tmp/hcdiag",
-				DebugDuration: 2 * time.Minute,
-				DebugInterval: 30 * time.Second,
-			},
+			name:         "consul config should produce valid command",
+			product:      "consul",
 			filters:      []string{"members", "metrics"},
 			filterString: " -capture=members -capture=metrics",
-			expect:       "consul debug -duration=2m0s -interval=30s -output=/tmp/hcdiag/ConsulDebug -capture=members -capture=metrics",
+			expect:       "consul debug -duration=2m0s -interval=30s -output=/tmp/hcdiag -capture=members -capture=metrics",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			d := NewSimpleDebug(tc.cfg, tc.filters, []*redact.Redact{})
+			d := NewSimpleDebug(tc.product, "/tmp/hcdiag", 2*time.Minute, 30*time.Second, tc.filters, []*redact.Redact{})
 
 			cmdString := simpleCmdString(*d, tc.filterString)
 			if tc.expect != cmdString {
@@ -70,7 +54,7 @@ func TestSimpleCmdString(t *testing.T) {
 func TestProductFilterString(t *testing.T) {
 	tcs := []struct {
 		name      string
-		product   product.Name
+		product   string
 		filters   []string
 		expect    string
 		expectErr bool
@@ -135,20 +119,30 @@ func TestProductFilterString(t *testing.T) {
 
 func TestVaultCmdString(t *testing.T) {
 	tcs := []struct {
-		name         string
-		cfg          VaultDebugConfig
-		filterString string
-		expected     string
+		name            string
+		cfg             VaultDebugConfig
+		productDuration time.Duration
+		productInterval time.Duration
+		filterString    string
+		expected        string
 	}{
 		{
-			name: "a new VaultDebug (using defaults) should have correct vault debug command",
+			name: "product config defaults should be used when no configuration is passed in (duration and interval)",
 			cfg: VaultDebugConfig{
-				ProductConfig: product.Config{
-					Name:          "vault",
-					TmpDir:        "/tmp/hcdiag",
-					DebugDuration: 2 * time.Minute,
-					DebugInterval: 30 * time.Second,
-				},
+				Compress:        "false",
+				LogFormat:       "standard",
+				MetricsInterval: "10s",
+				Targets:         []string{},
+				Redactions:      []*redact.Redact{},
+			},
+			productDuration: 5 * time.Minute,
+			productInterval: 45 * time.Second,
+			filterString:    "",
+			expected:        "vault debug -compress=false -duration=5m0s -interval=45s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
+		},
+		{
+			name: "config values should override product config defaults (duration and interval)",
+			cfg: VaultDebugConfig{
 				Compress:        "false",
 				Duration:        "3m",
 				Interval:        "30s",
@@ -157,48 +151,65 @@ func TestVaultCmdString(t *testing.T) {
 				Targets:         []string{},
 				Redactions:      []*redact.Redact{},
 			},
-			filterString: "",
-			expected:     "vault debug -compress=false -duration=3m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug",
+			productDuration: 2 * time.Minute,
+			productInterval: 20 * time.Second,
+			filterString:    "",
+			expected:        "vault debug -compress=false -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
+		},
+		{
+			name: "Internal defaults should be used when not present in configuration (compress, logformat)",
+			cfg: VaultDebugConfig{
+				Duration:        "3m",
+				Interval:        "30s",
+				MetricsInterval: "10s",
+				Targets:         []string{},
+				Redactions:      []*redact.Redact{},
+			},
+			productDuration: 2 * time.Minute,
+			productInterval: 20 * time.Second,
+			filterString:    "",
+			expected:        "vault debug -compress=false -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
 		},
 		{
 			name: "turning on compression should make the resulting -output end with .tar.gz",
 			cfg: VaultDebugConfig{
-				ProductConfig: product.Config{
-					Name:          "vault",
-					TmpDir:        "/tmp/hcdiag",
-					DebugDuration: 2 * time.Minute,
-					DebugInterval: 30 * time.Second,
-				},
 				Compress: "true",
 			},
-			filterString: "",
-			expected:     "vault debug -compress=true -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
+			productDuration: 2 * time.Minute,
+			productInterval: 30 * time.Second,
+			filterString:    "",
+			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
+		},
+		{
+			name:            "an empty config should produce a valid VaultDebug command",
+			cfg:             VaultDebugConfig{},
+			productDuration: 2 * time.Minute,
+			productInterval: 30 * time.Second,
+			filterString:    "",
+			expected:        "vault debug -compress=false -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
 		},
 		{
 			name: "a new VaultDebug (with options) should have correct vault debug command",
 			cfg: VaultDebugConfig{
-				ProductConfig: product.Config{
-					Name:          "vault",
-					TmpDir:        "/tmp/hcdiag",
-					DebugDuration: 2 * time.Minute,
-					DebugInterval: 30 * time.Second,
-				},
 				Compress:        "false",
 				Duration:        "2m",
 				Interval:        "30s",
 				LogFormat:       "standard",
 				MetricsInterval: "10s",
+				Output:          "/tmp/hcdiag",
 				Targets:         []string{"metrics", "pprof", "replication-status"},
 				Redactions:      []*redact.Redact{},
 			},
-			filterString: " -target=metrics -target=pprof -target=replication-status",
-			expected:     "vault debug -compress=false -duration=2m -interval=30s -logformat=standard -metricsinterval=10s -output=/tmp/hcdiag/VaultDebug -target=metrics -target=pprof -target=replication-status",
+			productDuration: 2 * time.Minute,
+			productInterval: 30 * time.Second,
+			filterString:    " -target=metrics -target=pprof -target=replication-status",
+			expected:        "vault debug -compress=false -duration=2m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug -target=metrics -target=pprof -target=replication-status",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			d := NewVaultDebug(tc.cfg)
+			d := NewVaultDebug(tc.cfg, "/tmp/hcdiag", tc.productDuration, tc.productInterval)
 			cmdString := vaultCmdString(*d, tc.filterString)
 
 			if tc.expected != cmdString {

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
-	"github.com/hashicorp/hcdiag/product"
 	"github.com/hashicorp/hcdiag/redact"
 	"github.com/hashicorp/hcdiag/runner"
 )
@@ -14,16 +13,15 @@ var _ runner.Runner = VaultDebug{}
 
 // VaultDebugConfig is a config struct for VaultDebug runners
 type VaultDebugConfig struct {
-	ProductConfig product.Config
-	// No compression because the hcdiag bundle will get compressed anyway
 	Compress        string
 	Duration        string
 	Interval        string
 	LogFormat       string
 	MetricsInterval string
-	Output          string
-	Targets         []string
-	Redactions      []*redact.Redact
+	// Output will be the debug bundle's parent directory, e.g. the top-level hcdiag bundle directory
+	Output     string
+	Targets    []string
+	Redactions []*redact.Redact
 }
 
 // VaultDebug represents a VaultDebug runner
@@ -42,17 +40,19 @@ func (d VaultDebug) ID() string {
 	return "VaultDebug"
 }
 
-func NewVaultDebug(cfg VaultDebugConfig) *VaultDebug {
+func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) *VaultDebug {
 	dbg := VaultDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
-		Compress:        "false",
-		Duration:        "2m",
-		Interval:        "30s",
+		Compress: "false",
+		// Use debug duration and interval
+		Duration:        debugDuration.String(),
+		Interval:        debugInterval.String(),
 		LogFormat:       "standard",
 		MetricsInterval: "10s",
-		Output:          fmt.Sprintf("%s/VaultDebug", cfg.ProductConfig.TmpDir),
-		Targets:         cfg.Targets,
-		Redactions:      cfg.Redactions,
+		// Creates a subdirectory inside output dir
+		Output:     fmt.Sprintf("%s/VaultDebug", tmpDir),
+		Targets:    cfg.Targets,
+		Redactions: cfg.Redactions,
 	}
 
 	if len(cfg.Compress) > 0 {
@@ -112,7 +112,7 @@ func (dbg VaultDebug) Run() op.Op {
 // vaultCmdString takes a VaultDebug and a filterString, and creates a valid Vault debug command string
 func vaultCmdString(dbg VaultDebug, filterString string) string {
 	return fmt.Sprintf(
-		"vault debug -compress=%s -duration=%s -interval=%s -logformat=%s -metricsinterval=%s -output=%s%s",
+		"vault debug -compress=%s -duration=%s -interval=%s -log-format=%s -metrics-interval=%s -output=%s%s",
 		dbg.Compress,
 		dbg.Duration,
 		dbg.Interval,

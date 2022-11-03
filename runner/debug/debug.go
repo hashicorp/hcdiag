@@ -2,13 +2,11 @@ package debug
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/hcdiag/product"
 )
 
-// productFilterString takes a product.Name and a slice of filter strings, and produces valid, product-specific filter flags.
+// productFilterString takes a product name and a slice of filter strings, and produces valid, product-specific filter flags.
 // The returned string is in the form " -target=metrics -target=pprof" (for Vault), " -capture=host" (for Consul), or " -event-topic=Allocation" (for Nomad)
-func productFilterString(product product.Name, filters []string) (string, error) {
+func productFilterString(product string, filters []string) (string, error) {
 	var filterString string
 	var legalFilters map[string]bool
 	var optFlag string
