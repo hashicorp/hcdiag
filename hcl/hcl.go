@@ -170,7 +170,6 @@ type VaultDebug struct {
 	Interval        string   `hcl:"interval,optional" json:"interval"`
 	LogFormat       string   `hcl:"logformat,optional" json:"logformat"`
 	MetricsInterval string   `hcl:"metricsinterval,optional" json:"metricsinterval"`
-	Output          string   `hcl:"output,optional" json:"output"`
 	Targets         []string `hcl:"targets,optional" json:"targets"`
 	Redactions      []Redact `hcl:"redact,block" json:"redactions"`
 }
@@ -458,7 +457,6 @@ func mapVaultDebugs(ctx context.Context, cfgs []VaultDebug, tmpDir string, debug
 			Interval:        d.Interval,
 			LogFormat:       d.LogFormat,
 			MetricsInterval: d.MetricsInterval,
-			Output:          d.Output,
 			Targets:         d.Targets,
 			Redactions:      runnerRedacts,
 		}

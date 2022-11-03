@@ -18,10 +18,8 @@ type VaultDebugConfig struct {
 	Interval        string
 	LogFormat       string
 	MetricsInterval string
-	// Output will be the debug bundle's parent directory, e.g. the top-level hcdiag bundle directory
-	Output     string
-	Targets    []string
-	Redactions []*redact.Redact
+	Targets         []string
+	Redactions      []*redact.Redact
 }
 
 // VaultDebug represents a VaultDebug runner
@@ -31,9 +29,10 @@ type VaultDebug struct {
 	Interval        string           `json:"interval"`
 	LogFormat       string           `json:"logformat"`
 	MetricsInterval string           `json:"metricsinterval"`
-	Output          string           `json:"output"`
 	Targets         []string         `json:"targets"`
 	Redactions      []*redact.Redact `json:"redactions"`
+
+	output string
 }
 
 func (d VaultDebug) ID() string {
@@ -50,7 +49,7 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 		LogFormat:       "standard",
 		MetricsInterval: "10s",
 		// Creates a subdirectory inside output dir
-		Output:     fmt.Sprintf("%s/VaultDebug", tmpDir),
+		output:     fmt.Sprintf("%s/VaultDebug", tmpDir),
 		Targets:    cfg.Targets,
 		Redactions: cfg.Redactions,
 	}
@@ -58,7 +57,7 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 	if len(cfg.Compress) > 0 {
 		dbg.Compress = cfg.Compress
 		if dbg.Compress == "true" {
-			dbg.Output = dbg.Output + ".tar.gz"
+			dbg.output = dbg.output + ".tar.gz"
 		}
 	}
 	if len(cfg.Duration) > 0 {
@@ -118,7 +117,7 @@ func vaultCmdString(dbg VaultDebug, filterString string) string {
 		dbg.Interval,
 		dbg.LogFormat,
 		dbg.MetricsInterval,
-		dbg.Output,
+		dbg.output,
 		filterString,
 	)
 }

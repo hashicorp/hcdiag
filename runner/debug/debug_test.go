@@ -196,7 +196,6 @@ func TestVaultCmdString(t *testing.T) {
 				Interval:        "30s",
 				LogFormat:       "standard",
 				MetricsInterval: "10s",
-				Output:          "/tmp/hcdiag",
 				Targets:         []string{"metrics", "pprof", "replication-status"},
 				Redactions:      []*redact.Redact{},
 			},
