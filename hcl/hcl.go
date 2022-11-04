@@ -66,7 +66,7 @@ type Product struct {
 	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
-	VaultDebugs  []VaultDebug  `hcl:"vaultdebug,block" json:"vaultdebug,omitempty"`
+	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
 	Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
 	Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
 	Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
@@ -87,7 +87,7 @@ type Do struct {
 	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
-	VaultDebugs  []VaultDebug  `hcl:"vaultdebug,block" json:"vaultdebug,omitempty"`
+	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
 
 	// Filters
 	// Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
@@ -168,8 +168,8 @@ type VaultDebug struct {
 	Compress        string   `hcl:"compress" json:"compress"`
 	Duration        string   `hcl:"duration,optional" json:"duration"`
 	Interval        string   `hcl:"interval,optional" json:"interval"`
-	LogFormat       string   `hcl:"logformat,optional" json:"logformat"`
-	MetricsInterval string   `hcl:"metricsinterval,optional" json:"metricsinterval"`
+	LogFormat       string   `hcl:"log-format,optional" json:"log_format"`
+	MetricsInterval string   `hcl:"metrics-interval,optional" json:"metrics_interval"`
 	Targets         []string `hcl:"targets,optional" json:"targets"`
 	Redactions      []Redact `hcl:"redact,block" json:"redactions"`
 }

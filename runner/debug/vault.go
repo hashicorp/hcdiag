@@ -27,8 +27,8 @@ type VaultDebug struct {
 	Compress        string           `json:"compress"`
 	Duration        string           `json:"duration"`
 	Interval        string           `json:"interval"`
-	LogFormat       string           `json:"logformat"`
-	MetricsInterval string           `json:"metricsinterval"`
+	LogFormat       string           `json:"log_format"`
+	MetricsInterval string           `json:"metrics_interval"`
 	Targets         []string         `json:"targets"`
 	Redactions      []*redact.Redact `json:"redactions"`
 
