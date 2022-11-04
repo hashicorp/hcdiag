@@ -83,11 +83,8 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		runner.NewCommand("vault read sys/seal-status -format=json", "json", cfg.Redactions),
 		runner.NewCommand("vault read sys/host-info -format=json", "json", cfg.Redactions),
 
-		// Cross-product SimpleDebug vs. Fully-Configurable VaultDebug
-		// debug.NewSimpleDebug("vault", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval, []string{}, cfg.Redactions),
 		debug.NewVaultDebug(
 			debug.VaultDebugConfig{
-				Compress:   "true",
 				Redactions: cfg.Redactions,
 			},
 			cfg.TmpDir,

@@ -8,49 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSimpleCmdString(t *testing.T) {
-	tcs := []struct {
-		name         string
-		product      string
-		filters      []string
-		filterString string
-		expect       string
-	}{
-		{
-			name:         "nomad config should produce valid command",
-			product:      "nomad",
-			filters:      []string{"Allocation", "Job"},
-			filterString: " -event-topic=Allocation -event-topic=Job",
-			expect:       "nomad operator debug -log-level=TRACE -duration=2m0s -interval=30s -node-id=all -max-nodes=100 -output=/tmp/hcdiag -event-topic=Allocation -event-topic=Job",
-		},
-		{
-			name:         "vault config should produce valid command",
-			product:      "vault",
-			filters:      []string{"metrics", "pprof", "replication-status"},
-			filterString: " -target=metrics -target=pprof -target=replication-status",
-			expect:       "vault debug -compress=true -duration=2m0s -interval=30s -output=/tmp/hcdiag/VaultDebug.tar.gz -target=metrics -target=pprof -target=replication-status",
-		},
-		{
-			name:         "consul config should produce valid command",
-			product:      "consul",
-			filters:      []string{"members", "metrics"},
-			filterString: " -capture=members -capture=metrics",
-			expect:       "consul debug -duration=2m0s -interval=30s -output=/tmp/hcdiag -capture=members -capture=metrics",
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			d := NewSimpleDebug(tc.product, "/tmp/hcdiag", 2*time.Minute, 30*time.Second, tc.filters, []*redact.Redact{})
-
-			cmdString := simpleCmdString(*d, tc.filterString)
-			if tc.expect != cmdString {
-				t.Error(tc.name, cmdString)
-			}
-		})
-	}
-}
-
 func TestProductFilterString(t *testing.T) {
 	tcs := []struct {
 		name      string
