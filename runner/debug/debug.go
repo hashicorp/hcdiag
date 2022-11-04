@@ -28,7 +28,6 @@ func productFilterString(product string, filters []string) (string, error) {
 
 	vaultOptFlag := "target"
 	vaultFilters := map[string]bool{
-		// TODO(dcohen) is "all" or "*" valid?
 		"config":             true,
 		"host":               true,
 		"metrics":            true,
@@ -39,7 +38,6 @@ func productFilterString(product string, filters []string) (string, error) {
 
 	consulOptFlag := "capture"
 	consulFilters := map[string]bool{
-		// TODO(dcohen) is "all" or "*" valid?
 		"agent":   true,
 		"host":    true,
 		"members": true,
@@ -63,11 +61,11 @@ func productFilterString(product string, filters []string) (string, error) {
 	}
 
 	for _, f := range filters {
-		if legalFilters[f] {
+		if !legalFilters[f] {
+			return "", fmt.Errorf("invalid filter string (%s) for %s used in debug.productFilterString()", f, product)
+		} else {
 			// includes leading space
 			filterString = fmt.Sprintf("%s -%s=%s", filterString, optFlag, f)
-		} else {
-			return "", fmt.Errorf("invalid filter string (%s) for %s used in debug.productFilterString()", f, product)
 		}
 	}
 
