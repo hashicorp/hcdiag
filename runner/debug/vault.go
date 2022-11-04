@@ -42,7 +42,7 @@ func (d VaultDebug) ID() string {
 func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) *VaultDebug {
 	dbg := VaultDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
-		Compress: "false",
+		Compress: "true",
 		// Use debug duration and interval
 		Duration:        debugDuration.String(),
 		Interval:        debugInterval.String(),
@@ -56,10 +56,11 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 
 	if len(cfg.Compress) > 0 {
 		dbg.Compress = cfg.Compress
-		if dbg.Compress == "true" {
-			dbg.output = dbg.output + ".tar.gz"
-		}
 	}
+	if dbg.Compress == "true" {
+		dbg.output = dbg.output + ".tar.gz"
+	}
+
 	if len(cfg.Duration) > 0 {
 		dbg.Duration = cfg.Duration
 	}

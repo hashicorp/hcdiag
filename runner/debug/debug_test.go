@@ -141,7 +141,7 @@ func TestVaultCmdString(t *testing.T) {
 			expected:        "vault debug -compress=false -duration=5m0s -interval=45s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
 		},
 		{
-			name: "config values should override product config defaults (duration and interval)",
+			name: "config values should override product config defaults (compression, duration, and interval)",
 			cfg: VaultDebugConfig{
 				Compress:        "false",
 				Duration:        "3m",
@@ -168,13 +168,11 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=false -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
+			expected:        "vault debug -compress=true -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
 		},
 		{
-			name: "turning on compression should make the resulting -output end with .tar.gz",
-			cfg: VaultDebugConfig{
-				Compress: "true",
-			},
+			name:            "default config for a vaultDebug runner should make the resulting -output end with .tar.gz",
+			cfg:             VaultDebugConfig{},
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    "",
@@ -186,7 +184,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=false -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
+			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
 		},
 		{
 			name: "a new VaultDebug (with options) should have correct vault debug command",
