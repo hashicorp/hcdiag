@@ -63,10 +63,9 @@ func productFilterString(product string, filters []string) (string, error) {
 	for _, f := range filters {
 		if !legalFilters[f] {
 			return "", fmt.Errorf("invalid filter string (%s) for %s used in debug.productFilterString()", f, product)
-		} else {
-			// includes leading space
-			filterString = fmt.Sprintf("%s -%s=%s", filterString, optFlag, f)
 		}
+		// includes leading space
+		filterString = fmt.Sprintf("%s -%s=%s", filterString, optFlag, f)
 	}
 
 	return filterString, nil
