@@ -43,7 +43,7 @@ func New(cfg Config) (*Redact, error) {
 	}
 	if id == "" {
 		genID := md5.Sum([]byte(cfg.Matcher))
-		id = fmt.Sprint(genID)
+		id = fmt.Sprintf("%x", genID)
 	}
 	if replace == "" {
 		replace = DefaultReplace
