@@ -361,7 +361,7 @@ func mapHostGets(ctx context.Context, cfgs []GET, redactions []*redact.Redact) (
 		runnerRedacts = append(runnerRedacts, redactions...)
 
 		// TODO(mkcp): add redactions to host Get
-		runners[i] = host.NewGetter(g.Path, runnerRedacts)
+		runners[i] = host.NewGet(g.Path, runnerRedacts)
 	}
 	return runners, nil
 }

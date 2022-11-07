@@ -18,7 +18,7 @@ type Get struct {
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-func NewGetter(path string, redactions []*redact.Redact) *Get {
+func NewGet(path string, redactions []*redact.Redact) *Get {
 	return &Get{
 		Path:       path,
 		Redactions: redactions,
