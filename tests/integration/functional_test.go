@@ -64,7 +64,7 @@ func TestFunctional(t *testing.T) {
 				},
 				"consul": {
 					flags:    []string{"-consul"},
-					outFiles: []string{"ConsulDebug.tar.gz"},
+					outFiles: []string{"ConsulDebug*.tar.gz"},
 					skip:     false,
 				},
 				"nomad": {
@@ -84,9 +84,9 @@ func TestFunctional(t *testing.T) {
 				"autodetect-unix": {
 					flags: []string{},
 					outFiles: []string{
-						"ConsulDebug.tar.gz",
+						"ConsulDebug*.tar.gz",
 						filepath.Join("nomad*", "index.json"),
-						"VaultDebug.tar.gz",
+						"VaultDebug*.tar.gz",
 					},
 					skip: runtime.GOOS == "windows",
 				},
