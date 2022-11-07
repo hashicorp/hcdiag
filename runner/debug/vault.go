@@ -91,16 +91,10 @@ func (dbg VaultDebug) Run() op.Op {
 	// Assemble the vault debug command to execute
 	cmdStr := vaultCmdString(dbg, filterString)
 
-	// Vault's 'format' and runner.Command's 'format' are different
-	cmdFormat := "json"
-	if dbg.LogFormat == "standard" {
-		cmdFormat = "string"
-	}
-
 	// Create and set the Command
 	cmd := runner.Command{
 		Command:    cmdStr,
-		Format:     cmdFormat,
+		Format:     "string",
 		Redactions: dbg.Redactions,
 	}
 
