@@ -95,7 +95,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 5 * time.Minute,
 			productInterval: 45 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=false -duration=5m0s -interval=45s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
+			expected:        "vault debug -compress=false -duration=5m0s -interval=45s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug-1ab2",
 		},
 		{
 			name: "config values should override product config defaults (compression, duration, and interval)",
@@ -111,7 +111,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=false -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug",
+			expected:        "vault debug -compress=false -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug-1ab2",
 		},
 		{
 			name: "Internal defaults should be used when not present in configuration (compress, logformat)",
@@ -125,7 +125,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=true -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
+			expected:        "vault debug -compress=true -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug-1ab2.tar.gz",
 		},
 		{
 			name:            "default config for a vaultDebug runner should make the resulting -output end with .tar.gz",
@@ -133,7 +133,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
+			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug-1ab2.tar.gz",
 		},
 		{
 			name:            "an empty config should produce a valid VaultDebug command",
@@ -141,7 +141,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug.tar.gz",
+			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug-1ab2.tar.gz",
 		},
 		{
 			name: "a new VaultDebug (with options) should have correct vault debug command",
@@ -157,13 +157,20 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    " -target=metrics -target=pprof -target=replication-status",
-			expected:        "vault debug -compress=false -duration=2m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug -target=metrics -target=pprof -target=replication-status",
+			expected:        "vault debug -compress=false -duration=2m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug-1ab2 -target=metrics -target=pprof -target=replication-status",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			d := NewVaultDebug(tc.cfg, "/tmp/hcdiag", tc.productDuration, tc.productInterval)
+			tmpDir := "/tmp/hcdiag"
+			d := NewVaultDebug(tc.cfg, tmpDir, tc.productDuration, tc.productInterval)
+
+			// String munging to deal with random string that is added to filename
+			d.output = debugOutputPath(tmpDir, "VaultDebug", "1ab2")
+			if d.Compress == "true" {
+				d.output = d.output + ".tar.gz"
+			}
 			cmdString := vaultCmdString(*d, tc.filterString)
 
 			if tc.expected != cmdString {

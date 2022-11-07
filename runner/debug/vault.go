@@ -40,6 +40,9 @@ func (d VaultDebug) ID() string {
 }
 
 func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) *VaultDebug {
+	// Create a pseudorandom string of characters to allow >1 VaultDebug runner without filename collisions
+	randStr := randAlphanumString(4)
+
 	dbg := VaultDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
 		Compress: "true",
@@ -49,7 +52,7 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 		LogFormat:       "standard",
 		MetricsInterval: "10s",
 		// Creates a subdirectory inside output dir
-		output:     fmt.Sprintf("%s/VaultDebug", tmpDir),
+		output:     debugOutputPath(tmpDir, "VaultDebug", randStr),
 		Targets:    cfg.Targets,
 		Redactions: cfg.Redactions,
 	}
@@ -121,4 +124,9 @@ func vaultCmdString(dbg VaultDebug, filterString string) string {
 		dbg.output,
 		filterString,
 	)
+}
+
+// debugOutputPath splices together an output path from a given tmpDir, debug output directory, and a random string
+func debugOutputPath(tmpDir, dirname, randStr string) string {
+	return fmt.Sprintf("%s/%s-%s", tmpDir, dirname, randStr)
 }
