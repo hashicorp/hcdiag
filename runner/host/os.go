@@ -36,8 +36,17 @@ func (o OS) ID() string {
 // Run calls the given OS utility to get information on the operating system
 func (o OS) Run() op.Op {
 	startTime := time.Now()
+	cmdCfg := runner.CommandConfig{
+		Command:    o.Command,
+		Format:     "string",
+		Redactions: o.Redactions,
+	}
+	cmdRunner, err := runner.NewCommand(cmdCfg)
+	if err != nil {
+		return op.New(o.ID(), nil, op.Fail, err, runner.Params(o), startTime, time.Now())
+	}
 	// NOTE(mkcp): This runner can be made consistent between multiple operating systems if we parse the output of
 	// systeminfo to match uname's scope of concerns.
-	c := runner.NewCommand(o.Command, "string", o.Redactions).Run()
+	c := cmdRunner.Run()
 	return op.New(o.ID(), c.Result, c.Status, c.Error, runner.Params(o), startTime, time.Now())
 }

@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -18,18 +19,78 @@ var _ Runner = Command{}
 
 // Command runs shell commands.
 type Command struct {
-	Command    string           `json:"command"`
-	Format     string           `json:"format"`
+	// Parameters that are not shared/common
+	Command string `json:"command"`
+	Format  string `json:"format"`
+
+	// Parameters that are common across runner types
+	ctx context.Context
+	// TODO(nwchandler) - Make sure this displays properly in results.json
+	Timeout    time.Duration    `json:"timeout"`
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-// NewCommand provides a runner for bin commands
-func NewCommand(command string, format string, redactions []*redact.Redact) *Command {
-	return &Command{
-		Command:    command,
-		Format:     format,
-		Redactions: redactions,
+type CommandConfig struct {
+	// Command is the command line string that this runner should execute.
+	Command string
+	// Format is the desired output format. Valid options are "string" or "json"; the default will be "string" when
+	// creating an object from the NewCommand function.
+	Format string
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact
+}
+
+// NewCommand provides a runner for bin commands.
+func NewCommand(cfg CommandConfig) (*Command, error) {
+	return NewCommandWithContext(context.Background(), cfg)
+}
+
+// NewCommandWithContext provides a runner for bin commands that includes a context.
+func NewCommandWithContext(ctx context.Context, cfg CommandConfig) (*Command, error) {
+	cmd := cfg.Command
+	if cmd == "" {
+		return nil, CommandConfigError{
+			config: cfg,
+			err:    fmt.Errorf("command must not be empty when creating a Command runner"),
+		}
 	}
+
+	var format string
+	switch f := strings.ToLower(cfg.Format); f {
+	// default to "string" if not set
+	case "":
+		format = "string"
+	// check for valid format types
+	case "string", "json":
+		format = f
+	// error on invalid format
+	default:
+		return nil, CommandConfigError{
+			config: cfg,
+			err:    fmt.Errorf("format must be either 'string' or 'json', but got '%s'", f),
+		}
+	}
+
+	timeout := cfg.Timeout
+	if timeout < 0 {
+		return nil, CommandConfigError{
+			config: cfg,
+			err:    fmt.Errorf("timeout must be a nonnegative value, but got '%s'", timeout.String()),
+		}
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	return &Command{
+		ctx:        ctx,
+		Command:    cmd,
+		Format:     format,
+		Redactions: cfg.Redactions,
+	}, nil
 }
 
 func (c Command) ID() string {
@@ -212,4 +273,23 @@ type FormatUnknownError struct {
 
 func (e FormatUnknownError) Error() string {
 	return fmt.Sprintf("unknown format: must be either 'string' or 'json', format=%s, command=%s", e.format, e.command)
+}
+
+var _ error = CommandConfigError{}
+
+type CommandConfigError struct {
+	config CommandConfig
+	err    error
+}
+
+func (e CommandConfigError) Error() string {
+	message := "invalid Command Config"
+	if e.err != nil {
+		return fmt.Sprintf("%s: %s", message, e.err.Error())
+	}
+	return message
+}
+
+func (e CommandConfigError) Unwrap() error {
+	return e.err
 }

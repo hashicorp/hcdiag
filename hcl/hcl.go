@@ -291,7 +291,16 @@ func mapCommands(ctx context.Context, cfgs []Command, redactions []*redact.Redac
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewCommand(c.Run, c.Format, runnerRedacts)
+		cmdCfg := runner.CommandConfig{
+			Command:    c.Run,
+			Format:     c.Format,
+			Redactions: runnerRedacts,
+		}
+		r, err := runner.NewCommandWithContext(ctx, cmdCfg)
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = r
 	}
 	return runners, nil
 }

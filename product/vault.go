@@ -76,17 +76,28 @@ func NewVaultWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (
 
 // vaultRunners provides a list of default runners to inspect vault.
 func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
-	r := []runner.Runner{
-		runner.NewCommand("vault version", "string", cfg.Redactions),
-		runner.NewCommand("vault status -format=json", "json", cfg.Redactions),
-		runner.NewCommand("vault read sys/health -format=json", "json", cfg.Redactions),
-		runner.NewCommand("vault read sys/seal-status -format=json", "json", cfg.Redactions),
-		runner.NewCommand("vault read sys/host-info -format=json", "json", cfg.Redactions),
-		runner.NewCommand(fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
+	var r []runner.Runner
 
+	// Set up Command runners
+	for _, cc := range []runner.CommandConfig{
+		{Command: "vault version", Format: "string", Redactions: cfg.Redactions},
+		{Command: "vault status -format=json", Format: "json", Redactions: cfg.Redactions},
+		{Command: "vault read sys/health -format=json", Format: "json", Redactions: cfg.Redactions},
+		{Command: "vault read sys/seal-status -format=json", Format: "json", Redactions: cfg.Redactions},
+		{Command: "vault read sys/host-info -format=json", Format: "json", Redactions: cfg.Redactions},
+		{Command: fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), Format: "string", Redactions: cfg.Redactions},
+	} {
+		c, err := runner.NewCommandWithContext(ctx, cc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, c)
+	}
+
+	r = append(r,
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
-	}
+	)
 
 	// try to detect log location to copy
 	if logPath, err := client.GetVaultAuditLogPath(api); err == nil {
