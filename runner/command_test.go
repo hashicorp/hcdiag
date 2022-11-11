@@ -166,10 +166,9 @@ func TestCommand_RunCanceled(t *testing.T) {
 	cancelFunc()
 
 	cmd := Command{
-		Command:    "bogus-command",
-		Format:     "string",
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
+		Command: "bogus-command",
+		Format:  "string",
+		ctx:     ctx,
 	}
 
 	result := cmd.Run()
@@ -186,10 +185,9 @@ func TestCommand_RunTimeout(t *testing.T) {
 	time.Sleep(1 * time.Nanosecond)
 
 	cmd := Command{
-		Command:    "bogus-command",
-		Format:     "string",
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
+		Command: "bogus-command",
+		Format:  "string",
+		ctx:     ctx,
 	}
 
 	result := cmd.Run()

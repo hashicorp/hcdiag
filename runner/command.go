@@ -24,8 +24,7 @@ type Command struct {
 	Format  string `json:"format"`
 
 	// Parameters that are common across runner types
-	ctx        context.Context
-	cancelFunc context.CancelFunc
+	ctx context.Context
 
 	Timeout    Timeout          `json:"timeout"`
 	Redactions []*redact.Redact `json:"redactions"`
@@ -111,9 +110,12 @@ func (c Command) Run() op.Op {
 		c.ctx = context.Background()
 	}
 
+	runCtx := c.ctx
+	var runCancelFunc context.CancelFunc
 	// c.cancelFunc helps us know whether our existing context is cancelable
-	if c.Timeout > 0 && c.cancelFunc == nil {
-		c.ctx, c.cancelFunc = context.WithTimeout(c.ctx, time.Duration(c.Timeout))
+	if c.Timeout > 0 {
+		runCtx, runCancelFunc = context.WithTimeout(c.ctx, time.Duration(c.Timeout))
+		defer runCancelFunc()
 	}
 
 	startTime := time.Now()
@@ -189,8 +191,8 @@ func (c Command) Run() op.Op {
 	}(resultsChannel)
 
 	select {
-	case <-c.ctx.Done():
-		switch c.ctx.Err() {
+	case <-runCtx.Done():
+		switch runCtx.Err() {
 		case context.Canceled:
 			return op.New(c.ID(), nil, op.Canceled, c.ctx.Err(), Params(c), startTime, time.Now())
 		case context.DeadlineExceeded:
