@@ -167,7 +167,6 @@ func TestCommand_RunCanceled(t *testing.T) {
 
 	cmd := Command{
 		Command: "bogus-command",
-		Format:  "string",
 		ctx:     ctx,
 	}
 
@@ -186,7 +185,6 @@ func TestCommand_RunTimeout(t *testing.T) {
 
 	cmd := Command{
 		Command: "bogus-command",
-		Format:  "string",
 		ctx:     ctx,
 	}
 
