@@ -2,11 +2,11 @@ package product
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/debug"
 	"github.com/hashicorp/hcdiag/runner/do"
 
 	"github.com/hashicorp/go-hclog"
@@ -78,7 +78,16 @@ func NewConsulWithContext(ctx context.Context, logger hclog.Logger, cfg Config) 
 func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
 		runner.NewCommand("consul version", "string", cfg.Redactions),
-		runner.NewCommand(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
+
+		debug.NewConsulDebug(
+			debug.ConsulDebugConfig{
+				Redactions: cfg.Redactions,
+			},
+			cfg.TmpDir,
+			cfg.DebugDuration,
+			cfg.DebugInterval,
+		),
+
 		runner.NewCommand("consul operator raft list-peers -stale=true", "string", cfg.Redactions),
 
 		runner.NewHTTP(api, "/v1/agent/self", cfg.Redactions),

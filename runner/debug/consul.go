@@ -54,9 +54,6 @@ func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Dur
 	if len(cfg.Archive) > 0 {
 		dbg.Archive = cfg.Archive
 	}
-	if dbg.Archive == "true" {
-		dbg.output = dbg.output + ".tar.gz"
-	}
 
 	if len(cfg.Duration) > 0 {
 		dbg.Duration = cfg.Duration
