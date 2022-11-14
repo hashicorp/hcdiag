@@ -30,7 +30,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 5 * time.Minute,
 			productInterval: 45 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=false -duration=5m0s -interval=45s -log-format=standard -metrics-interval=10s -output=/tmp/VaultDebug[0-9]*",
+			expected:        "vault debug -compress=false -duration=5m0s -interval=45s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*",
 		},
 		{
 			name: "config values should override product config defaults (compression, duration, and interval)",
@@ -46,7 +46,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=false -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/VaultDebug[0-9]*",
+			expected:        "vault debug -compress=false -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*",
 		},
 		{
 			name: "Internal defaults should be used when not present in configuration (compress, logformat)",
@@ -60,7 +60,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=true -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/VaultDebug[0-9]*.tar.gz",
+			expected:        "vault debug -compress=true -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*.tar.gz",
 		},
 		{
 			name:            "default config for a vaultDebug runner should make the resulting -output end with .tar.gz",
@@ -68,7 +68,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/VaultDebug[0-9]*.tar.gz",
+			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*.tar.gz",
 		},
 		{
 			name:            "an empty config should produce a valid VaultDebug command",
@@ -76,7 +76,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    "",
-			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/VaultDebug[0-9]*.tar.gz",
+			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*.tar.gz",
 		},
 		{
 			name: "a new VaultDebug (with options) should have correct vault debug command",
@@ -92,7 +92,7 @@ func TestVaultCmdString(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    " -target=metrics -target=pprof -target=replication-status",
-			expected:        "vault debug -compress=false -duration=2m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/VaultDebug[0-9]* -target=metrics -target=pprof -target=replication-status",
+			expected:        "vault debug -compress=false -duration=2m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug* -target=metrics -target=pprof -target=replication-status",
 		},
 	}
 
@@ -101,11 +101,7 @@ func TestVaultCmdString(t *testing.T) {
 			d, err := NewVaultDebug(tc.cfg, "/tmp", tc.productDuration, tc.productInterval)
 			assert.NoError(t, err)
 
-			if d.Compress == "true" {
-				d.output = d.output + ".tar.gz"
-			}
-			cmdString := vaultCmdString(*d, tc.filterString)
-
+			cmdString := vaultCmdString(*d, tc.filterString, "/tmp/hcdiag/VaultDebug123")
 			matched, _ := regexp.MatchString(tc.expected, cmdString)
 			assert.True(t, matched, "got:", cmdString, "expected:", tc.expected)
 		})

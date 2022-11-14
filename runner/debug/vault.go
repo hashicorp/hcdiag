@@ -3,6 +3,7 @@ package debug
 import (
 	"fmt"
 	"os"
+	"path"
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
@@ -41,11 +42,6 @@ func (d VaultDebug) ID() string {
 }
 
 func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) (*VaultDebug, error) {
-	// Allow more than one VaultDebug to create output directories during the same run
-	dir, err := os.MkdirTemp(tmpDir, "VaultDebug*")
-	if err != nil {
-		return nil, err
-	}
 
 	dbg := VaultDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
@@ -55,19 +51,14 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 		Interval:        debugInterval.String(),
 		LogFormat:       "standard",
 		MetricsInterval: "10s",
-		// Creates a subdirectory inside output dir
-		output:     dir,
-		Targets:    cfg.Targets,
-		Redactions: cfg.Redactions,
+		Targets:         cfg.Targets,
+		Redactions:      cfg.Redactions,
+		output:          tmpDir,
 	}
 
 	if len(cfg.Compress) > 0 {
 		dbg.Compress = cfg.Compress
 	}
-	if dbg.Compress == "true" {
-		dbg.output = dbg.output + ".tar.gz"
-	}
-
 	if len(cfg.Duration) > 0 {
 		dbg.Duration = cfg.Duration
 	}
@@ -87,10 +78,15 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 func (dbg VaultDebug) Run() op.Op {
 	startTime := time.Now()
 
-	filterString := filterArgs("target", dbg.Targets)
+	// Allow more than one VaultDebug to create output directories during the same run
+	dir, err := os.MkdirTemp(dbg.output, "VaultDebug*")
+	if err != nil {
+		return op.New(dbg.ID(), nil, op.Fail, err, runner.Params(dbg), startTime, time.Now())
+	}
 
 	// Assemble the vault debug command to execute
-	cmdStr := vaultCmdString(dbg, filterString)
+	filterString := filterArgs("target", dbg.Targets)
+	cmdStr := vaultCmdString(dbg, filterString, dir)
 
 	// Create and set the Command
 	cmd := runner.Command{
@@ -107,8 +103,15 @@ func (dbg VaultDebug) Run() op.Op {
 	return op.New(dbg.ID(), o.Result, op.Success, nil, runner.Params(dbg), startTime, time.Now())
 }
 
-// vaultCmdString takes a VaultDebug and a filterString, and creates a valid Vault debug command string
-func vaultCmdString(dbg VaultDebug, filterString string) string {
+// vaultCmdString takes a VaultDebug, a filterString, and a tmpDir string that's safe to write files into, and creates a valid Vault debug command string
+func vaultCmdString(dbg VaultDebug, filterString, tmpDir string) string {
+	var fileEnding string
+
+	if dbg.Compress == "true" {
+		fileEnding = ".tar.gz"
+	}
+	dbg.output = path.Join(tmpDir, fmt.Sprintf("VaultDebug%s", fileEnding))
+
 	return fmt.Sprintf(
 		"vault debug -compress=%s -duration=%s -interval=%s -log-format=%s -metrics-interval=%s -output=%s%s",
 		dbg.Compress,
