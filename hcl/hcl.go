@@ -502,8 +502,11 @@ func mapConsulDebugs(ctx context.Context, cfgs []ConsulDebug, tmpDir string, deb
 			Captures:   d.Captures,
 			Redactions: runnerRedacts,
 		}
-
-		runners[i] = debug.NewConsulDebug(cfg, tmpDir, debugDuration, debugInterval)
+		dbg, err := debug.NewConsulDebug(cfg, tmpDir, debugDuration, debugInterval)
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = dbg
 	}
 	return runners, nil
 }

@@ -76,17 +76,23 @@ func NewConsulWithContext(ctx context.Context, logger hclog.Logger, cfg Config) 
 
 // consulRunners generates a slice of runners to inspect consul.
 func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+	dbg, err := debug.NewConsulDebug(
+		debug.ConsulDebugConfig{
+			Redactions: cfg.Redactions,
+		},
+		cfg.TmpDir,
+		cfg.DebugDuration,
+		cfg.DebugInterval,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	r := []runner.Runner{
 		runner.NewCommand("consul version", "string", cfg.Redactions),
 
-		debug.NewConsulDebug(
-			debug.ConsulDebugConfig{
-				Redactions: cfg.Redactions,
-			},
-			cfg.TmpDir,
-			cfg.DebugDuration,
-			cfg.DebugInterval,
-		),
+		// TODO(dcohen) ConsulDebug -- adjust during merge
+		dbg,
 
 		runner.NewCommand("consul operator raft list-peers -stale=true", "string", cfg.Redactions),
 

@@ -2,6 +2,7 @@ package debug
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
@@ -35,9 +36,12 @@ func (d ConsulDebug) ID() string {
 	return "ConsulDebug"
 }
 
-func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) *ConsulDebug {
-	// Create a pseudorandom string of characters to allow >1 ConsulDebug runner without filename collisions
-	randStr := randAlphanumString(4)
+func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) (*ConsulDebug, error) {
+	// Allow more than one ConsulDebug to create output directories during the same run
+	dir, err := os.MkdirTemp(tmpDir, "ConsulDebug*")
+	if err != nil {
+		return nil, err
+	}
 
 	dbg := ConsulDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
@@ -46,7 +50,7 @@ func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Dur
 		Duration: debugDuration.String(),
 		Interval: debugInterval.String(),
 		// Creates a subdirectory inside output dir
-		output:     debugOutputPath(tmpDir, "ConsulDebug", randStr),
+		output:     dir,
 		Captures:   cfg.Captures,
 		Redactions: cfg.Redactions,
 	}
@@ -62,7 +66,7 @@ func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Dur
 		dbg.Interval = cfg.Interval
 	}
 
-	return &dbg
+	return &dbg, nil
 }
 
 func (dbg ConsulDebug) Run() op.Op {
