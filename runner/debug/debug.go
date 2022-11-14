@@ -2,10 +2,7 @@ package debug
 
 import (
 	"fmt"
-	"math/rand"
 )
-
-const alphaNumBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345689"
 
 // productFilterString takes a product name and a slice of filter strings, and produces valid, product-specific filter flags.
 // The returned string is in the form " -target=metrics -target=pprof" (for Vault), " -capture=host" (for Consul), or " -event-topic=Allocation" (for Nomad)
@@ -72,13 +69,4 @@ func productFilterString(product string, filters []string) (string, error) {
 	}
 
 	return filterString, nil
-}
-
-// randAlphanumString takes an integer n, and returns a pseudorandom string of len(n) composed of the characters (a-z A-Z 0-9).
-func randAlphanumString(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = alphaNumBytes[rand.Intn(len(alphaNumBytes))]
-	}
-	return string(b)
 }

@@ -76,6 +76,18 @@ func NewVaultWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (
 
 // vaultRunners provides a list of default runners to inspect vault.
 func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
+	dbg, err := debug.NewVaultDebug(
+		debug.VaultDebugConfig{
+			Redactions: cfg.Redactions,
+		},
+		cfg.TmpDir,
+		cfg.DebugDuration,
+		cfg.DebugInterval,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	r := []runner.Runner{
 		runner.NewCommand("vault version", "string", cfg.Redactions),
 		runner.NewCommand("vault status -format=json", "json", cfg.Redactions),
@@ -83,14 +95,8 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		runner.NewCommand("vault read sys/seal-status -format=json", "json", cfg.Redactions),
 		runner.NewCommand("vault read sys/host-info -format=json", "json", cfg.Redactions),
 
-		debug.NewVaultDebug(
-			debug.VaultDebugConfig{
-				Redactions: cfg.Redactions,
-			},
-			cfg.TmpDir,
-			cfg.DebugDuration,
-			cfg.DebugInterval,
-		),
+		// TODO(dcohen) VaultDebug -- adjust during merge
+		dbg,
 
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),

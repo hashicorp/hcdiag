@@ -461,7 +461,11 @@ func mapVaultDebugs(ctx context.Context, cfgs []VaultDebug, tmpDir string, debug
 			Redactions:      runnerRedacts,
 		}
 
-		runners[i] = debug.NewVaultDebug(cfg, tmpDir, debugDuration, debugInterval)
+		dbg, err := debug.NewVaultDebug(cfg, tmpDir, debugDuration, debugInterval)
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = dbg
 	}
 	return runners, nil
 }

@@ -2,6 +2,7 @@ package debug
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
@@ -39,9 +40,12 @@ func (d VaultDebug) ID() string {
 	return "VaultDebug"
 }
 
-func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) *VaultDebug {
-	// Create a pseudorandom string of characters to allow >1 VaultDebug runner without filename collisions
-	randStr := randAlphanumString(4)
+func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) (*VaultDebug, error) {
+	// Allow more than one VaultDebug to create output directories during the same run
+	dir, err := os.MkdirTemp(tmpDir, "VaultDebug*")
+	if err != nil {
+		return nil, err
+	}
 
 	dbg := VaultDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
@@ -52,7 +56,7 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 		LogFormat:       "standard",
 		MetricsInterval: "10s",
 		// Creates a subdirectory inside output dir
-		output:     debugOutputPath(tmpDir, "VaultDebug", randStr),
+		output:     dir,
 		Targets:    cfg.Targets,
 		Redactions: cfg.Redactions,
 	}
@@ -77,7 +81,7 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 		dbg.MetricsInterval = cfg.MetricsInterval
 	}
 
-	return &dbg
+	return &dbg, nil
 }
 
 func (dbg VaultDebug) Run() op.Op {
@@ -118,9 +122,4 @@ func vaultCmdString(dbg VaultDebug, filterString string) string {
 		dbg.output,
 		filterString,
 	)
-}
-
-// debugOutputPath splices together an output path from a given tmpDir, debug output directory, and a random string
-func debugOutputPath(tmpDir, dirname, randStr string) string {
-	return fmt.Sprintf("%s/%s-%s", tmpDir, dirname, randStr)
 }
