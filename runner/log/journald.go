@@ -56,7 +56,17 @@ func (j Journald) Run() op.Op {
 
 	// Check if systemd has a unit with the provided name
 	cmd := fmt.Sprintf("systemctl is-enabled %s", j.Service)
-	enabled := runner.NewCommand(cmd, "string", j.Redactions).Run()
+	cmdCfg := runner.CommandConfig{
+		Command:    cmd,
+		Format:     "string",
+		Redactions: j.Redactions,
+	}
+	cmdRunner, err := runner.NewCommand(cmdCfg)
+	if err != nil {
+		return op.New(j.ID(), nil, op.Fail, err, runner.Params(j), startTime, time.Now())
+	}
+
+	enabled := cmdRunner.Run()
 	if enabled.Error != nil {
 		hclog.L().Debug("skipping journald", "service", j.Service, "output", enabled.Result, "error", enabled.Error)
 		return op.New(j.ID(), enabled.Result, op.Skip, JournaldServiceNotEnabled{

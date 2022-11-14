@@ -1,8 +1,10 @@
 package runner
 
 import (
+	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -12,14 +14,58 @@ import (
 )
 
 func TestNewCommand(t *testing.T) {
-	testCmd := "echo hello"
-	testFmt := "string"
-	expect := &Command{
-		Command: testCmd,
-		Format:  testFmt,
+	t.Parallel()
+	tt := []struct {
+		desc      string
+		cfg       CommandConfig
+		expect    *Command
+		expectErr bool
+	}{
+		{
+			desc:      "empty config causes an error",
+			cfg:       CommandConfig{},
+			expectErr: true,
+		},
+		{
+			desc: "empty format defaults to string",
+			cfg: CommandConfig{
+				Command: "bogus-command",
+			},
+			expect: &Command{
+				Command: "bogus-command",
+				Format:  "string",
+				ctx:     context.Background(),
+			},
+		},
+		{
+			desc: "invalid format causes an error",
+			cfg: CommandConfig{
+				Command: "bogus-command",
+				Format:  "invalid",
+			},
+			expectErr: true,
+		},
+		{
+			desc: "negative timeout duration causes an error",
+			cfg: CommandConfig{
+				Command: "bogus-command",
+				Timeout: -10 * time.Second,
+			},
+			expectErr: true,
+		},
 	}
-	actual := NewCommand(testCmd, testFmt, nil)
-	assert.Equal(t, expect, actual)
+
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			c, err := NewCommand(tc.cfg)
+			if tc.expectErr {
+				assert.ErrorAs(t, err, &CommandConfigError{})
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expect, c)
+			}
+		})
+	}
 }
 
 func TestCommand_Run(t *testing.T) {
@@ -49,7 +95,12 @@ func TestCommand_Run(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			c := NewCommand(tc.command, tc.format, nil)
+			cfg := CommandConfig{
+				Command: tc.command,
+				Format:  tc.format,
+			}
+			c, err := NewCommand(cfg)
+			assert.NoError(t, err)
 			o := c.Run()
 			assert.NoError(t, o.Error)
 			assert.Equal(t, op.Success, o.Status)
@@ -91,7 +142,12 @@ func TestCommand_RunError(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			c := NewCommand(tc.command, tc.format, nil)
+			cfg := CommandConfig{
+				Command: tc.command,
+				Format:  tc.format,
+			}
+			c, err := NewCommand(cfg)
+			assert.NoError(t, err)
 			o := c.Run()
 			assert.Error(t, o.Error)
 			hclog.L().Trace("command.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))

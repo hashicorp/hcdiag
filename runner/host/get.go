@@ -35,6 +35,15 @@ func (g Get) Run() op.Op {
 	cmd := strings.Join([]string{"curl -s", g.Path}, " ")
 	// NOTE(mkcp): We will get JSON back from a lot of requests, so this can be improved
 	format := "string"
-	o := runner.NewCommand(cmd, format, g.Redactions).Run()
+	cmdCfg := runner.CommandConfig{
+		Command:    cmd,
+		Format:     format,
+		Redactions: g.Redactions,
+	}
+	cmdRunner, err := runner.NewCommand(cmdCfg)
+	if err != nil {
+		return op.New(g.ID(), nil, op.Fail, err, runner.Params(g), startTime, time.Now())
+	}
+	o := cmdRunner.Run()
 	return op.New(g.ID(), o.Result, o.Status, o.Error, runner.Params(g), startTime, time.Now())
 }
