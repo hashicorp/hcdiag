@@ -80,9 +80,9 @@ func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hcl
 
 	// Set up Command runners
 	for _, cc := range []runner.CommandConfig{
-		{Command: "consul version"},
-		{Command: fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval)},
-		{Command: "consul operator raft list-peers -stale=true"},
+		{Command: "consul version", Redactions: cfg.Redactions},
+		{Command: fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), Redactions: cfg.Redactions},
+		{Command: "consul operator raft list-peers -stale=true", Redactions: cfg.Redactions},
 	} {
 		c, err := runner.NewCommandWithContext(ctx, cc)
 		if err != nil {
