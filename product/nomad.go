@@ -93,10 +93,10 @@ func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 
 	// Set up Command runners
 	for _, cc := range []runner.CommandConfig{
-		{Command: "nomad version", Format: "string"},
+		{Command: "nomad version"},
 		{Command: "nomad node status -self -json", Format: "json"},
 		{Command: "nomad agent-info -json", Format: "json"},
-		{Command: fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), Format: "string"},
+		{Command: fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval)},
 	} {
 		c, err := runner.NewCommandWithContext(ctx, cc)
 		if err != nil {

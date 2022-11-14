@@ -98,7 +98,7 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 
 	// Set up Command runners
 	for _, cc := range []runner.CommandConfig{
-		{Command: "docker -v", Format: "string", Redactions: cfg.Redactions},
+		{Command: "docker -v", Redactions: cfg.Redactions},
 		{Command: "replicatedctl app status --output json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "lsblk --json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "replicatedctl app-config view -o json --group capacity", Format: "json", Redactions: cfg.Redactions},
@@ -106,7 +106,7 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 		{Command: "replicatedctl app-config view -o json --group log_forwarding", Format: "json", Redactions: cfg.Redactions},
 		{Command: "replicatedctl app-config view -o json --group blob", Format: "json", Redactions: cfg.Redactions},
 		{Command: "replicatedctl app-config view -o json --group worker_image", Format: "json", Redactions: cfg.Redactions},
-		{Command: "replicatedctl params export --template '{{.Airgap}}'", Format: "string", Redactions: cfg.Redactions},
+		{Command: "replicatedctl params export --template '{{.Airgap}}'", Redactions: cfg.Redactions},
 		{Command: "replicated --no-tty admin list-nodes", Format: "json", Redactions: cfg.Redactions},
 	} {
 		c, err := runner.NewCommandWithContext(ctx, cc)

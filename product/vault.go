@@ -80,12 +80,12 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 
 	// Set up Command runners
 	for _, cc := range []runner.CommandConfig{
-		{Command: "vault version", Format: "string", Redactions: cfg.Redactions},
+		{Command: "vault version", Redactions: cfg.Redactions},
 		{Command: "vault status -format=json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "vault read sys/health -format=json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "vault read sys/seal-status -format=json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "vault read sys/host-info -format=json", Format: "json", Redactions: cfg.Redactions},
-		{Command: fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), Format: "string", Redactions: cfg.Redactions},
+		{Command: fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), Redactions: cfg.Redactions},
 	} {
 		c, err := runner.NewCommandWithContext(ctx, cc)
 		if err != nil {
