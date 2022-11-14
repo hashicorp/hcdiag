@@ -87,10 +87,7 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 func (dbg VaultDebug) Run() op.Op {
 	startTime := time.Now()
 
-	filterString, err := productFilterString("vault", dbg.Targets)
-	if err != nil {
-		return op.New(dbg.ID(), map[string]any{}, op.Fail, err, runner.Params(dbg), startTime, time.Now())
-	}
+	filterString := filterArgs("target", dbg.Targets)
 
 	// Assemble the vault debug command to execute
 	cmdStr := vaultCmdString(dbg, filterString)
