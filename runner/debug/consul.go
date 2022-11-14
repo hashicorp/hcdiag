@@ -51,7 +51,7 @@ func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Dur
 		Redactions: cfg.Redactions,
 	}
 
-	if len(cfg.Archive) > 0 {
+	if cfg.Archive != "" {
 		dbg.Archive = cfg.Archive
 	}
 
