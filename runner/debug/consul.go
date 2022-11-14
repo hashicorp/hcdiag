@@ -3,6 +3,7 @@ package debug
 import (
 	"fmt"
 	"os"
+	"path"
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
@@ -37,12 +38,6 @@ func (d ConsulDebug) ID() string {
 }
 
 func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Duration, debugInterval time.Duration) (*ConsulDebug, error) {
-	// Allow more than one ConsulDebug to create output directories during the same run
-	dir, err := os.MkdirTemp(tmpDir, "ConsulDebug*")
-	if err != nil {
-		return nil, err
-	}
-
 	dbg := ConsulDebug{
 		// No compression because the hcdiag bundle will get compressed anyway
 		Archive: "true",
@@ -50,7 +45,7 @@ func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Dur
 		Duration: debugDuration.String(),
 		Interval: debugInterval.String(),
 		// Creates a subdirectory inside output dir
-		output:     dir,
+		output:     tmpDir,
 		Captures:   cfg.Captures,
 		Redactions: cfg.Redactions,
 	}
@@ -72,10 +67,15 @@ func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Dur
 func (dbg ConsulDebug) Run() op.Op {
 	startTime := time.Now()
 
-	filterString := filterArgs("capture", dbg.Captures)
+	// Allow more than one ConsulDebug to create output directories during the same run
+	dir, err := os.MkdirTemp(dbg.output, "ConsulDebug*")
+	if err != nil {
+		return op.New(dbg.ID(), nil, op.Fail, err, runner.Params(dbg), startTime, time.Now())
+	}
 
 	// Assemble the Consul debug command to execute
-	cmdStr := consulCmdString(dbg, filterString)
+	filterString := filterArgs("capture", dbg.Captures)
+	cmdStr := consulCmdString(dbg, filterString, dir)
 
 	// Create and set the Command
 	cmd := runner.Command{
@@ -93,7 +93,9 @@ func (dbg ConsulDebug) Run() op.Op {
 }
 
 // consulCmdString takes a ConsulDebug and a filterString, and creates a valid Consul debug command string
-func consulCmdString(dbg ConsulDebug, filterString string) string {
+func consulCmdString(dbg ConsulDebug, filterString, tmpDir string) string {
+	dbg.output = path.Join(tmpDir, "ConsulDebug")
+
 	return fmt.Sprintf(
 		"consul debug -archive=%s -duration=%s -interval=%s -output=%s%s",
 		dbg.Archive,

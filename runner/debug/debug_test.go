@@ -235,7 +235,7 @@ func TestConsul(t *testing.T) {
 			productDuration: 5 * time.Minute,
 			productInterval: 45 * time.Second,
 			filterString:    "",
-			expected:        "consul debug -archive=false -duration=5m0s -interval=45s -output=/tmp/ConsulDebug[0-9]*",
+			expected:        "consul debug -archive=false -duration=5m0s -interval=45s -output=/tmp/hcdiag/ConsulDebug123/ConsulDebug[0-9]*",
 		},
 		{
 			name: "config values should override product config defaults (compression, duration, and interval)",
@@ -249,7 +249,7 @@ func TestConsul(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
 			filterString:    "",
-			expected:        "consul debug -archive=false -duration=3m -interval=30s -output=/tmp/ConsulDebug[0-9]*",
+			expected:        "consul debug -archive=false -duration=3m -interval=30s -output=/tmp/hcdiag/ConsulDebug123/ConsulDebug[0-9]*",
 		},
 		{
 			name: "Internal defaults should be used when not present in configuration (compress, logformat)",
@@ -262,15 +262,7 @@ func TestConsul(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
 			filterString:    "",
-			expected:        "consul debug -archive=true -duration=3m -interval=30s -output=/tmp/ConsulDebug[0-9]*.tar.gz",
-		},
-		{
-			name:            "default config for a ConsulDebug runner should make the resulting -output end with .tar.gz",
-			cfg:             ConsulDebugConfig{},
-			productDuration: 2 * time.Minute,
-			productInterval: 30 * time.Second,
-			filterString:    "",
-			expected:        "consul debug -archive=true -duration=2m0s -interval=30s -output=/tmp/ConsulDebug[0-9]*.tar.gz",
+			expected:        "consul debug -archive=true -duration=3m -interval=30s -output=/tmp/hcdiag/ConsulDebug123/ConsulDebug[0-9]*",
 		},
 		{
 			name:            "an empty config should produce a valid ConsulDebug command",
@@ -278,7 +270,7 @@ func TestConsul(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    "",
-			expected:        "consul debug -archive=true -duration=2m0s -interval=30s -output=/tmp/ConsulDebug[0-9]*",
+			expected:        "consul debug -archive=true -duration=2m0s -interval=30s -output=/tmp/hcdiag/ConsulDebug123/ConsulDebug[0-9]*",
 		},
 		{
 			name: "a new ConsulDebug (with options) should have correct consul debug command",
@@ -292,7 +284,7 @@ func TestConsul(t *testing.T) {
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
 			filterString:    " -target=metrics -target=pprof -target=replication-status",
-			expected:        "consul debug -archive=false -duration=2m -interval=30s -output=/tmp/ConsulDebug[0-9]* -target=metrics -target=pprof -target=replication-status",
+			expected:        "consul debug -archive=false -duration=2m -interval=30s -output=/tmp/hcdiag/ConsulDebug123/ConsulDebug[0-9]* -target=metrics -target=pprof -target=replication-status",
 		},
 	}
 
@@ -304,7 +296,7 @@ func TestConsul(t *testing.T) {
 			if d.Archive == "true" {
 				d.output = d.output + ".tar.gz"
 			}
-			cmdString := consulCmdString(*d, tc.filterString)
+			cmdString := consulCmdString(*d, tc.filterString, "/tmp/hcdiag/ConsulDebug123")
 
 			matched, _ := regexp.MatchString(tc.expected, cmdString)
 			assert.True(t, matched, "got:", cmdString, "expected:", tc.expected)
