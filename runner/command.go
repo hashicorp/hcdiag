@@ -30,14 +30,19 @@ type Command struct {
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
+// CommandConfig is the configuration object passed into NewCommand or NewCommandWithContext. It includes
+// the fields that those constructors will use to configure the Command object that they return.
 type CommandConfig struct {
 	// Command is the command line string that this runner should execute.
 	Command string
+
 	// Format is the desired output format. Valid options are "string" or "json"; the default will be "string" when
-	// creating an object from the NewCommand function.
+	// creating an object from the constructor functions NewCommand and NewCommandWithContext.
 	Format string
+
 	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
 	Timeout time.Duration
+
 	// Redactions includes any redactions to apply to the output of the runner.
 	Redactions []*redact.Redact
 }
