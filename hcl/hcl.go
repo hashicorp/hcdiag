@@ -140,6 +140,7 @@ type Shell struct {
 type GET struct {
 	Path       string   `hcl:"path" json:"path"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 }
 
 type Copy struct {
@@ -353,10 +354,17 @@ func mapProductGETs(ctx context.Context, cfgs []GET, redactions []*redact.Redact
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
+		var timeout time.Duration
+		if g.Timeout != "" {
+			timeout, err = time.ParseDuration(g.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
 		r, err := runner.NewHTTPWithContext(ctx, runner.HttpConfig{
 			Client:     c,
 			Path:       g.Path,
-			Timeout:    0,
+			Timeout:    timeout,
 			Redactions: runnerRedacts,
 		})
 		if err != nil {
