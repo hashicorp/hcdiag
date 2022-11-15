@@ -58,7 +58,7 @@ func TestFSTab_Run(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			expected := tc.expected
-			r := NewFSTab(nil, tc.cfg)
+			r := NewFSTab(tc.cfg)
 			o := r.Run()
 			assert.Equal(t, expected.result, o.Result)
 			assert.Equal(t, expected.status, o.Status)
@@ -84,7 +84,7 @@ func TestNewFSTab(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fstab := NewFSTab(nil, tc.cfg)
+			fstab := NewFSTab(tc.cfg)
 			assert.Equal(t, tc.expected.OS, fstab.OS)
 		})
 	}
