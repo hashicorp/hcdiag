@@ -23,7 +23,7 @@ func (m Memory) ID() string {
 }
 
 func NewMemory(timeout runner.Timeout) *Memory {
-	return NewMemoryWithContext(nil, timeout)
+	return NewMemoryWithContext(context.Background(), timeout)
 }
 
 func NewMemoryWithContext(ctx context.Context, timeout runner.Timeout) *Memory {
