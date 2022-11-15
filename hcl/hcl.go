@@ -25,8 +25,8 @@ type Blocks interface {
 	*Host | *Product | *Agent
 }
 
-// NOTE(dcohen) this is currently a separate config block, as opposed to a parent block of the others
 type Agent struct {
+	// NOTE(dcohen) this is currently a separate config block, as opposed to a parent block of the others
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
@@ -130,6 +130,7 @@ type Command struct {
 	Run        string   `hcl:"run" json:"run"`
 	Format     string   `hcl:"format" json:"format"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 }
 
 type Shell struct {
@@ -292,9 +293,17 @@ func mapCommands(ctx context.Context, cfgs []Command, redactions []*redact.Redac
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
+		var timeout time.Duration
+		if c.Timeout != "" {
+			timeout, err = time.ParseDuration(c.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
 		r, err := runner.NewCommandWithContext(ctx, runner.CommandConfig{
 			Command:    c.Run,
 			Format:     c.Format,
+			Timeout:    timeout,
 			Redactions: runnerRedacts,
 		})
 		if err != nil {

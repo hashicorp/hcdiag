@@ -159,6 +159,40 @@ func TestCommand_RunError(t *testing.T) {
 	}
 }
 
+func TestCommand_RunCanceled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	cancelFunc()
+
+	cmd := Command{
+		Command: "bogus-command",
+		ctx:     ctx,
+	}
+
+	result := cmd.Run()
+	assert.Equal(t, op.Canceled, result.Status)
+	assert.ErrorIs(t, result.Error, context.Canceled)
+}
+
+func TestCommand_RunTimeout(t *testing.T) {
+	t.Parallel()
+
+	// Set to a short timeout, and sleep briefly to ensure it passes before we try to run the command
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+	defer cancelFunc()
+	time.Sleep(1 * time.Nanosecond)
+
+	cmd := Command{
+		Command: "bogus-command",
+		ctx:     ctx,
+	}
+
+	result := cmd.Run()
+	assert.Equal(t, op.Timeout, result.Status)
+	assert.ErrorIs(t, result.Error, context.DeadlineExceeded)
+}
+
 func Test_parseCommand(t *testing.T) {
 	tt := []struct {
 		desc    string
