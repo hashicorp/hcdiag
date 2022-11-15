@@ -353,7 +353,16 @@ func mapProductGETs(ctx context.Context, cfgs []GET, redactions []*redact.Redact
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewHTTP(c, g.Path, runnerRedacts)
+		r, err := runner.NewHTTPWithContext(ctx, runner.HttpConfig{
+			Client:     c,
+			Path:       g.Path,
+			Timeout:    0,
+			Redactions: runnerRedacts,
+		})
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = r
 	}
 	return runners, nil
 }

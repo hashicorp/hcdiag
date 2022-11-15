@@ -3,13 +3,14 @@ package runner
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewHTTPWithContext(t *testing.T) {
+func TestNewHTTP(t *testing.T) {
 	t.Parallel()
 
 	c, err := client.NewAPIClient(client.APIConfig{
@@ -41,11 +42,19 @@ func TestNewHTTPWithContext(t *testing.T) {
 				Redactions: nil,
 			},
 		},
+		{
+			desc: "negative timeout duration causes an error",
+			cfg: HttpConfig{
+				Client:  c,
+				Timeout: -10 * time.Second,
+			},
+			expectErr: true,
+		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			c, err := NewHTTPWithContext(context.Background(), tc.cfg)
+			c, err := NewHTTP(tc.cfg)
 			if tc.expectErr {
 				assert.ErrorAs(t, err, &HTTPConfigError{})
 			} else {

@@ -105,11 +105,20 @@ func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		r = append(r, c)
 	}
 
-	r = append(r,
-		runner.NewHTTP(api, "/v1/agent/members?stale=true", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/operator/autopilot/configuration?stale=true", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/operator/raft/configuration?stale=true", cfg.Redactions),
+	// Set up HTTP runners
+	for _, hc := range []runner.HttpConfig{
+		{Client: api, Path: "/v1/agent/members?stale=true", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/operator/autopilot/configuration?stale=true", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/operator/raft/configuration?stale=true", Redactions: cfg.Redactions},
+	} {
+		c, err := runner.NewHTTPWithContext(ctx, hc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, c)
+	}
 
+	r = append(r,
 		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 	)

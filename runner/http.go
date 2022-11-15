@@ -41,12 +41,8 @@ type HttpConfig struct {
 	Redactions []*redact.Redact
 }
 
-func NewHTTP(client *client.APIClient, path string, redactions []*redact.Redact) *HTTP {
-	return &HTTP{
-		Client:     client,
-		Path:       path,
-		Redactions: redactions,
-	}
+func NewHTTP(cfg HttpConfig) (*HTTP, error) {
+	return NewHTTPWithContext(context.Background(), cfg)
 }
 
 func NewHTTPWithContext(ctx context.Context, cfg HttpConfig) (*HTTP, error) {
@@ -54,6 +50,14 @@ func NewHTTPWithContext(ctx context.Context, cfg HttpConfig) (*HTTP, error) {
 		return nil, HTTPConfigError{
 			config: cfg,
 			err:    fmt.Errorf("client must be non-nil when creating an HTTP runner"),
+		}
+	}
+
+	timeout := cfg.Timeout
+	if timeout < 0 {
+		return nil, HTTPConfigError{
+			config: cfg,
+			err:    fmt.Errorf("timeout must be a nonnegative value, but got '%s'", timeout.String()),
 		}
 	}
 
