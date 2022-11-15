@@ -1,34 +1,12 @@
 package host
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/hcdiag/op"
 
-	"github.com/hashicorp/hcdiag/runner"
 	"github.com/stretchr/testify/assert"
 )
-
-type mockShellRunner struct {
-	result map[string]any
-	status op.Status
-	err    error
-}
-
-func (m mockShellRunner) Run() op.Op {
-	return op.Op{
-		Result: m.result,
-		Status: m.status,
-		Error:  m.err,
-	}
-}
-
-func (m mockShellRunner) ID() string {
-	return ""
-}
-
-var _ runner.Runner = mockShellRunner{}
 
 func TestFSTab_Run(t *testing.T) {
 	type response struct {
@@ -39,14 +17,12 @@ func TestFSTab_Run(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		fstab    FSTab
+		cfg      FSTabConfig
 		expected response
 	}{
 		{
 			name: "Test Windows Does Not Run",
-			fstab: FSTab{
-				OS: "windows",
-			},
+			cfg:  FSTabConfig{OS: "windows"},
 			expected: response{
 				status:    op.Skip,
 				expectErr: true,
@@ -54,9 +30,7 @@ func TestFSTab_Run(t *testing.T) {
 		},
 		{
 			name: "Test Darwin Does Not Run",
-			fstab: FSTab{
-				OS: "darwin",
-			},
+			cfg:  FSTabConfig{OS: "darwin"},
 			expected: response{
 				status:    op.Skip,
 				expectErr: true,
@@ -64,29 +38,16 @@ func TestFSTab_Run(t *testing.T) {
 		},
 		{
 			name: "Test Successful Run",
-			fstab: FSTab{
-				OS: "linux",
-				Shell: &mockShellRunner{
-					result: map[string]any{"shell": "contents"},
-					status: op.Success,
-					err:    nil,
-				},
-			},
+			cfg:  FSTabConfig{OS: "linux"},
 			expected: response{
-				result:    map[string]any{"shell": "contents"},
+				result:    map[string]any{"shell": ""},
 				status:    op.Success,
 				expectErr: false,
 			},
 		},
 		{
 			name: "Test Unsuccessful Run",
-			fstab: FSTab{
-				OS: "linux",
-				Shell: &mockShellRunner{
-					status: op.Unknown,
-					err:    fmt.Errorf("an error"),
-				},
-			},
+			cfg:  FSTabConfig{OS: "linux"},
 			expected: response{
 				status:    op.Fail,
 				expectErr: true,
@@ -97,7 +58,8 @@ func TestFSTab_Run(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			expected := tc.expected
-			o := tc.fstab.Run()
+			r := NewFSTab(nil, tc.cfg)
+			o := r.Run()
 			assert.Equal(t, expected.result, o.Result)
 			assert.Equal(t, expected.status, o.Status)
 			if tc.expected.expectErr {
@@ -110,19 +72,19 @@ func TestFSTab_Run(t *testing.T) {
 func TestNewFSTab(t *testing.T) {
 	testCases := []struct {
 		name     string
-		os       string
+		cfg      FSTabConfig
 		expected FSTab
 	}{
 		{
 			name:     "Test Linux",
-			os:       "linux",
+			cfg:      FSTabConfig{OS: "linux"},
 			expected: FSTab{OS: "linux"},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fstab := NewFSTab(tc.os, nil)
+			fstab := NewFSTab(nil, tc.cfg)
 			assert.Equal(t, tc.expected.OS, fstab.OS)
 		})
 	}
