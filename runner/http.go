@@ -20,8 +20,8 @@ type HTTP struct {
 
 	// Parameters that are common across runner types
 	ctx context.Context
-	// TODO(nwc) change this once PR 270 is merged into main and this branch is rebased onto main
-	Timeout    time.Duration    `json:"timeout"`
+
+	Timeout    Timeout          `json:"timeout"`
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
@@ -69,6 +69,7 @@ func NewHTTPWithContext(ctx context.Context, cfg HttpConfig) (*HTTP, error) {
 		ctx:        ctx,
 		Client:     cfg.Client,
 		Path:       cfg.Path,
+		Timeout:    Timeout(cfg.Timeout),
 		Redactions: cfg.Redactions,
 	}, nil
 }
