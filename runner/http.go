@@ -1,6 +1,8 @@
 package runner
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/hcdiag/client"
@@ -12,17 +14,64 @@ var _ Runner = HTTP{}
 
 // HTTP hits APIs.
 type HTTP struct {
-	Path       string            `json:"path"`
-	Client     *client.APIClient `json:"client"`
-	Redactions []*redact.Redact  `json:"redactions"`
+	// Parameters that are not shared/common
+	Path   string            `json:"path"`
+	Client *client.APIClient `json:"client"`
+
+	// Parameters that are common across runner types
+	ctx context.Context
+
+	Timeout    Timeout          `json:"timeout"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
-func NewHTTP(client *client.APIClient, path string, redactions []*redact.Redact) *HTTP {
-	return &HTTP{
-		Client:     client,
-		Path:       path,
-		Redactions: redactions,
+// HttpConfig is the configuration object passed into NewHTTP or NewHTTPWithContext. It includes
+// the fields that those constructors will use to configure the HTTP object that they return.
+type HttpConfig struct {
+	// Client is the client.APIClient that will be used to make HTTP requests.
+	Client *client.APIClient
+
+	// Path is the path portion of the URL that the runner will hit.
+	Path string
+
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration
+
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact
+}
+
+func NewHTTP(cfg HttpConfig) (*HTTP, error) {
+	return NewHTTPWithContext(context.Background(), cfg)
+}
+
+func NewHTTPWithContext(ctx context.Context, cfg HttpConfig) (*HTTP, error) {
+	if cfg.Client == nil {
+		return nil, HTTPConfigError{
+			config: cfg,
+			err:    fmt.Errorf("client must be non-nil when creating an HTTP runner"),
+		}
 	}
+
+	timeout := cfg.Timeout
+	if timeout < 0 {
+		return nil, HTTPConfigError{
+			config: cfg,
+			err:    fmt.Errorf("timeout must be a nonnegative value, but got '%s'", timeout.String()),
+		}
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	return &HTTP{
+		ctx:        ctx,
+		Client:     cfg.Client,
+		Path:       cfg.Path,
+		Timeout:    Timeout(cfg.Timeout),
+		Redactions: cfg.Redactions,
+	}, nil
 }
 
 func (h HTTP) ID() string {
@@ -40,4 +89,23 @@ func (h HTTP) Run() op.Op {
 	}
 
 	return op.New(h.ID(), result, op.Success, nil, Params(h), startTime, time.Now())
+}
+
+var _ error = HTTPConfigError{}
+
+type HTTPConfigError struct {
+	config HttpConfig
+	err    error
+}
+
+func (e HTTPConfigError) Error() string {
+	message := "invalid HTTP Config"
+	if e.err != nil {
+		return fmt.Sprintf("%s: %s", message, e.err.Error())
+	}
+	return message
+}
+
+func (e HTTPConfigError) Unwrap() error {
+	return e.err
 }

@@ -91,16 +91,25 @@ func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hcl
 		r = append(r, c)
 	}
 
-	r = append(r,
-		runner.NewHTTP(api, "/v1/agent/self", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/agent/metrics", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/catalog/datacenters", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/catalog/services", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/namespace", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/status/leader", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/status/peers", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/agent/members?cached", cfg.Redactions),
+	// Set up HTTP runners
+	for _, hc := range []runner.HttpConfig{
+		{Client: api, Path: "/v1/agent/self", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/agent/metrics", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/catalog/datacenters", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/catalog/services", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/namespace", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/status/leader", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/status/peers", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/agent/members?cached", Redactions: cfg.Redactions},
+	} {
+		c, err := runner.NewHTTPWithContext(ctx, hc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, c)
+	}
 
+	r = append(r,
 		logs.NewDocker("consul", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 	)

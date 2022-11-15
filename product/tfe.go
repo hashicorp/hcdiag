@@ -84,17 +84,24 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 				runner.NewCopy("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 			}))
 
-	// Set up API runners
-	r = append(r,
-		runner.NewHTTP(api, "/api/v2/admin/customization-settings", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/general-settings", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/organizations", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/terraform-versions", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/twilio-settings", cfg.Redactions),
+	// Set up HTTP runners
+	for _, hc := range []runner.HttpConfig{
+		{Client: api, Path: "/api/v2/admin/customization-settings", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/general-settings", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/organizations", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/terraform-versions", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/twilio-settings", Redactions: cfg.Redactions},
 		// page size 1 because we only actually care about total workspace count in the `meta` field
-		runner.NewHTTP(api, "/api/v2/admin/workspaces?page[size]=1", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/users?page[size]=1", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/runs?page[size]=1", cfg.Redactions))
+		{Client: api, Path: "/api/v2/admin/workspaces?page[size]=1", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/users?page[size]=1", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/runs?page[size]=1", Redactions: cfg.Redactions},
+	} {
+		c, err := runner.NewHTTPWithContext(ctx, hc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, c)
+	}
 
 	// Set up Command runners
 	for _, cc := range []runner.CommandConfig{

@@ -1,0 +1,3 @@
+```release-note:improvement
+runners: Update HTTP runner instantiation to use configuration objects, in order to simplify future feature additions.
+```

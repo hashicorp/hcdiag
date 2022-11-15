@@ -6,6 +6,7 @@ addresses = {
 
 ports {
   https = 8501 # recommended to use 8501 if enabling tls
+  grpc_tls = 8503 # TLS port must be set beginning in Consul 1.14.0
   http  = 8888 # change from default to expose any breakage from clients' default addrs
 }
 
