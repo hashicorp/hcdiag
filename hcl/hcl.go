@@ -276,6 +276,12 @@ func BuildRunnersWithContext[T Blocks](ctx context.Context, config T, tmpDir str
 		}
 		runners = append(runners, consulDebugs...)
 
+		nomadDebugs, err := mapNomadDebugs(ctx, cfg.NomadDebugs, tmpDir, debugDuration, debugInterval, redactions)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, nomadDebugs...)
+
 		// Build commands and shells
 		commands, err := mapCommands(ctx, cfg.Commands, redactions)
 		if err != nil {
