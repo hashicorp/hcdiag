@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -80,12 +81,32 @@ func (h HTTP) ID() string {
 
 // Run executes a GET request to the Path using the Client
 func (h HTTP) Run() op.Op {
+	// protect from accidental nil reference panics
+	if h.ctx == nil {
+		h.ctx = context.Background()
+	}
+
+	runCtx := h.ctx
+	var runCancelFunc context.CancelFunc
+	if h.Timeout > 0 {
+		runCtx, runCancelFunc = context.WithTimeout(h.ctx, time.Duration(h.Timeout))
+		defer runCancelFunc()
+	}
+
 	startTime := time.Now()
 
-	redactedResponse, err := h.Client.RedactGet(h.Path, h.Redactions)
+	redactedResponse, err := h.Client.RedactGetWithContext(runCtx, h.Path, h.Redactions)
 	result := map[string]any{"response": redactedResponse}
 	if err != nil {
-		op.New(h.ID(), result, op.Fail, err, Params(h), startTime, time.Now())
+		var failureType op.Status
+		if errors.Is(err, context.DeadlineExceeded) {
+			failureType = op.Timeout
+		} else if errors.Is(err, context.Canceled) {
+			failureType = op.Canceled
+		} else {
+			failureType = op.Fail
+		}
+		return op.New(h.ID(), result, failureType, err, Params(h), startTime, time.Now())
 	}
 
 	return op.New(h.ID(), result, op.Success, nil, Params(h), startTime, time.Now())

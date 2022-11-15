@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -70,12 +71,22 @@ func (c *APIClient) Get(path string) (interface{}, error) {
 // RedactGet makes a GET request to a given path and applies redactions before returning result. Result will be empty
 // and safe to use if there is a redaction error.
 func (c *APIClient) RedactGet(path string, redactions []*redact.Redact) (any, error) {
+	return c.RedactGetWithContext(context.Background(), path, redactions)
+}
+
+// RedactGetWithContext behaves similarly to RedactGet, however it takes a context object as a parameter, which is
+// then used when making HTTP requests. This allows for timeouts and cancellations to propagate.
+func (c *APIClient) RedactGetWithContext(ctx context.Context, path string, redactions []*redact.Redact) (any, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	method := "GET"
 	data := make([]byte, 0)
 
 	// Build request
 	url := fmt.Sprintf("%s%s", c.BaseURL, path)
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(data))
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
