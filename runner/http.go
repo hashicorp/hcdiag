@@ -99,12 +99,15 @@ func (h HTTP) Run() op.Op {
 	result := map[string]any{"response": redactedResponse}
 	if err != nil {
 		var failureType op.Status
-		if errors.Is(err, context.DeadlineExceeded) {
+		switch {
+		// The error returned from the http package will wrap timeouts/cancellations, so we check whether we find
+		// these in the error chain to determine the proper op.Status for the failure type.
+		case errors.Is(err, context.DeadlineExceeded):
 			failureType = op.Timeout
-		} else if errors.Is(err, context.Canceled) {
+		case errors.Is(err, context.Canceled):
 			failureType = op.Canceled
-		} else {
-			failureType = op.Fail
+		default:
+			failureType = op.Unknown
 		}
 		return op.New(h.ID(), result, failureType, err, Params(h), startTime, time.Now())
 	}
