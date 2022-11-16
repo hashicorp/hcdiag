@@ -124,10 +124,16 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 	}
 
 	// Set up Shell runners
-	r = append(r,
-		runner.NewShell("getenforce", cfg.Redactions),
-		runner.NewShell("env | grep -i proxy", cfg.Redactions),
-	)
+	for _, ss := range []runner.ShellConfig{
+		{Command: "getenforce", Redactions: cfg.Redactions},
+		{Command: "env | grep -i proxy", Redactions: cfg.Redactions},
+	} {
+		s, err := runner.NewShellWithContext(ctx, ss)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, s)
+	}
 
 	runners := []runner.Runner{
 		do.New(l, "tfe", "tfe runners", r),

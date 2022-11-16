@@ -18,7 +18,10 @@ func TestShell(t *testing.T) {
 	os.Setenv("SHELL", "/bin/sh")
 
 	// features pipe "|" and file redirection ">"
-	c := NewShell("echo hiii | grep hi > cooltestfile", nil)
+	c, err := NewShell(ShellConfig{
+		Command: "echo hiii | grep hi > cooltestfile",
+	})
+	assert.NoError(t, err)
 	defer os.Remove("cooltestfile")
 	o := c.Run()
 	assert.Equal(t, map[string]any{"shell": ""}, o.Result)
