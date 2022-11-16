@@ -15,7 +15,7 @@ var _ runner.Runner = Memory{}
 
 type Memory struct {
 	ctx     context.Context
-	Timeout runner.Timeout
+	Timeout runner.Timeout `json:"timeout"`
 }
 
 func (m Memory) ID() string {
@@ -48,9 +48,9 @@ func (m Memory) Run() op.Op {
 		defer cancel()
 	}
 
-	go func(resChan chan op.Op, startTime time.Time) {
+	go func(resChan chan op.Op, start time.Time) {
 		o := m.run()
-		o.Start = startTime
+		o.Start = start
 		resChan <- o
 	}(resChan, startTime)
 
