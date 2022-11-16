@@ -17,11 +17,18 @@ type FSTab struct {
 	Shell runner.Runner `json:"shell"`
 }
 
-func NewFSTab(os string, redactions []*redact.Redact) *FSTab {
+func NewFSTab(os string, redactions []*redact.Redact) (*FSTab, error) {
+	shell, err := runner.NewShell(runner.ShellConfig{
+		Command:    "cat /etc/fstab",
+		Redactions: redactions,
+	})
+	if err != nil {
+		return nil, err
+	}
 	return &FSTab{
 		OS:    os,
-		Shell: runner.NewShell("cat /etc/fstab", redactions),
-	}
+		Shell: shell,
+	}, nil
 }
 
 func (r FSTab) ID() string {

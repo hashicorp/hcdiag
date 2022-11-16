@@ -135,6 +135,7 @@ type Command struct {
 
 type Shell struct {
 	Run        string   `hcl:"run" json:"run"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
@@ -323,7 +324,19 @@ func mapShells(ctx context.Context, cfgs []Shell, redactions []*redact.Redact) (
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewShell(c.Run, runnerRedacts)
+		timeout, err := time.ParseDuration(c.Timeout)
+		if err != nil {
+			return nil, err
+		}
+		s, err := runner.NewShellWithContext(ctx, runner.ShellConfig{
+			Command:    c.Run,
+			Redactions: runnerRedacts,
+			Timeout:    timeout,
+		})
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = s
 	}
 	return runners, nil
 }

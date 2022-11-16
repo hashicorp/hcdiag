@@ -80,8 +80,10 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		host.NewEtcHosts(redactions),
 		host.NewIPTables(os, redactions),
 		host.NewProcFile(os, redactions),
-		host.NewFSTab(os, redactions),
 	}
+	// FIXME(mkcp): handle this error
+	fsTab, _ := host.NewFSTab(os, redactions)
+	r = append(r, fsTab)
 
 	runners := []runner.Runner{
 		do.New(l, "host", "host runners", r),

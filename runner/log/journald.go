@@ -45,11 +45,18 @@ func (j Journald) ID() string {
 func (j Journald) Run() op.Op {
 	startTime := time.Now()
 
-	version := runner.NewShell("journalctl --version", j.Redactions).Run()
-	if version.Error != nil {
-		return op.New(j.ID(), version.Result, op.Skip, JournaldNotFound{
+	s, err := runner.NewShell(runner.ShellConfig{
+		Command:    "journalctl --version",
+		Redactions: j.Redactions,
+	})
+	if err != nil {
+		return op.New(j.ID(), map[string]any{}, op.Fail, err, runner.Params(j), startTime, time.Now())
+	}
+	o := s.Run()
+	if o.Error != nil {
+		return op.New(j.ID(), o.Result, op.Skip, JournaldNotFound{
 			service: j.Service,
-			err:     version.Error,
+			err:     o.Error,
 		},
 			runner.Params(j), startTime, time.Now())
 	}
@@ -79,8 +86,14 @@ func (j Journald) Run() op.Op {
 	}
 
 	// check if user is able to read messages
-	cmd = fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service)
-	permissions := runner.NewShell(cmd, j.Redactions).Run()
+	sMessages, err := runner.NewShell(runner.ShellConfig{
+		Command:    fmt.Sprintf("journalctl -n0 -u %s 2>&1 | grep -A10 'not seeing messages from other users'", j.Service),
+		Redactions: j.Redactions,
+	})
+	if err != nil {
+		return op.New(j.ID(), map[string]any{}, op.Fail, err, runner.Params(j), startTime, time.Now())
+	}
+	permissions := sMessages.Run()
 	// permissions error detected
 	if permissions.Error == nil {
 		return op.New(j.ID(), permissions.Result, op.Fail, JournaldPermissionError{
@@ -92,9 +105,14 @@ func (j Journald) Run() op.Op {
 			runner.Params(j), startTime, time.Now())
 	}
 
-	cmd = j.LogsCmd()
-	logs := runner.NewShell(cmd, j.Redactions).Run()
-
+	sLogs, err := runner.NewShell(runner.ShellConfig{
+		Command:    j.LogsCmd(),
+		Redactions: j.Redactions,
+	})
+	if err != nil {
+		return op.New(j.ID(), map[string]any{}, op.Fail, err, runner.Params(j), startTime, time.Now())
+	}
+	logs := sLogs.Run()
 	return op.New(j.ID(), logs.Result, logs.Status, logs.Error, runner.Params(j), startTime, time.Now())
 }
 
