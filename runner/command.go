@@ -112,7 +112,6 @@ func (c Command) Run() op.Op {
 
 	runCtx := c.ctx
 	var runCancelFunc context.CancelFunc
-	// c.cancelFunc helps us know whether our existing context is cancelable
 	if c.Timeout > 0 {
 		runCtx, runCancelFunc = context.WithTimeout(c.ctx, time.Duration(c.Timeout))
 		defer runCancelFunc()
