@@ -1,0 +1,3 @@
+```release-note:improvement
+redact: fix the redact.ID string so that it reads correctly in results.json
+```
