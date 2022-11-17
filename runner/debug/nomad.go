@@ -50,7 +50,7 @@ type NomadDebug struct {
 	output     string
 }
 
-func (d NomadDebug) ID() string {
+func (NomadDebug) ID() string {
 	return "NomadDebug"
 }
 
@@ -75,16 +75,17 @@ func NewNomadDebug(cfg NomadDebugConfig, tmpDir string, debugDuration time.Durat
 		Redactions: cfg.Redactions,
 	}
 
-	if len(cfg.Duration) > 0 {
+	if cfg.Duration != "" {
 		dbg.Duration = cfg.Duration
 	}
-	if len(cfg.Interval) > 0 {
+	if cfg.Interval != "" {
 		dbg.Interval = cfg.Interval
 	}
 	if cfg.LogLevel != "" {
 		dbg.LogLevel = cfg.LogLevel
 	}
-	if cfg.MaxNodes != 0 {
+	// disregard negative values
+	if cfg.MaxNodes > 0 {
 		dbg.MaxNodes = cfg.MaxNodes
 	}
 	if cfg.NodeClass != "" {
@@ -148,7 +149,7 @@ func nomadCmdString(dbg NomadDebug, filterString, tmpDir string) string {
 	}
 
 	return fmt.Sprintf(
-		"nomad debug -no-color -duration=%s -interval=%s -log-level=%s -max-nodes=%d%s -node-id=%s -pprof-duration-%s -pprof-interval=%s -server-id=%s -stale=%t -verbose=%t -output=%s%s",
+		"nomad debug -no-color -duration=%s -interval=%s -log-level=%s -max-nodes=%d%s -node-id=%s -pprof-duration=%s -pprof-interval=%s -server-id=%s -stale=%t -verbose=%t -output=%s%s",
 		dbg.Duration,
 		dbg.Interval,
 		dbg.LogLevel,
