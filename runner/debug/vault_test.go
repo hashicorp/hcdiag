@@ -29,7 +29,6 @@ func TestVaultCmdString(t *testing.T) {
 			},
 			productDuration: 5 * time.Minute,
 			productInterval: 45 * time.Second,
-			filterString:    "",
 			expected:        "vault debug -compress=false -duration=5m0s -interval=45s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*",
 		},
 		{
@@ -45,7 +44,6 @@ func TestVaultCmdString(t *testing.T) {
 			},
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
-			filterString:    "",
 			expected:        "vault debug -compress=false -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*",
 		},
 		{
@@ -59,7 +57,6 @@ func TestVaultCmdString(t *testing.T) {
 			},
 			productDuration: 2 * time.Minute,
 			productInterval: 20 * time.Second,
-			filterString:    "",
 			expected:        "vault debug -compress=true -duration=3m -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*.tar.gz",
 		},
 		{
@@ -67,7 +64,6 @@ func TestVaultCmdString(t *testing.T) {
 			cfg:             VaultDebugConfig{},
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
-			filterString:    "",
 			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*.tar.gz",
 		},
 		{
@@ -75,7 +71,6 @@ func TestVaultCmdString(t *testing.T) {
 			cfg:             VaultDebugConfig{},
 			productDuration: 2 * time.Minute,
 			productInterval: 30 * time.Second,
-			filterString:    "",
 			expected:        "vault debug -compress=true -duration=2m0s -interval=30s -log-format=standard -metrics-interval=10s -output=/tmp/hcdiag/VaultDebug123/VaultDebug*.tar.gz",
 		},
 		{

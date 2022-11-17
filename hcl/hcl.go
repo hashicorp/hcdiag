@@ -112,7 +112,7 @@ type DoSync struct {
 	Copies       []Copy        `hcl:"copy,block" json:"copies,omitempty"`
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
-	VaultDebugs  []VaultDebug  `hcl:"vaultdebug,block" json:"vaultdebug,omitempty"`
+	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
 
 	// Filters
 	// Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
