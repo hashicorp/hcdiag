@@ -1,18 +1,14 @@
 package runner
 
 import (
-	"context"
+	"fmt"
 	"time"
 )
 
-// Timeout is an embeddable struct that includes the structural elements required for an embedding runner
-// to implement cancellation/timeouts. The embedding struct still needs to use this data to implement such
-// functionality, but the intention is for this struct to help ensure that runners that support timeouts will use
-// similar field names, which are reported consistently in result output.
-type Timeout struct {
-	// Context is the base context that the runner should use.
-	Context context.Context `json:"-"`
+// Timeout is a time.Duration, which allows for custom JSON marshalling. When marshalled, it will be converted into
+// a duration string, rather than an integer representing nanoseconds. For example, 3000000000 becomes "3s".
+type Timeout time.Duration
 
-	// Timeout is the maximum duration that the runner should run.
-	Timeout time.Duration `json:"timeout"`
+func (t Timeout) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, time.Duration(t).String())), nil
 }

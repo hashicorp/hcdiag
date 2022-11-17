@@ -38,12 +38,21 @@ func (r IPTables) ID() string {
 
 func (r IPTables) Run() op.Op {
 	startTime := time.Now()
-	if r.OS == "linux" {
+	if r.OS != "linux" {
 		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", runtime.GOOS), runner.Params(r), startTime, time.Now())
 	}
 	result := make(map[string]any)
 	for _, c := range r.Commands {
-		o := runner.NewCommand(c, "string", r.Redactions).Run()
+		cmdCfg := runner.CommandConfig{
+			Command:    c,
+			Format:     "string",
+			Redactions: r.Redactions,
+		}
+		cmdRunner, err := runner.NewCommand(cmdCfg)
+		if err != nil {
+			return op.New(r.ID(), nil, op.Fail, err, runner.Params(r), startTime, time.Now())
+		}
+		o := cmdRunner.Run()
 		result[c] = o.Result
 	}
 	return op.New(r.ID(), result, op.Success, nil, runner.Params(r), startTime, time.Now())

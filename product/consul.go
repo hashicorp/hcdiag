@@ -76,23 +76,43 @@ func NewConsulWithContext(ctx context.Context, logger hclog.Logger, cfg Config) 
 
 // consulRunners generates a slice of runners to inspect consul.
 func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
-	r := []runner.Runner{
-		runner.NewCommand("consul version", "string", cfg.Redactions),
-		runner.NewCommand(fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
-		runner.NewCommand("consul operator raft list-peers -stale=true", "string", cfg.Redactions),
+	var r []runner.Runner
 
-		runner.NewHTTP(api, "/v1/agent/self", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/agent/metrics", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/catalog/datacenters", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/catalog/services", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/namespace", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/status/leader", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/status/peers", cfg.Redactions),
-		runner.NewHTTP(api, "/v1/agent/members?cached", cfg.Redactions),
+	// Set up Command runners
+	for _, cc := range []runner.CommandConfig{
+		{Command: "consul version", Redactions: cfg.Redactions},
+		{Command: fmt.Sprintf("consul debug -output=%s/ConsulDebug -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), Redactions: cfg.Redactions},
+		{Command: "consul operator raft list-peers -stale=true", Redactions: cfg.Redactions},
+	} {
+		c, err := runner.NewCommandWithContext(ctx, cc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, c)
+	}
 
+	// Set up HTTP runners
+	for _, hc := range []runner.HttpConfig{
+		{Client: api, Path: "/v1/agent/self", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/agent/metrics", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/catalog/datacenters", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/catalog/services", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/namespace", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/status/leader", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/status/peers", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/agent/members?cached", Redactions: cfg.Redactions},
+	} {
+		c, err := runner.NewHTTPWithContext(ctx, hc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, c)
+	}
+
+	r = append(r,
 		logs.NewDocker("consul", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
-	}
+	)
 
 	// try to detect log location to copy
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
