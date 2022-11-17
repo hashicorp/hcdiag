@@ -2,12 +2,12 @@ package product
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/debug"
 	"github.com/hashicorp/hcdiag/runner/do"
 
 	"github.com/hashicorp/go-hclog"
@@ -93,7 +93,6 @@ func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		runner.NewCommand("nomad version", "string", cfg.Redactions),
 		runner.NewCommand("nomad node status -self -json", "json", cfg.Redactions),
 		runner.NewCommand("nomad agent-info -json", "json", cfg.Redactions),
-		runner.NewCommand(fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), "string", cfg.Redactions),
 
 		runner.NewHTTP(api, "/v1/agent/members?stale=true", cfg.Redactions),
 		runner.NewHTTP(api, "/v1/operator/autopilot/configuration?stale=true", cfg.Redactions),
@@ -102,6 +101,19 @@ func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		logs.NewDocker("nomad", cfg.TmpDir, cfg.Since, cfg.Redactions),
 		logs.NewJournald("nomad", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 	}
+
+	dbg, err := debug.NewNomadDebug(
+		debug.NomadDebugConfig{
+			Redactions: cfg.Redactions,
+		},
+		cfg.TmpDir,
+		cfg.DebugDuration,
+		cfg.DebugInterval,
+	)
+	if err != nil {
+		return nil, err
+	}
+	r = append(r, dbg)
 
 	// try to detect log location to copy
 	if logPath, err := client.GetNomadLogPath(api); err == nil {
