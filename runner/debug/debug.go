@@ -9,7 +9,7 @@ import (
 func filterArgs(flagname string, filters []string) string {
 	var arguments strings.Builder
 	for _, f := range filters {
-		_, _ = fmt.Fprintf(&arguments, "-%s=%s", flagname, f)
+		_, _ = fmt.Fprintf(&arguments, " -%s=%s", flagname, f)
 	}
 	return arguments.String()
 }
