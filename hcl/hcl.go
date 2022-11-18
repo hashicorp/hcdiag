@@ -67,6 +67,7 @@ type Product struct {
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
 	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
+	ConsulDebugs []ConsulDebug `hcl:"consul-debug,block" json:"consul_debug,omitempty"`
 	Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
 	Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
 	Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
@@ -88,6 +89,7 @@ type Do struct {
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
 	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
+	ConsulDebugs []ConsulDebug `hcl:"consul-debug,block" json:"consul_debug,omitempty"`
 
 	// Filters
 	// Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
@@ -113,6 +115,7 @@ type DoSync struct {
 	DockerLogs   []DockerLog   `hcl:"docker-log,block" json:"docker_log,omitempty"`
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
 	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
+	ConsulDebugs []ConsulDebug `hcl:"consul-debug,block" json:"consul_debug,omitempty"`
 
 	// Filters
 	// Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
@@ -175,6 +178,14 @@ type VaultDebug struct {
 	MetricsInterval string   `hcl:"metrics-interval,optional" json:"metrics_interval"`
 	Targets         []string `hcl:"targets,optional" json:"targets"`
 	Redactions      []Redact `hcl:"redact,block" json:"redactions"`
+}
+
+type ConsulDebug struct {
+	Archive    string   `hcl:"archive" json:"archive"`
+	Duration   string   `hcl:"duration,optional" json:"duration"`
+	Interval   string   `hcl:"interval,optional" json:"interval"`
+	Captures   []string `hcl:"captures,optional" json:"captures"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions"`
 }
 
 // Parse takes a file path and decodes the file from disk into HCL types.
@@ -241,6 +252,12 @@ func BuildRunnersWithContext[T Blocks](ctx context.Context, config T, tmpDir str
 			return nil, err
 		}
 		runners = append(runners, vaultDebugs...)
+
+		consulDebugs, err := mapConsulDebugs(ctx, cfg.ConsulDebugs, tmpDir, debugDuration, debugInterval, redactions)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, consulDebugs...)
 
 		// Build commands and shells
 		commands, err := mapCommands(ctx, cfg.Commands, redactions)
@@ -509,6 +526,34 @@ func mapVaultDebugs(ctx context.Context, cfgs []VaultDebug, tmpDir string, debug
 		}
 
 		dbg, err := debug.NewVaultDebug(cfg, tmpDir, debugDuration, debugInterval)
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = dbg
+	}
+	return runners, nil
+}
+
+func mapConsulDebugs(ctx context.Context, cfgs []ConsulDebug, tmpDir string, debugDuration time.Duration, debugInterval time.Duration, redactions []*redact.Redact) ([]runner.Runner, error) {
+	runners := make([]runner.Runner, len(cfgs))
+
+	for i, d := range cfgs {
+		runnerRedacts, err := MapRedacts(d.Redactions)
+		if err != nil {
+			return nil, err
+		}
+		// Prepend runner-level redactions to those passed in
+		runnerRedacts = append(runnerRedacts, redactions...)
+
+		// Create the runner
+		cfg := debug.ConsulDebugConfig{
+			Archive:    d.Archive,
+			Duration:   d.Duration,
+			Interval:   d.Interval,
+			Captures:   d.Captures,
+			Redactions: runnerRedacts,
+		}
+		dbg, err := debug.NewConsulDebug(cfg, tmpDir, debugDuration, debugInterval)
 		if err != nil {
 			return nil, err
 		}

@@ -7,13 +7,14 @@ import (
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/debug"
 	"github.com/hashicorp/hcdiag/runner/do"
+	logs "github.com/hashicorp/hcdiag/runner/log"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/runner"
-	logs "github.com/hashicorp/hcdiag/runner/log"
 )
 
 const (
@@ -90,6 +91,19 @@ func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hcl
 		}
 		r = append(r, c)
 	}
+
+	dbg, err := debug.NewConsulDebug(
+		debug.ConsulDebugConfig{
+			Redactions: cfg.Redactions,
+		},
+		cfg.TmpDir,
+		cfg.DebugDuration,
+		cfg.DebugInterval,
+	)
+	if err != nil {
+		return nil, err
+	}
+	r = append(r, dbg)
 
 	// Set up HTTP runners
 	for _, hc := range []runner.HttpConfig{
