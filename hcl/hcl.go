@@ -26,8 +26,8 @@ type Blocks interface {
 	*Host | *Product | *Agent
 }
 
-// NOTE(dcohen) this is currently a separate config block, as opposed to a parent block of the others
 type Agent struct {
+	// NOTE(dcohen) this is currently a separate config block, as opposed to a parent block of the others
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
@@ -137,16 +137,19 @@ type Command struct {
 	Run        string   `hcl:"run" json:"run"`
 	Format     string   `hcl:"format" json:"format"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 }
 
 type Shell struct {
 	Run        string   `hcl:"run" json:"run"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
 type GET struct {
 	Path       string   `hcl:"path" json:"path"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 }
 
 type Copy struct {
@@ -329,7 +332,23 @@ func mapCommands(ctx context.Context, cfgs []Command, redactions []*redact.Redac
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewCommand(c.Run, c.Format, runnerRedacts)
+		var timeout time.Duration
+		if c.Timeout != "" {
+			timeout, err = time.ParseDuration(c.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
+		r, err := runner.NewCommandWithContext(ctx, runner.CommandConfig{
+			Command:    c.Run,
+			Format:     c.Format,
+			Timeout:    timeout,
+			Redactions: runnerRedacts,
+		})
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = r
 	}
 	return runners, nil
 }
@@ -343,7 +362,19 @@ func mapShells(ctx context.Context, cfgs []Shell, redactions []*redact.Redact) (
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewShell(c.Run, runnerRedacts)
+		timeout, err := time.ParseDuration(c.Timeout)
+		if err != nil {
+			return nil, err
+		}
+		s, err := runner.NewShellWithContext(ctx, runner.ShellConfig{
+			Command:    c.Run,
+			Redactions: runnerRedacts,
+			Timeout:    timeout,
+		})
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = s
 	}
 	return runners, nil
 }
@@ -383,7 +414,23 @@ func mapProductGETs(ctx context.Context, cfgs []GET, redactions []*redact.Redact
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		runners[i] = runner.NewHTTP(c, g.Path, runnerRedacts)
+		var timeout time.Duration
+		if g.Timeout != "" {
+			timeout, err = time.ParseDuration(g.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
+		r, err := runner.NewHTTPWithContext(ctx, runner.HttpConfig{
+			Client:     c,
+			Path:       g.Path,
+			Timeout:    timeout,
+			Redactions: runnerRedacts,
+		})
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = r
 	}
 	return runners, nil
 }
@@ -399,7 +446,7 @@ func mapHostGets(ctx context.Context, cfgs []GET, redactions []*redact.Redact) (
 		runnerRedacts = append(runnerRedacts, redactions...)
 
 		// TODO(mkcp): add redactions to host Get
-		runners[i] = host.NewGetter(g.Path, runnerRedacts)
+		runners[i] = host.NewGet(g.Path, runnerRedacts)
 	}
 	return runners, nil
 }
@@ -478,7 +525,11 @@ func mapVaultDebugs(ctx context.Context, cfgs []VaultDebug, tmpDir string, debug
 			Redactions:      runnerRedacts,
 		}
 
-		runners[i] = debug.NewVaultDebug(cfg, tmpDir, debugDuration, debugInterval)
+		dbg, err := debug.NewVaultDebug(cfg, tmpDir, debugDuration, debugInterval)
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = dbg
 	}
 	return runners, nil
 }

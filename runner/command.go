@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -18,18 +19,84 @@ var _ Runner = Command{}
 
 // Command runs shell commands.
 type Command struct {
-	Command    string           `json:"command"`
-	Format     string           `json:"format"`
+	// Parameters that are not shared/common
+	Command string `json:"command"`
+	Format  string `json:"format"`
+
+	// Parameters that are common across runner types
+	ctx context.Context
+
+	Timeout    Timeout          `json:"timeout"`
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-// NewCommand provides a runner for bin commands
-func NewCommand(command string, format string, redactions []*redact.Redact) *Command {
-	return &Command{
-		Command:    command,
-		Format:     format,
-		Redactions: redactions,
+// CommandConfig is the configuration object passed into NewCommand or NewCommandWithContext. It includes
+// the fields that those constructors will use to configure the Command object that they return.
+type CommandConfig struct {
+	// Command is the command line string that this runner should execute.
+	Command string
+
+	// Format is the desired output format. Valid options are "string" or "json"; the default will be "string" when
+	// creating an object from the constructor functions NewCommand and NewCommandWithContext.
+	Format string
+
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration
+
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact
+}
+
+// NewCommand provides a runner for bin commands.
+func NewCommand(cfg CommandConfig) (*Command, error) {
+	return NewCommandWithContext(context.Background(), cfg)
+}
+
+// NewCommandWithContext provides a runner for bin commands that includes a context.
+func NewCommandWithContext(ctx context.Context, cfg CommandConfig) (*Command, error) {
+	cmd := cfg.Command
+	if cmd == "" {
+		return nil, CommandConfigError{
+			config: cfg,
+			err:    fmt.Errorf("command must not be empty when creating a Command runner"),
+		}
 	}
+
+	var format string
+	switch f := strings.ToLower(cfg.Format); f {
+	// default to "string" if not set
+	case "":
+		format = "string"
+	// check for valid format types
+	case "string", "json":
+		format = f
+	// error on invalid format
+	default:
+		return nil, CommandConfigError{
+			config: cfg,
+			err:    fmt.Errorf("format must be either 'string' or 'json', but got '%s'", f),
+		}
+	}
+
+	timeout := cfg.Timeout
+	if timeout < 0 {
+		return nil, CommandConfigError{
+			config: cfg,
+			err:    fmt.Errorf("timeout must be a nonnegative value, but got '%s'", timeout.String()),
+		}
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	return &Command{
+		ctx:        ctx,
+		Command:    cmd,
+		Format:     format,
+		Timeout:    Timeout(timeout),
+		Redactions: cfg.Redactions,
+	}, nil
 }
 
 func (c Command) ID() string {
@@ -38,73 +105,102 @@ func (c Command) ID() string {
 
 // Run executes the Command
 func (c Command) Run() op.Op {
+	// protect from accidental nil reference panics
+	if c.ctx == nil {
+		c.ctx = context.Background()
+	}
+
+	runCtx := c.ctx
+	var runCancelFunc context.CancelFunc
+	if c.Timeout > 0 {
+		runCtx, runCancelFunc = context.WithTimeout(c.ctx, time.Duration(c.Timeout))
+		defer runCancelFunc()
+	}
+
 	startTime := time.Now()
 
-	p, err := parseCommand(c.Command)
-	if err != nil {
-		return op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
-	}
-
-	// Exit early with a wrapped error if the command isn't found on this system
-	_, err = util.HostCommandExists(p.cmd)
-	if err != nil {
-		return op.New(c.ID(), nil, op.Skip, err, Params(c), startTime, time.Now())
-	}
-
-	// Execute command
-	bts, err := exec.Command(p.cmd, p.args...).CombinedOutput()
-	if err != nil {
-		err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
-		result := map[string]any{"text": string(bts)}
-		return op.New(c.ID(), result, op.Unknown, err1, Params(c), startTime, time.Now())
-	}
-
-	// Parse result format
-	// TODO(mkcp): This can be detected rather than branching on user input
-	switch {
-	case c.Format == "string":
-		redBts, err := redact.Bytes(bts, c.Redactions)
+	resultsChannel := make(chan op.Op, 1)
+	go func(results chan<- op.Op) {
+		p, err := parseCommand(c.Command)
 		if err != nil {
-			return op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
+			results <- op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
 		}
-		redResult := strings.TrimSuffix(string(redBts), "\n")
 
-		result := map[string]any{"text": redResult}
-		return op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
+		// Exit early with a wrapped error if the command isn't found on this system
+		_, err = util.HostCommandExists(p.cmd)
+		if err != nil {
+			results <- op.New(c.ID(), nil, op.Skip, err, Params(c), startTime, time.Now())
+		}
 
-	case c.Format == "json":
-		var obj any
-		marshErr := json.Unmarshal(bts, &obj)
-		if marshErr != nil {
-			// Redact the string to return the failed-to-parse JSON
+		// Execute command
+		bts, err := exec.Command(p.cmd, p.args...).CombinedOutput()
+		if err != nil {
+			err1 := CommandExecError{command: c.Command, format: c.Format, err: err}
+			result := map[string]any{"text": string(bts)}
+			results <- op.New(c.ID(), result, op.Unknown, err1, Params(c), startTime, time.Now())
+		}
+
+		// Parse result format
+		// TODO(mkcp): This can be detected rather than branching on user input
+		switch {
+		case c.Format == "string":
+			redBts, err := redact.Bytes(bts, c.Redactions)
+			if err != nil {
+				results <- op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
+			}
+			redResult := strings.TrimSuffix(string(redBts), "\n")
+
+			result := map[string]any{"text": redResult}
+			results <- op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
+
+		case c.Format == "json":
+			var obj any
+			marshErr := json.Unmarshal(bts, &obj)
+			if marshErr != nil {
+				// Redact the string to return the failed-to-parse JSON
+				redBts, redErr := redact.Bytes(bts, c.Redactions)
+				if redErr != nil {
+					results <- op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
+				}
+				result := map[string]any{"json": string(redBts)}
+				results <- op.New(c.ID(), result, op.Unknown,
+					UnmarshalError{
+						command: c.Command,
+						err:     marshErr,
+					}, Params(c), startTime, time.Now())
+			}
+			redResult, redErr := redact.JSON(obj, c.Redactions)
+			if redErr != nil {
+				results <- op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
+			}
+			result := map[string]any{"json": redResult}
+			results <- op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
+		default:
 			redBts, redErr := redact.Bytes(bts, c.Redactions)
 			if redErr != nil {
-				return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
+				results <- op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
 			}
-			result := map[string]any{"json": string(redBts)}
-			return op.New(c.ID(), result, op.Unknown,
-				UnmarshalError{
+			result := map[string]any{"out": string(redBts)}
+			results <- op.New(c.ID(), result, op.Fail,
+				FormatUnknownError{
 					command: c.Command,
-					err:     marshErr,
+					format:  c.Format,
 				}, Params(c), startTime, time.Now())
 		}
-		redResult, redErr := redact.JSON(obj, c.Redactions)
-		if redErr != nil {
-			return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
+	}(resultsChannel)
+
+	select {
+	case <-runCtx.Done():
+		switch runCtx.Err() {
+		case context.Canceled:
+			return op.New(c.ID(), nil, op.Canceled, c.ctx.Err(), Params(c), startTime, time.Now())
+		case context.DeadlineExceeded:
+			return op.New(c.ID(), nil, op.Timeout, c.ctx.Err(), Params(c), startTime, time.Now())
+		default:
+			return op.New(c.ID(), nil, op.Unknown, c.ctx.Err(), Params(c), startTime, time.Now())
 		}
-		result := map[string]any{"json": redResult}
-		return op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
-	default:
-		redBts, redErr := redact.Bytes(bts, c.Redactions)
-		if redErr != nil {
-			return op.New(c.ID(), nil, op.Fail, redErr, Params(c), startTime, time.Now())
-		}
-		result := map[string]any{"out": string(redBts)}
-		return op.New(c.ID(), result, op.Fail,
-			FormatUnknownError{
-				command: c.Command,
-				format:  c.Format,
-			}, Params(c), startTime, time.Now())
+	case result := <-resultsChannel:
+		return result
 	}
 }
 
@@ -212,4 +308,23 @@ type FormatUnknownError struct {
 
 func (e FormatUnknownError) Error() string {
 	return fmt.Sprintf("unknown format: must be either 'string' or 'json', format=%s, command=%s", e.format, e.command)
+}
+
+var _ error = CommandConfigError{}
+
+type CommandConfigError struct {
+	config CommandConfig
+	err    error
+}
+
+func (e CommandConfigError) Error() string {
+	message := "invalid Command Config"
+	if e.err != nil {
+		return fmt.Sprintf("%s: %s", message, e.err.Error())
+	}
+	return message
+}
+
+func (e CommandConfigError) Unwrap() error {
+	return e.err
 }

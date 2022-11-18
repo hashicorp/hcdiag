@@ -65,38 +65,74 @@ func NewTFEWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (*P
 
 // tfeRunners configures a set of default runners for TFE.
 func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.Logger) ([]runner.Runner, error) {
-	r := []runner.Runner{
+	var r []runner.Runner
+
+	// Set up the Replicated Support Bundle runners
+	supportBundleCmd, err := runner.NewCommandWithContext(ctx, runner.CommandConfig{
+		Command:    "replicated support-bundle",
+		Redactions: cfg.Redactions,
+	})
+	if err != nil {
+		return nil, err
+	}
+	r = append(r,
 		do.NewSync(l, "support-bundle", "replicated support bundle",
 			// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
 			// that these run serially.
 			[]runner.Runner{
-				runner.NewCommand("replicatedctl support-bundle", "string", cfg.Redactions),
+				supportBundleCmd,
 				runner.NewCopy("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
-			}),
+			}))
 
-		runner.NewHTTP(api, "/api/v2/admin/customization-settings", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/general-settings", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/organizations", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/terraform-versions", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/twilio-settings", cfg.Redactions),
+	// Set up HTTP runners
+	for _, hc := range []runner.HttpConfig{
+		{Client: api, Path: "/api/v2/admin/customization-settings", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/general-settings", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/organizations", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/terraform-versions", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/twilio-settings", Redactions: cfg.Redactions},
 		// page size 1 because we only actually care about total workspace count in the `meta` field
-		runner.NewHTTP(api, "/api/v2/admin/workspaces?page[size]=1", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/users?page[size]=1", cfg.Redactions),
-		runner.NewHTTP(api, "/api/v2/admin/runs?page[size]=1", cfg.Redactions),
+		{Client: api, Path: "/api/v2/admin/workspaces?page[size]=1", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/users?page[size]=1", Redactions: cfg.Redactions},
+		{Client: api, Path: "/api/v2/admin/runs?page[size]=1", Redactions: cfg.Redactions},
+	} {
+		c, err := runner.NewHTTPWithContext(ctx, hc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, c)
+	}
 
-		runner.NewCommand("docker -v", "string", cfg.Redactions),
-		runner.NewCommand("replicatedctl app status --output json", "json", cfg.Redactions),
-		runner.NewCommand("lsblk --json", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group capacity", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group production_type", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group log_forwarding", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group blob", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl app-config view -o json --group worker_image", "json", cfg.Redactions),
-		runner.NewCommand("replicatedctl params export --template '{{.Airgap}}'", "string", cfg.Redactions),
-		runner.NewCommand("replicated --no-tty admin list-nodes", "json", cfg.Redactions),
+	// Set up Command runners
+	for _, cc := range []runner.CommandConfig{
+		{Command: "docker -v", Redactions: cfg.Redactions},
+		{Command: "replicatedctl app status --output json", Format: "json", Redactions: cfg.Redactions},
+		{Command: "lsblk --json", Format: "json", Redactions: cfg.Redactions},
+		{Command: "replicatedctl app-config view -o json --group capacity", Format: "json", Redactions: cfg.Redactions},
+		{Command: "replicatedctl app-config view -o json --group production_type", Format: "json", Redactions: cfg.Redactions},
+		{Command: "replicatedctl app-config view -o json --group log_forwarding", Format: "json", Redactions: cfg.Redactions},
+		{Command: "replicatedctl app-config view -o json --group blob", Format: "json", Redactions: cfg.Redactions},
+		{Command: "replicatedctl app-config view -o json --group worker_image", Format: "json", Redactions: cfg.Redactions},
+		{Command: "replicatedctl params export --template '{{.Airgap}}'", Redactions: cfg.Redactions},
+		{Command: "replicated --no-tty admin list-nodes", Format: "json", Redactions: cfg.Redactions},
+	} {
+		c, err := runner.NewCommandWithContext(ctx, cc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, c)
+	}
 
-		runner.NewShell("getenforce", cfg.Redactions),
-		runner.NewShell("env | grep -i proxy", cfg.Redactions),
+	// Set up Shell runners
+	for _, sc := range []runner.ShellConfig{
+		{Command: "getenforce", Redactions: cfg.Redactions},
+		{Command: "env | grep -i proxy", Redactions: cfg.Redactions},
+	} {
+		s, err := runner.NewShellWithContext(ctx, sc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, s)
 	}
 
 	runners := []runner.Runner{

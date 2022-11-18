@@ -1,8 +1,10 @@
 package runner
 
 import (
+	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -12,14 +14,58 @@ import (
 )
 
 func TestNewCommand(t *testing.T) {
-	testCmd := "echo hello"
-	testFmt := "string"
-	expect := &Command{
-		Command: testCmd,
-		Format:  testFmt,
+	t.Parallel()
+	tt := []struct {
+		desc      string
+		cfg       CommandConfig
+		expect    *Command
+		expectErr bool
+	}{
+		{
+			desc:      "empty config causes an error",
+			cfg:       CommandConfig{},
+			expectErr: true,
+		},
+		{
+			desc: "empty format defaults to string",
+			cfg: CommandConfig{
+				Command: "bogus-command",
+			},
+			expect: &Command{
+				Command: "bogus-command",
+				Format:  "string",
+				ctx:     context.Background(),
+			},
+		},
+		{
+			desc: "invalid format causes an error",
+			cfg: CommandConfig{
+				Command: "bogus-command",
+				Format:  "invalid",
+			},
+			expectErr: true,
+		},
+		{
+			desc: "negative timeout duration causes an error",
+			cfg: CommandConfig{
+				Command: "bogus-command",
+				Timeout: -10 * time.Second,
+			},
+			expectErr: true,
+		},
 	}
-	actual := NewCommand(testCmd, testFmt, nil)
-	assert.Equal(t, expect, actual)
+
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			c, err := NewCommand(tc.cfg)
+			if tc.expectErr {
+				assert.ErrorAs(t, err, &CommandConfigError{})
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expect, c)
+			}
+		})
+	}
 }
 
 func TestCommand_Run(t *testing.T) {
@@ -49,7 +95,12 @@ func TestCommand_Run(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			c := NewCommand(tc.command, tc.format, nil)
+			cfg := CommandConfig{
+				Command: tc.command,
+				Format:  tc.format,
+			}
+			c, err := NewCommand(cfg)
+			assert.NoError(t, err)
 			o := c.Run()
 			assert.NoError(t, o.Error)
 			assert.Equal(t, op.Success, o.Status)
@@ -91,7 +142,12 @@ func TestCommand_RunError(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			c := NewCommand(tc.command, tc.format, nil)
+			cfg := CommandConfig{
+				Command: tc.command,
+				Format:  tc.format,
+			}
+			c, err := NewCommand(cfg)
+			assert.NoError(t, err)
 			o := c.Run()
 			assert.Error(t, o.Error)
 			hclog.L().Trace("command.Run() errored", "error", o.Error, "error type", reflect.TypeOf(o.Error))
@@ -101,6 +157,40 @@ func TestCommand_RunError(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCommand_RunCanceled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	cancelFunc()
+
+	cmd := Command{
+		Command: "bogus-command",
+		ctx:     ctx,
+	}
+
+	result := cmd.Run()
+	assert.Equal(t, op.Canceled, result.Status)
+	assert.ErrorIs(t, result.Error, context.Canceled)
+}
+
+func TestCommand_RunTimeout(t *testing.T) {
+	t.Parallel()
+
+	// Set to a short timeout, and sleep briefly to ensure it passes before we try to run the command
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+	defer cancelFunc()
+	time.Sleep(1 * time.Nanosecond)
+
+	cmd := Command{
+		Command: "bogus-command",
+		ctx:     ctx,
+	}
+
+	result := cmd.Run()
+	assert.Equal(t, op.Timeout, result.Status)
+	assert.ErrorIs(t, result.Error, context.DeadlineExceeded)
 }
 
 func Test_parseCommand(t *testing.T) {

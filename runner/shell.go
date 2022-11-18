@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"time"
@@ -12,19 +13,44 @@ import (
 	"github.com/hashicorp/hcdiag/util"
 )
 
+type ShellConfig struct {
+	Command    string
+	Redactions []*redact.Redact
+	Timeout    time.Duration
+}
+
 // Shell runs shell commands in a real unix shell.
 type Shell struct {
+	ctx context.Context
+
 	Command    string           `json:"command"`
 	Shell      string           `json:"shell"`
 	Redactions []*redact.Redact `json:"redactions"`
+	Timeout    Timeout          `json:"timeout"`
 }
 
 // NewShell provides a runner for arbitrary shell code.
-func NewShell(command string, redactions []*redact.Redact) *Shell {
-	return &Shell{
-		Command:    command,
-		Redactions: redactions,
+func NewShell(cfg ShellConfig) (*Shell, error) {
+	return NewShellWithContext(context.Background(), cfg)
+}
+
+// NewShellWithContext provides a runner for arbitrary shell code.
+func NewShellWithContext(ctx context.Context, cfg ShellConfig) (*Shell, error) {
+	if ctx == nil {
+		ctx = context.Background()
 	}
+
+	timeout := cfg.Timeout
+	if timeout < 0 {
+		return nil, fmt.Errorf("timeout must be a nonnegative, timeout='%s'", timeout.String())
+	}
+
+	return &Shell{
+		ctx:        ctx,
+		Command:    cfg.Command,
+		Redactions: cfg.Redactions,
+		Timeout:    Timeout(timeout),
+	}, nil
 }
 
 func (s Shell) ID() string {
@@ -35,10 +61,44 @@ func (s Shell) ID() string {
 func (s Shell) Run() op.Op {
 	startTime := time.Now()
 
+	if s.ctx == nil {
+		s.ctx = context.Background()
+	}
+
+	runCtx := s.ctx
+	var cancel context.CancelFunc
+	if 0 < s.Timeout {
+		runCtx, cancel = context.WithTimeout(s.ctx, time.Duration(s.Timeout))
+		defer cancel()
+	}
+
+	resChan := make(chan op.Op, 1)
+	go func(resChan chan<- op.Op, start time.Time) {
+		o := s.run()
+		o.Start = start
+		resChan <- o
+	}(resChan, startTime)
+
+	select {
+	case <-runCtx.Done():
+		switch runCtx.Err() {
+		case context.Canceled:
+			return op.New(s.ID(), nil, op.Canceled, s.ctx.Err(), Params(s), startTime, time.Now())
+		case context.DeadlineExceeded:
+			return op.New(s.ID(), nil, op.Timeout, s.ctx.Err(), Params(s), startTime, time.Now())
+		default:
+			return op.New(s.ID(), nil, op.Unknown, s.ctx.Err(), Params(s), startTime, time.Now())
+		}
+	case result := <-resChan:
+		return result
+	}
+}
+
+func (s Shell) run() op.Op {
 	// Read the shell from the environment
 	shell, err := util.GetShell()
 	if err != nil {
-		return op.New(s.ID(), nil, op.Fail, err, Params(s), startTime, time.Now())
+		return op.New(s.ID(), nil, op.Fail, err, Params(s), time.Time{}, time.Now())
 	}
 	s.Shell = shell
 
@@ -49,7 +109,7 @@ func (s Shell) Run() op.Op {
 	redBts, redErr := redact.Bytes(bts, s.Redactions)
 	// Fail run if unable to redact
 	if redErr != nil {
-		return op.New(s.ID(), nil, op.Fail, redErr, Params(s), startTime, time.Now())
+		return op.New(s.ID(), nil, op.Fail, redErr, Params(s), time.Time{}, time.Now())
 	}
 	if cmdErr != nil {
 		result := map[string]any{"shell": string(redBts)}
@@ -57,10 +117,10 @@ func (s Shell) Run() op.Op {
 			ShellExecError{
 				command: s.Command,
 				err:     cmdErr,
-			}, Params(s), startTime, time.Now())
+			}, Params(s), time.Time{}, time.Now())
 	}
 	result := map[string]any{"shell": string(redBts)}
-	return op.New(s.ID(), result, op.Success, nil, Params(s), startTime, time.Now())
+	return op.New(s.ID(), result, op.Success, nil, Params(s), time.Time{}, time.Now())
 }
 
 type ShellExecError struct {

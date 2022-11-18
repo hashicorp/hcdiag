@@ -1,3 +1,0 @@
-```release-note:improvement
-runners: Add a Timeout meta struct, which other runners can embed. This is in support of implementing timeouts on runners.
-```

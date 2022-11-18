@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"runtime"
+	"time"
 
 	"github.com/hashicorp/hcdiag/runner/do"
 	"github.com/hashicorp/hcdiag/runner/host"
@@ -72,14 +73,17 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		host.NewOS(os, redactions),
 		host.NewDisk(redactions),
 		host.NewInfo(redactions),
-		host.Memory{},
+		// TODO(mkcp): Source the timeout value from agent/CLI params, or extract to a const.
+		host.NewMemoryWithContext(ctx, runner.Timeout(30*time.Second)),
 		host.NewProcess(redactions),
 		host.NewNetwork(redactions),
 		host.NewEtcHosts(redactions),
 		host.NewIPTables(os, redactions),
 		host.NewProcFile(os, redactions),
-		host.NewFSTab(os, redactions),
 	}
+	// FIXME(mkcp): handle this error
+	fsTab, _ := host.NewFSTab(os, redactions)
+	r = append(r, fsTab)
 
 	runners := []runner.Runner{
 		do.New(l, "host", "host runners", r),

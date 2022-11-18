@@ -42,17 +42,28 @@ func (d Docker) Run() op.Op {
 	startTime := time.Now()
 
 	// Check that docker exists
-	version := runner.NewShell("docker version", d.Redactions).Run()
-	if version.Error != nil {
-		return op.New(d.ID(), version.Result, op.Skip, DockerNotFoundError{
+	version, err := runner.NewShell(runner.ShellConfig{
+		Command:    "docker version",
+		Redactions: d.Redactions,
+	})
+	if err != nil {
+		return op.New(d.ID(), map[string]any{}, op.Fail, err, runner.Params(d), startTime, time.Now())
+	}
+	versionOp := version.Run()
+	if versionOp.Error != nil {
+		return op.New(d.ID(), versionOp.Result, op.Skip, DockerNotFoundError{
 			container: d.Container,
-			err:       version.Error,
+			err:       versionOp.Error,
 		},
 			runner.Params(d), startTime, time.Now())
 	}
 
 	// Check whether the container can be found on the system
-	if !d.containerExists() {
+	ok, err := d.containerExists()
+	if err != nil {
+		return op.New(d.ID(), map[string]any{}, op.Fail, err, runner.Params(d), startTime, time.Now())
+	}
+	if !ok {
 		return op.New(d.ID(), map[string]any{}, op.Skip, ContainerNotFoundError{
 			container: d.Container,
 		},
@@ -60,13 +71,19 @@ func (d Docker) Run() op.Op {
 	}
 
 	// Retrieve logs
-	cmd := DockerLogCmd(d.Container, d.DestDir, d.Since)
-	logs := runner.NewShell(cmd, d.Redactions).Run()
-	if logs.Error != nil {
-		return op.New(d.ID(), logs.Result, logs.Status, logs.Error, runner.Params(d), startTime, time.Now())
+	logShell, err := runner.NewShell(runner.ShellConfig{
+		Command:    DockerLogCmd(d.Container, d.DestDir, d.Since),
+		Redactions: d.Redactions,
+	})
+	if err != nil {
+		return op.New(d.ID(), map[string]any{}, op.Fail, err, runner.Params(d), startTime, time.Now())
+	}
+	logOp := logShell.Run()
+	if logOp.Error != nil {
+		return op.New(d.ID(), logOp.Result, logOp.Status, logOp.Error, runner.Params(d), startTime, time.Now())
 	}
 
-	return op.New(d.ID(), logs.Result, op.Success, nil, runner.Params(d), startTime, time.Now())
+	return op.New(d.ID(), logOp.Result, op.Success, nil, runner.Params(d), startTime, time.Now())
 }
 
 func DockerLogCmd(container, destDir string, since time.Time) string {
@@ -83,11 +100,20 @@ func DockerLogCmd(container, destDir string, since time.Time) string {
 	return cmd
 }
 
-func (d Docker) containerExists() bool {
+func (d Docker) containerExists() (bool, error) {
 	// attempt to inspect the container by name, to ensure it exists
-	cmd := fmt.Sprintf("docker container inspect %s > /dev/null 2>&1", d.Container)
-	o := runner.NewShell(cmd, d.Redactions).Run()
-	return o.Error == nil
+	s, err := runner.NewShell(runner.ShellConfig{
+		Command:    fmt.Sprintf("docker container inspect %s > /dev/null 2>&1", d.Container),
+		Redactions: d.Redactions,
+	})
+	if err != nil {
+		return false, err
+	}
+	o := s.Run()
+	if o.Error != nil {
+		return false, o.Error
+	}
+	return true, nil
 }
 
 var _ error = DockerNotFoundError{}
