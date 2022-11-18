@@ -37,7 +37,7 @@ type VaultDebug struct {
 	output string
 }
 
-func (d VaultDebug) ID() string {
+func (VaultDebug) ID() string {
 	return "VaultDebug"
 }
 
@@ -56,19 +56,19 @@ func NewVaultDebug(cfg VaultDebugConfig, tmpDir string, debugDuration time.Durat
 		output:          tmpDir,
 	}
 
-	if len(cfg.Compress) > 0 {
+	if cfg.Compress != "" {
 		dbg.Compress = cfg.Compress
 	}
-	if len(cfg.Duration) > 0 {
+	if cfg.Duration != "" {
 		dbg.Duration = cfg.Duration
 	}
-	if len(cfg.Interval) > 0 {
+	if cfg.Interval != "" {
 		dbg.Interval = cfg.Interval
 	}
-	if len(cfg.LogFormat) > 0 {
+	if cfg.LogFormat != "" {
 		dbg.LogFormat = cfg.LogFormat
 	}
-	if len(cfg.MetricsInterval) > 0 {
+	if cfg.MetricsInterval != "" {
 		dbg.MetricsInterval = cfg.MetricsInterval
 	}
 
