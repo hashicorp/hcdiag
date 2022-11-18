@@ -1,0 +1,3 @@
+```release-note:improvement
+runner: add VaultDebug runner to wrap Vault's debug command.
+```

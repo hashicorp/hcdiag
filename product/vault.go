@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/debug"
 	"github.com/hashicorp/hcdiag/runner/do"
 
 	"github.com/hashicorp/go-hclog"
@@ -55,7 +56,7 @@ func NewVaultWithContext(ctx context.Context, logger hclog.Logger, cfg Config) (
 		// Prepend product HCL redactions to our product defaults
 		cfg.Redactions = redact.Flatten(hclProductRedactions, cfg.Redactions)
 
-		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, api, cfg.Since, cfg.Until, nil)
+		hclRunners, err := hcl.BuildRunnersWithContext(ctx, cfg.HCL, cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval, api, cfg.Since, cfg.Until, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -93,6 +94,19 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		}
 		r = append(r, c)
 	}
+
+	dbg, err := debug.NewVaultDebug(
+		debug.VaultDebugConfig{
+			Redactions: cfg.Redactions,
+		},
+		cfg.TmpDir,
+		cfg.DebugDuration,
+		cfg.DebugInterval,
+	)
+	if err != nil {
+		return nil, err
+	}
+	r = append(r, dbg)
 
 	r = append(r,
 		logs.NewDocker("vault", cfg.TmpDir, cfg.Since, cfg.Redactions),
