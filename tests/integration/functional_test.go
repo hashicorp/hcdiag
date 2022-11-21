@@ -85,7 +85,7 @@ func TestFunctional(t *testing.T) {
 					flags: []string{},
 					outFiles: []string{
 						"ConsulDebug*.tar.gz",
-						filepath.Join("nomad*", "index.json"),
+						filepath.Join("NomadDebug*", "NomadDebug", "nomad*", "index.json"),
 						"VaultDebug*.tar.gz",
 					},
 					skip: runtime.GOOS == "windows",
