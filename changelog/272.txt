@@ -1,0 +1,3 @@
+```release-note:improvement
+runner: Add NomadDebug runner to wrap Nomad's debug command.
+```
