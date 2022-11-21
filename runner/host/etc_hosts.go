@@ -91,7 +91,7 @@ func (r EtcHosts) run() op.Op {
 		return op.New(r.ID(), nil, op.Skip, err, runner.Params(r), time.Time{}, time.Now())
 	}
 
-	s, err := runner.NewShell(runner.ShellConfig{
+	s, err := runner.NewShellWithContext(r.ctx, runner.ShellConfig{
 		Command:    "cat /etc/hosts",
 		Redactions: r.Redactions,
 		Timeout:    time.Duration(r.Timeout),
