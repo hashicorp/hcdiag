@@ -1,0 +1,3 @@
+```release-note:improvement
+runner/host: EtcHosts can now timeout with a default of ten seconds.
+```
