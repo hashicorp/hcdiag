@@ -33,7 +33,7 @@ type ConsulDebug struct {
 	output string
 }
 
-func (d ConsulDebug) ID() string {
+func (ConsulDebug) ID() string {
 	return "ConsulDebug"
 }
 
@@ -54,10 +54,10 @@ func NewConsulDebug(cfg ConsulDebugConfig, tmpDir string, debugDuration time.Dur
 		dbg.Archive = cfg.Archive
 	}
 
-	if len(cfg.Duration) > 0 {
+	if cfg.Duration != "" {
 		dbg.Duration = cfg.Duration
 	}
-	if len(cfg.Interval) > 0 {
+	if cfg.Interval != "" {
 		dbg.Interval = cfg.Interval
 	}
 

@@ -42,11 +42,18 @@ func (p ProcFile) Run() op.Op {
 		return op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p), startTime, time.Now())
 	}
 	for _, c := range p.Commands {
-		shell := runner.NewShell(c, p.Redactions).Run()
-		if shell.Error != nil {
-			return op.New(p.ID(), shell.Result, op.Fail, shell.Error, runner.Params(p), startTime, time.Now())
+		shell, err := runner.NewShell(runner.ShellConfig{
+			Command:    c,
+			Redactions: p.Redactions,
+		})
+		if err != nil {
+			return op.New(p.ID(), map[string]any{}, op.Fail, err, runner.Params(p), startTime, time.Now())
 		}
-		result[shell.Identifier] = shell.Result
+		o := shell.Run()
+		if o.Error != nil {
+			return op.New(p.ID(), o.Result, op.Fail, o.Error, runner.Params(p), startTime, time.Now())
+		}
+		result[o.Identifier] = o.Result
 	}
 	return op.New(p.ID(), result, op.Success, nil, runner.Params(p), startTime, time.Now())
 }

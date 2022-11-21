@@ -64,14 +64,14 @@ func TestFunctional(t *testing.T) {
 				},
 				"consul": {
 					flags:    []string{"-consul"},
-					outFiles: []string{"ConsulDebug*/ConsulDebug.tar.gz"},
+					outFiles: []string{"ConsulDebug*.tar.gz"},
 					skip:     false,
 				},
 				"nomad": {
 					flags: []string{"-nomad"},
 					// nomad is special and doesn't tar up its debug,
 					// so we glob * for a file in its debug dir: "nomad*/index.json"
-					outFiles: []string{filepath.Join("NomadDebug*", "NomadDebug", "nomad*", "index.json")},
+					outFiles: []string{filepath.Join("nomad*", "index.json")},
 					skip:     false,
 				},
 				"vault-unix": {
@@ -186,7 +186,7 @@ func runHCDiag(t *testing.T, tmpDir string, flags []string) string {
 	flags = append(flags, "-dest="+tmpDir)
 	t.Log("running hcdiag:", flags)
 
-	out, err := exec.Command("../../bin/hcdiag", flags...).CombinedOutput()
+	out, err := exec.Command("hcdiag", flags...).CombinedOutput()
 	if !assert.NoError(t, err) {
 		t.Fatalf("hcdiag run failure, output:\n%s", out)
 	}

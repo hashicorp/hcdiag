@@ -1,0 +1,3 @@
+```release-note:improvement
+runner: Shell now takes an optional Timeout value in Go duration form so that long-running executions can be gracefully stopped.
+```
