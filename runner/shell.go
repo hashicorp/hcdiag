@@ -83,11 +83,11 @@ func (s Shell) Run() op.Op {
 	case <-runCtx.Done():
 		switch runCtx.Err() {
 		case context.Canceled:
-			return op.New(s.ID(), nil, op.Canceled, s.ctx.Err(), Params(s), startTime, time.Now())
+			return op.NewCancel(s.ID(), runCtx.Err(), Params(s), startTime)
 		case context.DeadlineExceeded:
-			return op.New(s.ID(), nil, op.Timeout, s.ctx.Err(), Params(s), startTime, time.Now())
+			return op.NewTimeout(s.ID(), runCtx.Err(), Params(s), startTime)
 		default:
-			return op.New(s.ID(), nil, op.Unknown, s.ctx.Err(), Params(s), startTime, time.Now())
+			return op.New(s.ID(), nil, op.Unknown, runCtx.Err(), Params(s), startTime, time.Now())
 		}
 	case result := <-resChan:
 		return result

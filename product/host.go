@@ -16,6 +16,11 @@ import (
 	"github.com/hashicorp/hcdiag/runner"
 )
 
+const (
+	TimeoutTenSeconds    = runner.Timeout(10 * time.Second)
+	TimeoutThirtySeconds = runner.Timeout(30 * time.Second)
+)
+
 // NewHost takes a logger, config, and HCL, and it creates a Product with all the host's default runners.
 func NewHost(logger hclog.Logger, cfg Config, hcl2 *hcl.Host) (*Product, error) {
 	return NewHostWithContext(context.Background(), logger, cfg, hcl2)
@@ -74,13 +79,18 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		host.NewDisk(redactions),
 		host.NewInfo(redactions),
 		// TODO(mkcp): Source the timeout value from agent/CLI params, or extract to a const.
-		host.NewMemoryWithContext(ctx, runner.Timeout(30*time.Second)),
+		host.NewMemoryWithContext(ctx, TimeoutThirtySeconds),
 		host.NewProcess(redactions),
 		host.NewNetwork(redactions),
-		host.NewEtcHosts(redactions),
 		host.NewIPTables(os, redactions),
+		host.NewEtcHostsWithContext(ctx, host.EtcHostsConfig{
+			OS:         os,
+			Redactions: redactions,
+			Timeout:    TimeoutTenSeconds,
+		}),
 		host.NewProcFile(os, redactions),
 	}
+
 	// FIXME(mkcp): handle this error
 	fsTab, _ := host.NewFSTab(os, redactions)
 	r = append(r, fsTab)

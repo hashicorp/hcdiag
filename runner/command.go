@@ -193,11 +193,11 @@ func (c Command) Run() op.Op {
 	case <-runCtx.Done():
 		switch runCtx.Err() {
 		case context.Canceled:
-			return op.New(c.ID(), nil, op.Canceled, c.ctx.Err(), Params(c), startTime, time.Now())
+			return op.New(c.ID(), nil, op.Canceled, runCtx.Err(), Params(c), startTime, time.Now())
 		case context.DeadlineExceeded:
-			return op.New(c.ID(), nil, op.Timeout, c.ctx.Err(), Params(c), startTime, time.Now())
+			return op.New(c.ID(), nil, op.Timeout, runCtx.Err(), Params(c), startTime, time.Now())
 		default:
-			return op.New(c.ID(), nil, op.Unknown, c.ctx.Err(), Params(c), startTime, time.Now())
+			return op.New(c.ID(), nil, op.Unknown, runCtx.Err(), Params(c), startTime, time.Now())
 		}
 	case result := <-resultsChannel:
 		return result

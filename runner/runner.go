@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -80,4 +81,13 @@ func Params(r Runner) map[string]interface{} {
 	}
 	_ = json.Unmarshal(inrec, &inInterface)
 	return inInterface
+}
+
+// CancelOp is a helper that wraps some defaults
+func CancelOp(r Runner, err error, start time.Time) op.Op {
+	return op.NewCancel(r.ID(), err, Params(r), start)
+}
+
+func TimeoutOp(r Runner, err error, start time.Time) op.Op {
+	return op.NewTimeout(r.ID(), err, Params(r), start)
 }

@@ -61,6 +61,14 @@ func New(id string, result map[string]any, status Status, err error, params map[
 	}
 }
 
+func NewCancel(id string, err error, params map[string]any, start time.Time) Op {
+	return New(id, map[string]any{}, Canceled, err, params, start, time.Now())
+}
+
+func NewTimeout(id string, err error, params map[string]any, start time.Time) Op {
+	return New(id, map[string]any{}, Timeout, err, params, start, time.Now())
+}
+
 // StatusCounts takes a slice of op references and returns a map containing sums of each Status
 func StatusCounts(ops map[string]Op) (map[Status]int, error) {
 	// copy our input into a new map that conforms to our Walk input type
