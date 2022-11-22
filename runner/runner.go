@@ -73,14 +73,14 @@ func Select(selects []string, runners []Runner) ([]Runner, error) {
 }
 
 // Params takes a Runner and returns a map of its public fields
-func Params(r Runner) map[string]interface{} {
-	var inInterface map[string]interface{}
-	inrec, err := json.Marshal(&r)
+func Params(r Runner) map[string]any {
+	m := make(map[string]any, 0)
+	j, err := json.Marshal(&r)
 	if err != nil {
 		hclog.L().Error("runner.Params failed to serialize params", "runner", r, "error", err)
 	}
-	_ = json.Unmarshal(inrec, &inInterface)
-	return inInterface
+	_ = json.Unmarshal(j, &m)
+	return m
 }
 
 // CancelOp wraps op.NewCancel to resolve the Runner.ID() and Params into concrete types.
