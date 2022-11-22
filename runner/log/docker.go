@@ -89,9 +89,9 @@ func (d Docker) Run() op.Op {
 	case <-runCtx.Done():
 		switch runCtx.Err() {
 		case context.Canceled:
-			return op.New(d.ID(), nil, op.Canceled, runCtx.Err(), runner.Params(d), startTime, time.Now())
+			return runner.CancelOp(d, runCtx.Err(), startTime)
 		case context.DeadlineExceeded:
-			return op.New(d.ID(), nil, op.Timeout, runCtx.Err(), runner.Params(d), startTime, time.Now())
+			return runner.TimeoutOp(d, runCtx.Err(), startTime)
 		default:
 			return op.New(d.ID(), nil, op.Unknown, runCtx.Err(), runner.Params(d), startTime, time.Now())
 		}
