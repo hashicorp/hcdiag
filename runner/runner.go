@@ -83,11 +83,12 @@ func Params(r Runner) map[string]interface{} {
 	return inInterface
 }
 
-// CancelOp is a helper that wraps some defaults
+// CancelOp wraps op.NewCancel to resolve the Runner.ID() and Params into concrete types.
 func CancelOp(r Runner, err error, start time.Time) op.Op {
 	return op.NewCancel(r.ID(), err, Params(r), start)
 }
 
+// TimeoutOp wraps op.NewTimeout to resolve the Runner.ID() and Params into concrete types.
 func TimeoutOp(r Runner, err error, start time.Time) op.Op {
 	return op.NewTimeout(r.ID(), err, Params(r), start)
 }

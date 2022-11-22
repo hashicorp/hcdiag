@@ -61,10 +61,12 @@ func New(id string, result map[string]any, status Status, err error, params map[
 	}
 }
 
+// NewCancel takes the minimum required fields to build and return an Op with status Canceled
 func NewCancel(id string, err error, params map[string]any, start time.Time) Op {
 	return New(id, map[string]any{}, Canceled, err, params, start, time.Now())
 }
 
+// NewTimeout takes the minimum required fields to build and return an Op with status Timeout
 func NewTimeout(id string, err error, params map[string]any, start time.Time) Op {
 	return New(id, map[string]any{}, Timeout, err, params, start, time.Now())
 }
