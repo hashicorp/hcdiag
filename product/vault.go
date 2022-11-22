@@ -109,7 +109,13 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 	r = append(r, dbg)
 
 	r = append(r,
-		logs.NewDocker("vault", cfg.TmpDir, cfg.Since, cfg.Redactions),
+		logs.NewDockerWithContext(ctx,
+			logs.DockerConfig{
+				Container:  "vault",
+				DestDir:    cfg.TmpDir,
+				Since:      cfg.Since,
+				Redactions: cfg.Redactions,
+			}),
 		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 	)
 
