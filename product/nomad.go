@@ -2,19 +2,19 @@ package product
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner/debug"
 	"github.com/hashicorp/hcdiag/runner/do"
+	logs "github.com/hashicorp/hcdiag/runner/log"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/hcdiag/client"
 	"github.com/hashicorp/hcdiag/runner"
-	logs "github.com/hashicorp/hcdiag/runner/log"
 )
 
 const (
@@ -96,7 +96,6 @@ func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		{Command: "nomad version", Redactions: cfg.Redactions},
 		{Command: "nomad node status -self -json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "nomad agent-info -json", Format: "json", Redactions: cfg.Redactions},
-		{Command: fmt.Sprintf("nomad operator debug -log-level=TRACE -node-id=all -max-nodes=10 -output=%s -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), Redactions: cfg.Redactions},
 	} {
 		c, err := runner.NewCommandWithContext(ctx, cc)
 		if err != nil {
@@ -104,6 +103,18 @@ func nomadRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		}
 		r = append(r, c)
 	}
+	dbg, err := debug.NewNomadDebug(
+		debug.NomadDebugConfig{
+			Redactions: cfg.Redactions,
+		},
+		cfg.TmpDir,
+		cfg.DebugDuration,
+		cfg.DebugInterval,
+	)
+	if err != nil {
+		return nil, err
+	}
+	r = append(r, dbg)
 
 	// Set up HTTP runners
 	for _, hc := range []runner.HttpConfig{

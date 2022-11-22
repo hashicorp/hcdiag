@@ -71,7 +71,7 @@ func TestFunctional(t *testing.T) {
 					flags: []string{"-nomad"},
 					// nomad is special and doesn't tar up its debug,
 					// so we glob * for a file in its debug dir: "nomad*/index.json"
-					outFiles: []string{filepath.Join("nomad*", "index.json")},
+					outFiles: []string{filepath.Join("NomadDebug*", "NomadDebug", "nomad*", "index.json")},
 					skip:     false,
 				},
 				"vault-unix": {
@@ -85,7 +85,7 @@ func TestFunctional(t *testing.T) {
 					flags: []string{},
 					outFiles: []string{
 						"ConsulDebug*.tar.gz",
-						filepath.Join("nomad*", "index.json"),
+						filepath.Join("NomadDebug*", "NomadDebug", "nomad*", "index.json"),
 						"VaultDebug*.tar.gz",
 					},
 					skip: runtime.GOOS == "windows",

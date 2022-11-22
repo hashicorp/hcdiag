@@ -68,6 +68,7 @@ type Product struct {
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
 	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
 	ConsulDebugs []ConsulDebug `hcl:"consul-debug,block" json:"consul_debug,omitempty"`
+	NomadDebugs  []NomadDebug  `hcl:"nomad-debug,block" json:"nomad_debug,omitempty"`
 	Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
 	Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
 	Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
@@ -90,6 +91,7 @@ type Do struct {
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
 	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
 	ConsulDebugs []ConsulDebug `hcl:"consul-debug,block" json:"consul_debug,omitempty"`
+	NomadDebugs  []NomadDebug  `hcl:"nomad-debug,block" json:"nomad_debug,omitempty"`
 
 	// Filters
 	// Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
@@ -116,6 +118,7 @@ type DoSync struct {
 	JournaldLogs []JournaldLog `hcl:"journald-log,block" json:"journald_log,omitempty"`
 	VaultDebugs  []VaultDebug  `hcl:"vault-debug,block" json:"vault_debug,omitempty"`
 	ConsulDebugs []ConsulDebug `hcl:"consul-debug,block" json:"consul_debug,omitempty"`
+	NomadDebugs  []NomadDebug  `hcl:"nomad-debug,block" json:"nomad_debug,omitempty"`
 
 	// Filters
 	// Excludes     []string      `hcl:"excludes,optional" json:"excludes,omitempty"`
@@ -185,6 +188,23 @@ type ConsulDebug struct {
 	Duration   string   `hcl:"duration,optional" json:"duration"`
 	Interval   string   `hcl:"interval,optional" json:"interval"`
 	Captures   []string `hcl:"captures,optional" json:"captures"`
+	Redactions []Redact `hcl:"redact,block" json:"redactions"`
+}
+
+type NomadDebug struct {
+	Duration      string `hcl:"duration,optional" json:"duration"`
+	Interval      string `hcl:"interval,optional" json:"interval"`
+	LogLevel      string `hcl:"log-level,optional" json:"log_level"`
+	MaxNodes      int    `hcl:"max-nodes,optional" json:"max_nodes"`
+	NodeClass     string `hcl:"node-class,optional" json:"node_class"`
+	NodeID        string `hcl:"node-id,optional" json:"node_id"`
+	PprofDuration string `hcl:"pprof-duration,optional" json:"pprof_duration"`
+	PprofInterval string `hcl:"pprof-interval,optional" json:"pprof_interval"`
+	ServerID      string `hcl:"server-id,optional" json:"server_id"`
+	Stale         bool   `hcl:"stale,optional" json:"stale"`
+	Verbose       bool   `hcl:"verbose,optional" json:"verbose"`
+
+	EventTopic []string `hcl:"targets,optional" json:"targets"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions"`
 }
 
@@ -258,6 +278,12 @@ func BuildRunnersWithContext[T Blocks](ctx context.Context, config T, tmpDir str
 			return nil, err
 		}
 		runners = append(runners, consulDebugs...)
+
+		nomadDebugs, err := mapNomadDebugs(ctx, cfg.NomadDebugs, tmpDir, debugDuration, debugInterval, redactions)
+		if err != nil {
+			return nil, err
+		}
+		runners = append(runners, nomadDebugs...)
 
 		// Build commands and shells
 		commands, err := mapCommands(ctx, cfg.Commands, redactions)
@@ -554,6 +580,42 @@ func mapConsulDebugs(ctx context.Context, cfgs []ConsulDebug, tmpDir string, deb
 			Redactions: runnerRedacts,
 		}
 		dbg, err := debug.NewConsulDebug(cfg, tmpDir, debugDuration, debugInterval)
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = dbg
+	}
+	return runners, nil
+}
+
+func mapNomadDebugs(ctx context.Context, cfgs []NomadDebug, tmpDir string, debugDuration time.Duration, debugInterval time.Duration, redactions []*redact.Redact) ([]runner.Runner, error) {
+	runners := make([]runner.Runner, len(cfgs))
+
+	for i, d := range cfgs {
+		runnerRedacts, err := MapRedacts(d.Redactions)
+		if err != nil {
+			return nil, err
+		}
+		// Prepend runner-level redactions to those passed in
+		runnerRedacts = append(runnerRedacts, redactions...)
+
+		// Create the runner
+		cfg := debug.NomadDebugConfig{
+			Duration:      d.Duration,
+			Interval:      d.Interval,
+			LogLevel:      d.LogLevel,
+			MaxNodes:      d.MaxNodes,
+			NodeClass:     d.NodeClass,
+			NodeID:        d.NodeID,
+			PprofDuration: d.PprofDuration,
+			PprofInterval: d.PprofInterval,
+			ServerID:      d.ServerID,
+			Stale:         d.Stale,
+			Verbose:       d.Verbose,
+			EventTopic:    d.EventTopic,
+			Redactions:    runnerRedacts,
+		}
+		dbg, err := debug.NewNomadDebug(cfg, tmpDir, debugDuration, debugInterval)
 		if err != nil {
 			return nil, err
 		}
