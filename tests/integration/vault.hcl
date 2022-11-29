@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 storage "inmem" {}
 
 # listener: https://www.vaultproject.io/docs/configuration/listener/tcp

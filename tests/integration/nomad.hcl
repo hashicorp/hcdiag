@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # tls: https://www.nomadproject.io/docs/configuration/tls
 tls {
   http = true

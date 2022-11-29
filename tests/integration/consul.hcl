@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # tls: https://www.consul.io/docs/agent/options#tls-configuration-reference=
 
 addresses = {
