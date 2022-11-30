@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/util"
 
 	"github.com/hashicorp/hcdiag/runner"
 )
@@ -128,6 +129,12 @@ func (d Docker) run() op.Op {
 			container: d.Container,
 		},
 			runner.Params(d), time.Time{}, time.Now())
+	}
+
+	// Ensure the destination directory exists
+	err = util.EnsureDirectory(d.DestDir)
+	if err != nil {
+		return op.New(d.ID(), nil, op.Fail, err, runner.Params(d), time.Time{}, time.Now())
 	}
 
 	// Retrieve logs
