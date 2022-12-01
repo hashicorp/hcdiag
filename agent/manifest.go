@@ -6,8 +6,6 @@ package agent
 import (
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/hashicorp/hcdiag/op"
 )
 
@@ -26,10 +24,10 @@ func WalkResultsForManifest(results map[string]op.Op) []ManifestOp {
 		m[k] = any(v)
 	}
 	acc := make([]ManifestOp, 0)
-	return walk(m, acc)
+	return walk(m, &acc)
 }
 
-func walk(res map[string]any, acc []ManifestOp) []ManifestOp {
+func walk(res map[string]any, acc *[]ManifestOp) []ManifestOp {
 	for _, v := range res {
 		switch o := v.(type) {
 		case op.Op:
@@ -39,13 +37,11 @@ func walk(res map[string]any, acc []ManifestOp) []ManifestOp {
 				Status:   o.Status,
 				Duration: fmt.Sprintf("%d", o.End.Sub(o.Start).Nanoseconds()),
 			}
-			acc = append(acc, manifestOp)
-			spew.Dump("iterate", acc)
+			*acc = append(*acc, manifestOp)
 			walk(o.Result, acc)
 		default:
-			spew.Dump("return", acc)
 			continue
 		}
 	}
-	return acc
+	return *acc
 }
