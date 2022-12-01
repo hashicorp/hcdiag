@@ -127,7 +127,13 @@ func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hcl
 	}
 
 	r = append(r,
-		logs.NewDocker("consul", cfg.TmpDir, cfg.Since, cfg.Redactions),
+		logs.NewDockerWithContext(ctx,
+			logs.DockerConfig{
+				Container:  "consul",
+				DestDir:    cfg.TmpDir,
+				Since:      cfg.Since,
+				Redactions: cfg.Redactions,
+			}),
 		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
 	)
 

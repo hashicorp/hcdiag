@@ -168,6 +168,7 @@ type DockerLog struct {
 	Container  string   `hcl:"container" json:"container"`
 	Since      string   `hcl:"since,optional" json:"since"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 }
 
 type JournaldLog struct {
@@ -500,7 +501,20 @@ func mapDockerLogs(ctx context.Context, cfgs []DockerLog, dest string, since tim
 			// bug: different runners have different now values but it's unlikely to ever cause an issues for users.
 			since = time.Now().Add(-dur)
 		}
-		runners[i] = log.NewDocker(d.Container, dest, since, runnerRedacts)
+		var timeout time.Duration
+		if d.Timeout != "" {
+			timeout, err = time.ParseDuration(d.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
+		runners[i] = log.NewDockerWithContext(ctx, log.DockerConfig{
+			Container:  d.Container,
+			DestDir:    dest,
+			Since:      since,
+			Redactions: runnerRedacts,
+			Timeout:    timeout,
+		})
 	}
 	return runners, nil
 }
