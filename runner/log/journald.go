@@ -4,6 +4,7 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -20,22 +21,45 @@ var _ runner.Runner = Journald{}
 // JournaldTimeLayout custom go time layouts must match the reference time Jan 2 15:04:05 2006 MST
 const JournaldTimeLayout = "2006-01-02 15:04:05"
 
-type Journald struct {
-	Service    string           `json:"service"`
-	DestDir    string           `json:"destDir"`
-	Since      time.Time        `json:"since"`
-	Until      time.Time        `json:"until"`
+type JournaldConfig struct {
+	Service string    `json:"service"`
+	DestDir string    `json:"destDir"`
+	Since   time.Time `json:"since"`
+	Until   time.Time `json:"until"`
+	// Redactions includes any redactions to apply to the output of the runner.
 	Redactions []*redact.Redact `json:"redactions"`
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration `json:"timeout"`
+}
+
+type Journald struct {
+	ctx context.Context
+
+	Service string    `json:"service"`
+	DestDir string    `json:"destDir"`
+	Since   time.Time `json:"since"`
+	Until   time.Time `json:"until"`
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact `json:"redactions"`
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout runner.Timeout `json:"timeout"`
 }
 
 // NewJournald sets the defaults for the journald runner
-func NewJournald(service, destDir string, since, until time.Time, redactions []*redact.Redact) *Journald {
+func NewJournald(cfg JournaldConfig) *Journald {
+	return NewJournaldWithContext(context.Background(), cfg)
+}
+
+// NewJournaldWithContext sets the defaults for the journald runner, including a context.
+func NewJournaldWithContext(ctx context.Context, cfg JournaldConfig) *Journald {
 	return &Journald{
-		Service:    service,
-		DestDir:    destDir,
-		Since:      since,
-		Until:      until,
-		Redactions: redactions,
+		ctx:        ctx,
+		Service:    cfg.Service,
+		DestDir:    cfg.DestDir,
+		Since:      cfg.Since,
+		Until:      cfg.Until,
+		Redactions: cfg.Redactions,
+		Timeout:    runner.Timeout(cfg.Timeout),
 	}
 }
 

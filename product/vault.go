@@ -119,7 +119,13 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 				Since:      cfg.Since,
 				Redactions: cfg.Redactions,
 			}),
-		logs.NewJournald("vault", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
+		logs.NewJournaldWithContext(ctx,
+			logs.JournaldConfig{
+				Service:    "vault",
+				DestDir:    cfg.TmpDir,
+				Since:      cfg.Since,
+				Until:      cfg.Until,
+				Redactions: cfg.Redactions}),
 	)
 
 	// try to detect log location to copy

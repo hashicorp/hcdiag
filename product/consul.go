@@ -134,7 +134,13 @@ func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hcl
 				Since:      cfg.Since,
 				Redactions: cfg.Redactions,
 			}),
-		logs.NewJournald("consul", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
+		logs.NewJournaldWithContext(ctx,
+			logs.JournaldConfig{
+				Service:    "consul",
+				DestDir:    cfg.TmpDir,
+				Since:      cfg.Since,
+				Until:      cfg.Until,
+				Redactions: cfg.Redactions}),
 	)
 
 	// try to detect log location to copy
