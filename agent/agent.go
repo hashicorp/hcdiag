@@ -364,20 +364,12 @@ func (a *Agent) RunProducts() error {
 
 // RecordManifest writes additional data to the agent to serialize into manifest.json
 func (a *Agent) RecordManifest() {
-	for name, ops := range a.results {
-		for _, o := range ops {
-			// duration string, in nanoseconds
-			dur := fmt.Sprintf("%d nanoseconds", o.End.Sub(o.Start).Nanoseconds())
-
-			m := ManifestOp{
-				ID:       o.Identifier,
-				Error:    o.ErrString,
-				Status:   o.Status,
-				Duration: dur,
-			}
-			a.ManifestOps[string(name)] = append(a.ManifestOps[string(name)], m)
-		}
+	result := make(map[string][]ManifestOp)
+	for productName, ops := range a.results {
+		manifestOps := WalkResultsForManifest(ops)
+		result[string(productName)] = manifestOps
 	}
+	a.ManifestOps = result
 }
 
 // WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
