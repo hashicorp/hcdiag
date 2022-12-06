@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/util"
 
 	"github.com/hashicorp/hcdiag/runner"
 
@@ -22,14 +23,14 @@ var _ runner.Runner = Journald{}
 const JournaldTimeLayout = "2006-01-02 15:04:05"
 
 type JournaldConfig struct {
-	Service string    `json:"service"`
-	DestDir string    `json:"destDir"`
-	Since   time.Time `json:"since"`
-	Until   time.Time `json:"until"`
+	Service string
+	DestDir string
+	Since   time.Time
+	Until   time.Time
 	// Redactions includes any redactions to apply to the output of the runner.
-	Redactions []*redact.Redact `json:"redactions"`
+	Redactions []*redact.Redact
 	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
-	Timeout time.Duration `json:"timeout"`
+	Timeout time.Duration
 }
 
 type Journald struct {
@@ -120,6 +121,12 @@ func (j Journald) run() op.Op {
 			err:     o.Error,
 		},
 			runner.Params(j), time.Time{}, time.Now())
+	}
+
+	// Ensure the destination directory exists
+	err = util.EnsureDirectory(j.DestDir)
+	if err != nil {
+		return op.New(j.ID(), nil, op.Fail, err, runner.Params(j), time.Time{}, time.Now())
 	}
 
 	// Check if systemd has a unit with the provided name
