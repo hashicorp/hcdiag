@@ -85,7 +85,11 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		host.NewMemoryWithContext(ctx, TimeoutThirtySeconds),
 		host.NewProcess(redactions),
 		host.NewNetwork(redactions),
-		host.NewIPTables(os, redactions),
+		host.NewIPTablesWithContext(ctx, host.IPTablesConfig{
+			OS:         os,
+			Redactions: redactions,
+			Timeout:    TimeoutThirtySeconds,
+		}),
 		host.NewEtcHostsWithContext(ctx, host.EtcHostsConfig{
 			OS:         os,
 			Redactions: redactions,
