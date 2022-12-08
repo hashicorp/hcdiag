@@ -71,11 +71,11 @@ func (p ProcFile) Run() op.Op {
 	}
 
 	resultsChannel := make(chan op.Op, 1)
-	go func(results chan<- op.Op) {
-		o := p.run()
+	go func(ctx context.Context, ch chan<- op.Op) {
+		o := p.run(ctx)
 		o.Start = startTime
-		resultsChannel <- o
-	}(resultsChannel)
+		ch <- o
+	}(runCtx, resultsChannel)
 	select {
 	case <-runCtx.Done():
 		switch runCtx.Err() {
@@ -91,15 +91,16 @@ func (p ProcFile) Run() op.Op {
 	}
 }
 
-func (p ProcFile) run() op.Op {
+func (p ProcFile) run(ctx context.Context) op.Op {
 	result := make(map[string]any)
 	if p.OS != "linux" {
 		return op.New(p.ID(), nil, op.Skip, fmt.Errorf("os not linux, skipping, os=%s", p.OS), runner.Params(p), time.Time{}, time.Now())
 	}
 	for _, c := range p.Commands {
-		shell, err := runner.NewShell(runner.ShellConfig{
+		shell, err := runner.NewShellWithContext(ctx, runner.ShellConfig{
 			Command:    c,
 			Redactions: p.Redactions,
+			Timeout:    time.Duration(p.Timeout),
 		})
 		if err != nil {
 			return op.New(p.ID(), map[string]any{}, op.Fail, err, runner.Params(p), time.Time{}, time.Now())
