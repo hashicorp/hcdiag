@@ -175,6 +175,7 @@ type JournaldLog struct {
 	Service    string   `hcl:"service" json:"service"`
 	Since      string   `hcl:"since,optional" json:"since"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 }
 
 type VaultDebug struct {
@@ -541,7 +542,21 @@ func mapJournaldLogs(ctx context.Context, cfgs []JournaldLog, dest string, since
 			since = now.Add(dur)
 			until = time.Time{}
 		}
-		runners[i] = log.NewJournald(j.Service, dest, since, until, runnerRedacts)
+		var timeout time.Duration
+		if j.Timeout != "" {
+			timeout, err = time.ParseDuration(j.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
+		runners[i] = log.NewJournaldWithContext(ctx, log.JournaldConfig{
+			Service:    j.Service,
+			DestDir:    dest,
+			Since:      since,
+			Until:      until,
+			Redactions: runnerRedacts,
+			Timeout:    timeout,
+		})
 	}
 	return runners, nil
 }
