@@ -58,6 +58,10 @@ func (p ProcFile) ID() string {
 func (p ProcFile) Run() op.Op {
 	startTime := time.Now()
 
+	if p.ctx == nil {
+		p.ctx = context.Background()
+	}
+
 	var runCtx context.Context
 	runCtx = p.ctx
 	var runCancelFunc context.CancelFunc
