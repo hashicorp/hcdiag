@@ -91,7 +91,11 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 			Redactions: redactions,
 			Timeout:    TimeoutTenSeconds,
 		}),
-		host.NewProcFile(os, redactions),
+		host.NewProcFileWithContext(ctx, host.ProcFileConfig{
+			OS:         os,
+			Redactions: redactions,
+			Timeout:    TimeoutThirtySeconds,
+		}),
 	}
 
 	// FIXME(mkcp): handle this error
