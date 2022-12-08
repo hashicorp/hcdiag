@@ -475,9 +475,23 @@ func mapHostGets(ctx context.Context, cfgs []GET, redactions []*redact.Redact) (
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
+		var timeout time.Duration
+		if g.Timeout != "" {
+			timeout, err = time.ParseDuration(g.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
+		r, err := host.NewGetWithContext(ctx, host.GetConfig{
+			Path:       g.Path,
+			Timeout:    timeout,
+			Redactions: runnerRedacts,
+		})
+		if err != nil {
+			return nil, err
+		}
 
-		// TODO(mkcp): add redactions to host Get
-		runners[i] = host.NewGet(g.Path, runnerRedacts)
+		runners[i] = r
 	}
 	return runners, nil
 }
