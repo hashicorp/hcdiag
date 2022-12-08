@@ -4,6 +4,7 @@
 package host
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -27,13 +28,31 @@ type Partition struct {
 
 var _ runner.Runner = Disk{}
 
-type Disk struct {
-	Redactions []*redact.Redact `json:"redactions"`
+type DiskConfig struct {
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration
 }
 
-func NewDisk(redactions []*redact.Redact) *Disk {
+type Disk struct {
+	ctx context.Context
+
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact `json:"redactions"`
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout runner.Timeout `json:"timeout"`
+}
+
+func NewDisk(cfg DiskConfig) *Disk {
+	return NewDiskWithContext(context.Background(), cfg)
+}
+
+func NewDiskWithContext(ctx context.Context, cfg DiskConfig) *Disk {
 	return &Disk{
-		Redactions: redactions,
+		ctx:        ctx,
+		Redactions: cfg.Redactions,
+		Timeout:    runner.Timeout(cfg.Timeout),
 	}
 }
 
@@ -42,27 +61,61 @@ func (d Disk) ID() string {
 }
 
 func (d Disk) Run() op.Op {
-	var partitions []Partition
 	startTime := time.Now()
 
+	if d.ctx == nil {
+		d.ctx = context.Background()
+	}
+
+	resChan := make(chan op.Op, 1)
+
+	runCtx := d.ctx
+	var cancel context.CancelFunc
+	if 0 < d.Timeout {
+		runCtx, cancel = context.WithTimeout(d.ctx, time.Duration(d.Timeout))
+		defer cancel()
+	}
+
+	go func(resChan chan op.Op) {
+		o := d.run()
+		o.Start = startTime
+		resChan <- o
+	}(resChan)
+
+	select {
+	case <-runCtx.Done():
+		switch runCtx.Err() {
+		case context.Canceled:
+			return runner.CancelOp(d, runCtx.Err(), startTime)
+		case context.DeadlineExceeded:
+			return runner.TimeoutOp(d, runCtx.Err(), startTime)
+		default:
+			return op.New(d.ID(), nil, op.Unknown, runCtx.Err(), runner.Params(d), startTime, time.Now())
+		}
+	case o := <-resChan:
+		return o
+	}
+}
+
+func (d Disk) run() op.Op {
+	var partitions []Partition
 	dp, err := disk.Partitions(true)
 	if err != nil {
 		hclog.L().Trace("runner/host.Disk.Run()", "error", err)
 		err1 := fmt.Errorf("error getting disk information err=%w", err)
 		result := map[string]any{"partitions": partitions}
-		return op.New(d.ID(), result, op.Unknown, err1, nil, startTime, time.Now())
+		return op.New(d.ID(), result, op.Unknown, err1, nil, time.Time{}, time.Now())
 	}
-
 	partitions, err = d.partitions(dp)
 	if err != nil {
 		hclog.L().Trace("runner/host.Disk.Run() failed to convert partition info", "error", err)
 		err1 := fmt.Errorf("error converting partition information err=%w", err)
 		result := map[string]any{"partitions": partitions}
-		return op.New(d.ID(), result, op.Fail, err1, runner.Params(d), startTime, time.Now())
+		return op.New(d.ID(), result, op.Fail, err1, runner.Params(d), time.Time{}, time.Now())
 	}
 
 	result := map[string]any{"partitions": partitions}
-	return op.New(d.ID(), result, op.Success, nil, runner.Params(d), startTime, time.Now())
+	return op.New(d.ID(), result, op.Success, nil, runner.Params(d), time.Time{}, time.Now())
 }
 
 func (d Disk) partitions(dps []disk.PartitionStat) ([]Partition, error) {

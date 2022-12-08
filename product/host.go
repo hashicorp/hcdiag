@@ -79,7 +79,7 @@ func NewHostWithContext(ctx context.Context, logger hclog.Logger, cfg Config, hc
 func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
 	r := []runner.Runner{
 		host.NewOS(os, redactions),
-		host.NewDisk(redactions),
+		host.NewDiskWithContext(ctx, host.DiskConfig{Redactions: redactions}),
 		host.NewInfo(redactions),
 		// TODO(mkcp): Source the timeout value from agent/CLI params, or extract to a const.
 		host.NewMemoryWithContext(ctx, TimeoutThirtySeconds),
