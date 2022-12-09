@@ -80,7 +80,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	r := []runner.Runner{
 		host.NewOS(os, redactions),
 		host.NewDiskWithContext(ctx, host.DiskConfig{Redactions: redactions}),
-		host.NewInfo(redactions),
+		host.NewInfoWithContext(ctx, host.InfoConfig{Redactions: redactions}),
 		// TODO(mkcp): Source the timeout value from agent/CLI params, or extract to a const.
 		host.NewMemoryWithContext(ctx, TimeoutThirtySeconds),
 		host.NewProcess(redactions),

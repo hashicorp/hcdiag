@@ -4,6 +4,7 @@
 package host
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -35,13 +36,31 @@ type InfoStat struct {
 
 var _ runner.Runner = Info{}
 
-type Info struct {
-	Redactions []*redact.Redact `json:"redactions"`
+type InfoConfig struct {
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration
 }
 
-func NewInfo(redactions []*redact.Redact) *Info {
+type Info struct {
+	ctx context.Context
+
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact `json:"redactions"`
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout runner.Timeout `json:"timeout"`
+}
+
+func NewInfo(cfg InfoConfig) *Info {
+	return NewInfoWithContext(context.Background(), cfg)
+}
+
+func NewInfoWithContext(ctx context.Context, cfg InfoConfig) *Info {
 	return &Info{
-		Redactions: redactions,
+		ctx:        ctx,
+		Redactions: cfg.Redactions,
+		Timeout:    runner.Timeout(cfg.Timeout),
 	}
 }
 
@@ -52,13 +71,47 @@ func (i Info) ID() string {
 func (i Info) Run() op.Op {
 	startTime := time.Now()
 
+	if i.ctx == nil {
+		i.ctx = context.Background()
+	}
+
+	resChan := make(chan op.Op, 1)
+	runCtx := i.ctx
+	var cancel context.CancelFunc
+	if 0 < i.Timeout {
+		runCtx, cancel = context.WithTimeout(i.ctx, time.Duration(i.Timeout))
+		defer cancel()
+	}
+
+	go func(resChan chan op.Op) {
+		o := i.run()
+		o.Start = startTime
+		resChan <- o
+	}(resChan)
+
+	select {
+	case <-runCtx.Done():
+		switch runCtx.Err() {
+		case context.Canceled:
+			return runner.CancelOp(i, runCtx.Err(), startTime)
+		case context.DeadlineExceeded:
+			return runner.TimeoutOp(i, runCtx.Err(), startTime)
+		default:
+			return op.New(i.ID(), nil, op.Unknown, runCtx.Err(), runner.Params(i), startTime, time.Now())
+		}
+	case o := <-resChan:
+		return o
+	}
+}
+
+func (i Info) run() op.Op {
 	// third party
 	var hostInfo InfoStat
 
 	hi, err := host.Info()
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run()", "error", err)
-		return op.New(i.ID(), nil, op.Fail, err, runner.Params(i), startTime, time.Now())
+		return op.New(i.ID(), nil, op.Fail, err, runner.Params(i), time.Time{}, time.Now())
 	}
 
 	hostInfo, err = i.infoStat(hi)
@@ -66,10 +119,10 @@ func (i Info) Run() op.Op {
 	if err != nil {
 		hclog.L().Trace("runner/host.Info.Run() failed to convert host info", "error", err)
 		err1 := fmt.Errorf("error converting host information err=%w", err)
-		return op.New(i.ID(), result, op.Fail, err1, runner.Params(i), startTime, time.Now())
+		return op.New(i.ID(), result, op.Fail, err1, runner.Params(i), time.Time{}, time.Now())
 	}
 
-	return op.New(i.ID(), result, op.Success, nil, runner.Params(i), startTime, time.Now())
+	return op.New(i.ID(), result, op.Success, nil, runner.Params(i), time.Time{}, time.Now())
 }
 
 func (i Info) infoStat(hi *host.InfoStat) (InfoStat, error) {
