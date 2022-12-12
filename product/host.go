@@ -84,7 +84,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		// TODO(mkcp): Source the timeout value from agent/CLI params, or extract to a const.
 		host.NewMemoryWithContext(ctx, TimeoutThirtySeconds),
 		host.NewProcess(redactions),
-		host.NewNetwork(redactions),
+		host.NewNetworkWithContext(ctx, host.NetworkConfig{Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
 		host.NewIPTablesWithContext(ctx, host.IPTablesConfig{
 			OS:         os,
 			Redactions: redactions,

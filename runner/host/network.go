@@ -4,6 +4,7 @@
 package host
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -26,13 +27,31 @@ type NetworkInterface struct {
 	Addrs []string `json:"addrs"`
 }
 
-type Network struct {
+type NetworkConfig struct {
+	// Redactions includes any redactions to apply to the output of the runner.
 	Redactions []*redact.Redact
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration
 }
 
-func NewNetwork(redactions []*redact.Redact) *Network {
+type Network struct {
+	ctx context.Context
+
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact `json:"redactions"`
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout runner.Timeout `json:"timeout"`
+}
+
+func NewNetwork(cfg NetworkConfig) *Network {
+	return NewNetworkWithContext(context.Background(), cfg)
+}
+
+func NewNetworkWithContext(ctx context.Context, cfg NetworkConfig) *Network {
 	return &Network{
-		Redactions: redactions,
+		ctx:        ctx,
+		Redactions: cfg.Redactions,
+		Timeout:    runner.Timeout(cfg.Timeout),
 	}
 }
 
@@ -41,13 +60,48 @@ func (n Network) ID() string {
 }
 
 func (n Network) Run() op.Op {
-  startTime := time.Now()
+	startTime := time.Now()
+
+	if n.ctx == nil {
+		n.ctx = context.Background()
+	}
+
+	resChan := make(chan op.Op, 1)
+	runCtx := n.ctx
+	var cancel context.CancelFunc
+	if 0 < n.Timeout {
+		runCtx, cancel = context.WithTimeout(n.ctx, time.Duration(n.Timeout))
+		defer cancel()
+	}
+
+	go func(resChan chan op.Op) {
+		o := n.run()
+		o.Start = startTime
+		resChan <- o
+	}(resChan)
+
+	select {
+	case <-runCtx.Done():
+		switch runCtx.Err() {
+		case context.Canceled:
+			return runner.CancelOp(n, runCtx.Err(), startTime)
+		case context.DeadlineExceeded:
+			return runner.TimeoutOp(n, runCtx.Err(), startTime)
+		default:
+			return op.New(n.ID(), nil, op.Unknown, runCtx.Err(), runner.Params(n), startTime, time.Now())
+		}
+	case o := <-resChan:
+		return o
+	}
+}
+
+func (n Network) run() op.Op {
 	result := make(map[string]any)
 
 	netIfs, err := net.Interfaces()
 	if err != nil {
 		hclog.L().Trace("runner/host.Network.Run()", "error", err)
-		return op.New(n.ID(), result, op.Fail, err, runner.Params(n), startTime, time.Now())
+		return op.New(n.ID(), result, op.Fail, err, runner.Params(n), time.Time{}, time.Now())
 	}
 
 	for _, netIf := range netIfs {
@@ -55,11 +109,11 @@ func (n Network) Run() op.Op {
 		if err != nil {
 			hclog.L().Trace("runner/host.Network.Run()", "error", err)
 			err1 := fmt.Errorf("error converting network information err=%w", err)
-			return op.New(n.ID(), result, op.Fail, err1, runner.Params(n), startTime, time.Now())
+			return op.New(n.ID(), result, op.Fail, err1, runner.Params(n), time.Time{}, time.Now())
 		}
 		result[ifce.Name] = ifce
 	}
-	return op.New(n.ID(), result, op.Success, nil, runner.Params(n), startTime, time.Now())
+	return op.New(n.ID(), result, op.Success, nil, runner.Params(n), time.Time{}, time.Now())
 }
 
 func (n Network) networkInterface(nis net.InterfaceStat) (NetworkInterface, error) {
