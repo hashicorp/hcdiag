@@ -310,7 +310,16 @@ func (a *Agent) CopyIncludes() (err error) {
 		}
 
 		a.l.Debug("getting Copy", "path", f)
-		o := runner.NewCopy(f, dest, a.Config.Since, a.Config.Until, nil).Run()
+		c, err := runner.NewCopyWithContext(a.ctx, runner.CopyConfig{
+			Path:    f,
+			DestDir: dest,
+			Since:   a.Config.Since,
+			Until:   a.Config.Until,
+		})
+		if err != nil {
+			return err
+		}
+		o := c.Run()
 		if o.Error != nil {
 			return o.Error
 		}

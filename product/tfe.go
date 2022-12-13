@@ -78,13 +78,24 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 	if err != nil {
 		return nil, err
 	}
+	supportBundleCopy, err := runner.NewCopyWithContext(ctx, runner.CopyConfig{
+		Path:       "/var/lib/replicated/support-bundles/replicated-support*.tar.gz",
+		DestDir:    cfg.TmpDir,
+		Since:      cfg.Since,
+		Until:      cfg.Until,
+		Redactions: cfg.Redactions,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	r = append(r,
 		do.NewSync(l, "support-bundle", "replicated support bundle",
 			// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
 			// that these run serially.
 			[]runner.Runner{
 				supportBundleCmd,
-				runner.NewCopy("/var/lib/replicated/support-bundles/replicated-support*.tar.gz", cfg.TmpDir, cfg.Since, cfg.Until, cfg.Redactions),
+				supportBundleCopy,
 			}))
 
 	// Set up HTTP runners

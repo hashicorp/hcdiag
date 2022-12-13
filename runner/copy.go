@@ -5,6 +5,7 @@ package runner
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -23,27 +24,59 @@ import (
 
 var _ Runner = Copy{}
 
+type CopyConfig struct {
+	// Path is the file path to the directory or file to copy to the DestDir.
+	Path    string
+	DestDir string
+	Since   time.Time
+	Until   time.Time
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration
+}
+
 // Copy copies files to temp dir based on a filter.
 type Copy struct {
-	SourceDir  string           `json:"source_directory"`
-	Filter     string           `json:"filter"`
-	DestDir    string           `json:"destination_directory"`
-	Since      time.Time        `json:"since"`
-	Until      time.Time        `json:"until"`
+	ctx context.Context
+
+	SourceDir string    `json:"source_directory"`
+	Filter    string    `json:"filter"`
+	DestDir   string    `json:"destination_directory"`
+	Since     time.Time `json:"since"`
+	Until     time.Time `json:"until"`
+	// Redactions includes any redactions to apply to the output of the runner.
 	Redactions []*redact.Redact `json:"redactions"`
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout Timeout `json:"timeout"`
 }
 
 // NewCopy provides a Runner for copying files to temp dir based on a filter.
-func NewCopy(path, destDir string, since, until time.Time, redactions []*redact.Redact) *Copy {
+func NewCopy(cfg CopyConfig) (*Copy, error) {
+	return NewCopyWithContext(context.Background(), cfg)
+}
+
+func NewCopyWithContext(ctx context.Context, cfg CopyConfig) (*Copy, error) {
+	path := cfg.Path
+	if path == "" {
+		return nil, CopyConfigError{
+			config: cfg,
+			err:    fmt.Errorf("path must not be empty when creating a Copy runner"),
+		}
+	}
+
 	sourceDir, filter := util.SplitFilepath(path)
 	return &Copy{
+		ctx: ctx,
+
 		SourceDir:  sourceDir,
 		Filter:     filter,
-		DestDir:    destDir,
-		Since:      since,
-		Until:      until,
-		Redactions: redactions,
-	}
+		DestDir:    cfg.DestDir,
+		Since:      cfg.Since,
+		Until:      cfg.Until,
+		Redactions: cfg.Redactions,
+		Timeout:    Timeout(cfg.Timeout),
+	}, nil
 }
 
 func (c Copy) ID() string {
@@ -250,4 +283,23 @@ func copyFile(to, src string, redactions []*redact.Redact) error {
 	// No redactions, copy as normal
 	_, ce := io.Copy(w, r)
 	return ce
+}
+
+var _ error = CommandConfigError{}
+
+type CopyConfigError struct {
+	config CopyConfig
+	err    error
+}
+
+func (e CopyConfigError) Error() string {
+	message := "invalid Copy Config"
+	if e.err != nil {
+		return fmt.Sprintf("%s: %s", message, e.err.Error())
+	}
+	return message
+}
+
+func (e CopyConfigError) Unwrap() error {
+	return e.err
 }
