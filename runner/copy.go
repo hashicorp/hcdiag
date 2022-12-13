@@ -86,7 +86,40 @@ func (c Copy) ID() string {
 // Run satisfies the Runner interface and copies the filtered source files to the destination.
 func (c Copy) Run() op.Op {
 	startTime := time.Now()
+	if c.ctx == nil {
+		c.ctx = context.Background()
+	}
 
+	resChan := make(chan op.Op, 1)
+	runCtx := c.ctx
+	var cancel context.CancelFunc
+	if 0 < c.Timeout {
+		runCtx, cancel = context.WithTimeout(c.ctx, time.Duration(c.Timeout))
+		defer cancel()
+	}
+
+	go func(resChan chan op.Op) {
+		o := c.run()
+		o.Start = startTime
+		resChan <- o
+	}(resChan)
+
+	select {
+	case <-runCtx.Done():
+		switch runCtx.Err() {
+		case context.Canceled:
+			return CancelOp(c, runCtx.Err(), startTime)
+		case context.DeadlineExceeded:
+			return TimeoutOp(c, runCtx.Err(), startTime)
+		default:
+			return op.New(c.ID(), nil, op.Unknown, runCtx.Err(), Params(c), startTime, time.Now())
+		}
+	case o := <-resChan:
+		return o
+	}
+}
+
+func (c Copy) run() op.Op {
 	// Ensure destination directory exists
 	err := os.MkdirAll(c.DestDir, 0755)
 	if err != nil {
@@ -94,7 +127,7 @@ func (c Copy) Run() op.Op {
 			MakeDirError{
 				path: c.DestDir,
 				err:  err,
-			}, Params(c), startTime, time.Now())
+			}, Params(c), time.Time{}, time.Now())
 	}
 
 	// Find all the files
@@ -104,7 +137,7 @@ func (c Copy) Run() op.Op {
 			FindFilesError{
 				path: c.SourceDir,
 				err:  err,
-			}, Params(c), startTime, time.Now())
+			}, Params(c), time.Time{}, time.Now())
 	}
 
 	// Copy the files
@@ -116,12 +149,12 @@ func (c Copy) Run() op.Op {
 					dest:  c.DestDir,
 					files: files,
 					err:   err,
-				}, Params(c), startTime, time.Now())
+				}, Params(c), time.Time{}, time.Now())
 		}
 	}
 
 	result := map[string]any{"files": files}
-	return op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
+	return op.New(c.ID(), result, op.Success, nil, Params(c), time.Time{}, time.Now())
 }
 
 type MakeDirError struct {
