@@ -432,9 +432,12 @@ func mapCopies(ctx context.Context, cfgs []Copy, redactions []*redact.Redact, de
 			// FIXME(mkcp): "Now" should be sourced from the agent to avoid clock sync issues
 			since = time.Now().Add(-sinceDur)
 		}
-		timeout, err := time.ParseDuration(c.Timeout)
-		if err != nil {
-			return nil, err
+		var timeout time.Duration
+		if c.Timeout != "" {
+			timeout, err = time.ParseDuration(c.Timeout)
+			if err != nil {
+				return nil, err
+			}
 		}
 		r, err := runner.NewCopy(runner.CopyConfig{
 			Path:       c.Path,
