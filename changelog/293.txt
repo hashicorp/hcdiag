@@ -1,0 +1,6 @@
+```release-note:deprecation
+deprecation: -debug-interval and -debug-duration flags will be removed in a future release in favor of HCL configuration for debug overrides. These flags are now marked as deprecated in CLI help output.
+```
+```release-note:improvement
+docs: Add example usage details for new Consul, Vault, and Nomad debug runners.
+```
