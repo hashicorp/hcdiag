@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/hashicorp/go-hclog"
 	home "github.com/mitchellh/go-homedir"
 )
 
@@ -48,7 +49,7 @@ func NewVaultAPI() (*APIClient, error) {
 		token = string(bts)
 	}
 	if token == "" {
-		return nil, errors.New("unable to find VAULT_TOKEN env or ~/.vault-token")
+		hclog.L().Error("missing Vault client token; diagnostic information may be incomplete (please set VAULT_TOKEN environment variable or add it to ~/.vault-token file to gather all information)")
 	}
 	headers["X-Vault-Token"] = token
 

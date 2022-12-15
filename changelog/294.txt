@@ -1,0 +1,3 @@
+```release-note:improvement
+vault: When a Vault token can't be found with the VAULT_TOKEN environment variable or in the ~/.vault-token file, we now log a warning without stopping the diagnostic run short. This allows users to still gather useful information about their Vault instance, while the warning indicates that the information may be incomplete due to the missing token.
+```
