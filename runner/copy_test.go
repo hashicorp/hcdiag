@@ -4,6 +4,7 @@
 package runner
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,18 +17,50 @@ import (
 
 func TestNewCopy(t *testing.T) {
 	src := t.TempDir()
-	dest := t.TempDir()
-	since := time.Time{}
-	until := time.Now()
-	expect := &Copy{
-		SourceDir: src,
-		Filter:    "*",
-		DestDir:   dest,
-		Since:     since,
-		Until:     until,
+	dst := t.TempDir()
+	now := time.Now()
+
+	tt := []struct {
+		desc      string
+		cfg       CopyConfig
+		expect    *Copy
+		expectErr bool
+	}{
+		{
+			desc: "valid config",
+			cfg: CopyConfig{
+				Path:    src,
+				DestDir: dst,
+				Since:   time.Time{},
+				Until:   now,
+			},
+			expect: &Copy{
+				ctx:       context.Background(),
+				SourceDir: src,
+				Filter:    "*",
+				DestDir:   dst,
+				Since:     time.Time{},
+				Until:     now,
+			},
+		},
+		{
+			desc:      "empty config causes an error",
+			cfg:       CopyConfig{},
+			expectErr: true,
+		},
 	}
-	copy := NewCopy(src, dest, since, until, nil)
-	assert.Equal(t, expect, copy)
+
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			c, err := NewCopy(tc.cfg)
+			if tc.expectErr {
+				assert.ErrorAs(t, err, &CopyConfigError{})
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expect, c)
+			}
+		})
+	}
 }
 
 func setupFile(t *testing.T, dir, file, content string) {

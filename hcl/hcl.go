@@ -162,6 +162,7 @@ type Copy struct {
 	Path       string   `hcl:"path" json:"path"`
 	Since      string   `hcl:"since,optional" json:"since"`
 	Redactions []Redact `hcl:"redact,block" json:"redactions,omitempty"`
+	Timeout    string   `hcl:"timeout,optional" json:"timeout,omitempty"`
 }
 
 type DockerLog struct {
@@ -431,7 +432,25 @@ func mapCopies(ctx context.Context, cfgs []Copy, redactions []*redact.Redact, de
 			// FIXME(mkcp): "Now" should be sourced from the agent to avoid clock sync issues
 			since = time.Now().Add(-sinceDur)
 		}
-		runners[i] = runner.NewCopy(c.Path, dest, since, time.Time{}, runnerRedacts)
+		var timeout time.Duration
+		if c.Timeout != "" {
+			timeout, err = time.ParseDuration(c.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
+		r, err := runner.NewCopyWithContext(ctx, runner.CopyConfig{
+			Path:       c.Path,
+			DestDir:    dest,
+			Since:      since,
+			Until:      time.Time{},
+			Redactions: runnerRedacts,
+			Timeout:    timeout,
+		})
+		if err != nil {
+			return nil, err
+		}
+		runners[i] = r
 	}
 	return runners, nil
 }

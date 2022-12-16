@@ -146,7 +146,16 @@ func consulRunners(ctx context.Context, cfg Config, api *client.APIClient, l hcl
 	// try to detect log location to copy
 	if logPath, err := client.GetConsulLogPath(api); err == nil {
 		dest := filepath.Join(cfg.TmpDir, "logs/consul")
-		logCopy := runner.NewCopy(logPath, dest, cfg.Since, cfg.Until, cfg.Redactions)
+		logCopy, err := runner.NewCopyWithContext(ctx, runner.CopyConfig{
+			Path:       logPath,
+			DestDir:    dest,
+			Since:      cfg.Since,
+			Until:      cfg.Until,
+			Redactions: cfg.Redactions,
+		})
+		if err != nil {
+			return nil, err
+		}
 		r = append([]runner.Runner{logCopy}, r...)
 	}
 
