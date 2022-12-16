@@ -439,7 +439,7 @@ func mapCopies(ctx context.Context, cfgs []Copy, redactions []*redact.Redact, de
 				return nil, err
 			}
 		}
-		r, err := runner.NewCopy(runner.CopyConfig{
+		r, err := runner.NewCopyWithContext(ctx, runner.CopyConfig{
 			Path:       c.Path,
 			DestDir:    dest,
 			Since:      since,
