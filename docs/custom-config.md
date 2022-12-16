@@ -143,3 +143,55 @@ hcdiag -nomad -debug-duration=0 -config hcdiag.hcl
 This will point hcdiag at your custom config file and execute your custom command.
 
 **NOTE** The -debug-duration flag is here to suppress the built-in nomad debug command, preventing the built-in version of the `nomad operator debug` command from being run, and a second nomad-debug archive being created in your hcdiag bundle.
+
+### Customizing Debug Runners
+
+Beginning in `hcdiag` `0.5.0`, you may customize how you execute product debug commands using HCL. Previously, there were two command line flags (`debug-duration` and `debug-interval`), which affected debugs for all products. Now, these can be customized extensively using HCL. The following snippet shows options for each product, along with the corresponding flag that you would provide to the product's debug command.
+
+```
+product "consul" {
+  consul-debug {
+    // The consul-debug block has fields corresponding to the `consul debug` command.
+    // See https://developer.hashicorp.com/consul/commands/debug for details.
+
+    archive = "true" // corresponds to -archive flag
+    duration = "2m" // corresponds to -duration flag
+    interval = "30s" // corresponds to -interval flag
+    captures = [] // set of targets, matching the -capture flag
+  }
+}
+
+product "vault" {
+  vault-debug {
+    // The vault-debug block has fields corresponding to the `vault debug` command.
+    // See https://developer.hashicorp.com/vault/docs/commands/debug for details.
+
+    compress = "true" // corresponds to -compress flag
+    duration = "2m" // corresponds to -duration flag
+    interval = "30s" // corresponds to -interval flag
+    log-format = "standard" // corresponds to -log-format flag
+    metrics-interval = "10s" // corresponds to -metrics-interval flag
+    targets = [] // set of targets, matching the -target flag
+  }
+}
+
+product "nomad" {
+  nomad-debug {
+    // The nomad-debug block has fields corresponding to the `nomad operator debug` command.
+    // See https://developer.hashicorp.com/nomad/docs/commands/operator/debug for details.
+
+    duration = "2m" // corresponds to -duration flag
+    interval = "30s" // corresponds to -interval flag
+    log-level = "DEBUG" // corresponds to -log-level flag
+    max-nodes = 0 // corresponds to -max-nodes flag
+    node-class = "my-class" // corresponds to -node-class flag
+    node-id = "all" // corresponds to -node-id flag
+    pprof-duration = "1s" // corresponds to -pprof-duration flag
+    pprof-interval = "250ms" // corresponds to -pprof-interval flag
+    server-id = "all" // corresponds to -server-id flag
+    stale = false // corresponds to -stale flag
+    verbose = true // corresponds to -verbose flag
+    targets = [] // set of event topics, matching the -event-topic flag
+  }
+}
+```

@@ -69,24 +69,24 @@ type RunCommand struct {
 
 func (c *RunCommand) init() {
 	const (
-		consulUsageText        = "Run Consul diagnostics"
-		nomadUsageText         = "Run Nomad diagnostics"
-		terraformEntUsageText  = "Run Terraform Enterprise diagnostics"
-		vaultUsageText         = "Run Vault diagnostics"
-		autodetectUsageText    = "Auto-Detect installed products; any provided product flags will override this setting"
-		dryrunUsageText        = "Displays all runners that would be executed during a normal run without actually executing them."
-		includeSinceUsageText  = "Alias for -since, will be overridden if -since is also provided, usage examples: '72h', '25m', '45s', '120h1m90s'"
-		sinceUsageText         = "Collect information within this time. Takes a 'go-formatted' duration, usage examples: '72h', '25m', '45s', '120h1m90s'"
-		debugDurationUsageText = "How long to run product debug bundle commands. Provide a duration ex: '00h00m00s'. See: -duration in 'vault debug', 'consul debug', and 'nomad operator debug'"
-		debugIntervalUsageText = "How long metrics collection intervals in product debug commands last. Provide a duration ex: '00h00m00s'. See: -interval in 'vault debug', 'consul debug', and 'nomad operator debug'"
-		osUsageText            = "Override operating system detection"
-		destinationUsageText   = "Path to the directory the bundle should be written in"
-		destUsageText          = "Shorthand for -destination"
-		configUsageText        = "Path to HCL configuration file"
+		consulUsageText       = "Run Consul diagnostics"
+		nomadUsageText        = "Run Nomad diagnostics"
+		terraformEntUsageText = "Run Terraform Enterprise diagnostics"
+		vaultUsageText        = "Run Vault diagnostics"
+		autodetectUsageText   = "Auto-Detect installed products; any provided product flags will override this setting"
+		dryrunUsageText       = "Displays all runners that would be executed during a normal run without actually executing them."
+		includeSinceUsageText = "Alias for -since, will be overridden if -since is also provided, usage examples: '72h', '25m', '45s', '120h1m90s'"
+		sinceUsageText        = "Collect information within this time. Takes a 'go-formatted' duration, usage examples: '72h', '25m', '45s', '120h1m90s'"
+		osUsageText           = "Override operating system detection"
+		destinationUsageText  = "Path to the directory the bundle should be written in"
+		destUsageText         = "Shorthand for -destination"
+		configUsageText       = "Path to HCL configuration file"
 
 		// Deprecated options
-		includesUsageText = "DEPRECATED: Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead"
-		serialUsageText   = "DEPRECATED: Run products in sequence rather than concurrently. NOTE: This option will be removed in an upcoming version of hcdiag. Runners within products run concurrently beginning in 0.5.0. Please use HCL do-sync blocks instead."
+		includesUsageText      = "DEPRECATED: Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead."
+		serialUsageText        = "DEPRECATED: Run products in sequence rather than concurrently. NOTE: This option will be removed in an upcoming version of hcdiag. Runners within products run concurrently beginning in 0.5.0. Please use HCL do-sync blocks instead."
+		debugDurationUsageText = "DEPRECATED: How long to run product debug bundle commands. Provide a duration ex: '00h00m00s'. See: -duration in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
+		debugIntervalUsageText = "DEPRECATED: How long metrics collection intervals in product debug commands last. Provide a duration ex: '00h00m00s'. See: -interval in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
 	)
 
 	// flag.ContinueOnError allows flag.Parse to return an error if one comes up, rather than doing an `os.Exit(2)`
