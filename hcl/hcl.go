@@ -394,7 +394,13 @@ func mapShells(ctx context.Context, cfgs []Shell, redactions []*redact.Redact) (
 		}
 		// Prepend runner-level redactions to those passed in
 		runnerRedacts = append(runnerRedacts, redactions...)
-		timeout, err := time.ParseDuration(c.Timeout)
+		var timeout time.Duration
+		if c.Timeout != "" {
+			timeout, err = time.ParseDuration(c.Timeout)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if err != nil {
 			return nil, err
 		}
