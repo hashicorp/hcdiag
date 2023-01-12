@@ -78,7 +78,7 @@ func NewHostWithContext(ctx context.Context, logger hclog.Logger, cfg Config, hc
 // hostRunners generates a slice of runners to inspect the host.
 func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
 	r := []runner.Runner{
-		host.NewOS(os, redactions),
+		host.NewOSWithContext(ctx, host.OSConfig{OS: os, Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
 		host.NewDiskWithContext(ctx, host.DiskConfig{Redactions: redactions}),
 		host.NewInfoWithContext(ctx, host.InfoConfig{Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
 		// TODO(mkcp): Source the timeout value from agent/CLI params, or extract to a const.

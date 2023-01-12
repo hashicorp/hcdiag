@@ -4,6 +4,7 @@
 package host
 
 import (
+	"context"
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
@@ -13,22 +14,45 @@ import (
 
 var _ runner.Runner = OS{}
 
-type OS struct {
-	OS         string           `json:"os"`
-	Command    string           `json:"command"`
-	Redactions []*redact.Redact `json:"redactions"`
+type OSConfig struct {
+	// OS is the operating system family of the host.
+	OS string
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout time.Duration
 }
 
-func NewOS(os string, redactions []*redact.Redact) *OS {
+type OS struct {
+	ctx context.Context
+
+	// OS is the operating system family of the host.
+	OS string `json:"os"`
+	// Command is the command that will execute to gather OS details.
+	Command string `json:"command"`
+	// Redactions includes any redactions to apply to the output of the runner.
+	Redactions []*redact.Redact `json:"redactions"`
+	// Timeout specifies the amount of time that the runner should be allowed to execute before cancellation.
+	Timeout runner.Timeout `json:"timeout"`
+}
+
+func NewOS(cfg OSConfig) *OS {
+	return NewOSWithContext(context.Background(), cfg)
+}
+
+func NewOSWithContext(ctx context.Context, cfg OSConfig) *OS {
+	os := cfg.OS
 	osCmd := "uname -v"
 	if os == "windows" {
 		osCmd = "systeminfo"
 	}
 
 	return &OS{
+		ctx:        ctx,
 		OS:         os,
 		Command:    osCmd,
-		Redactions: redactions,
+		Redactions: cfg.Redactions,
+		Timeout:    runner.Timeout(cfg.Timeout),
 	}
 }
 
@@ -43,8 +67,9 @@ func (o OS) Run() op.Op {
 		Command:    o.Command,
 		Format:     "string",
 		Redactions: o.Redactions,
+		Timeout:    time.Duration(o.Timeout),
 	}
-	cmdRunner, err := runner.NewCommand(cmdCfg)
+	cmdRunner, err := runner.NewCommandWithContext(o.ctx, cmdCfg)
 	if err != nil {
 		return op.New(o.ID(), nil, op.Fail, err, runner.Params(o), startTime, time.Now())
 	}
