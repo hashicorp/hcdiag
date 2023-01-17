@@ -4,6 +4,7 @@
 package host
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -15,29 +16,52 @@ import (
 
 var _ runner.Runner = FSTab{}
 
-type FSTab struct {
-	OS    string        `json:"os"`
-	Shell runner.Runner `json:"shell"`
+// FSTabConfig takes each parameter to configure an FSTab runner implementation.
+type FSTabConfig struct {
+	OS         string           `json:"os"`
+	Timeout    runner.Timeout   `json:"timeout"`
+	Redactions []*redact.Redact `json:"redactions"`
 }
 
-func NewFSTab(os string, redactions []*redact.Redact) (*FSTab, error) {
+// FSTab accepts
+type FSTab struct {
+	OS      string         `json:"os"`
+	Shell   runner.Runner  `json:"shell"`
+	Timeout runner.Timeout `json:"timeout"`
+	ctx     context.Context
+}
+
+// NewFSTab takes FSTabConfig and returns a runnable FSTab.
+func NewFSTab(cfg FSTabConfig) (*FSTab, error) {
+	return NewFSTabWithContext(context.Background(), cfg)
+}
+
+// NewFSTabWithContext takes a Context and FSTabConfig and returns a runnable FSTab.
+func NewFSTabWithContext(ctx context.Context, cfg FSTabConfig) (*FSTab, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	// os string, redactions []*redact.Redact
 	shell, err := runner.NewShell(runner.ShellConfig{
 		Command:    "cat /etc/fstab",
-		Redactions: redactions,
+		Redactions: cfg.Redactions,
+		Timeout:    time.Duration(cfg.Timeout),
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &FSTab{
-		OS:    os,
+		OS:    cfg.OS,
 		Shell: shell,
 	}, nil
 }
 
+// ID returns the runner ID for FSTab.
 func (r FSTab) ID() string {
 	return "/etc/fstab"
 }
 
+// Run executes the FSTab Runner and returns an op.Op result.
 func (r FSTab) Run() op.Op {
 	startTime := time.Now()
 
@@ -46,9 +70,5 @@ func (r FSTab) Run() op.Op {
 		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("FSTab.Run() not available on os, os=%s", r.OS), runner.Params(r), startTime, time.Now())
 	}
 	o := r.Shell.Run()
-	if o.Error != nil {
-		return op.New(r.ID(), o.Result, op.Fail, o.Error, runner.Params(r), startTime, time.Now())
-	}
-
-	return op.New(r.ID(), o.Result, op.Success, nil, runner.Params(r), startTime, time.Now())
+	return op.New(r.ID(), o.Result, o.Status, o.Error, runner.Params(r), startTime, time.Now())
 }

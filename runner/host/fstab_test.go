@@ -91,7 +91,7 @@ func TestFSTab_Run(t *testing.T) {
 				},
 			},
 			expected: response{
-				status:    op.Fail,
+				status:    op.Unknown,
 				expectErr: true,
 			},
 		},
@@ -125,7 +125,7 @@ func TestNewFSTab(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fstab, err := NewFSTab(tc.os, nil)
+			fstab, err := NewFSTab(FSTabConfig{OS: tc.os})
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected.OS, fstab.OS)
 		})
