@@ -1,0 +1,3 @@
+```release-note:improvement
+runners: The host FSTab runner now takes an optional Timeout value, so that long-running executions can be gracefully stopped.
+```
