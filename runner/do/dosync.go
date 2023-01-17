@@ -4,6 +4,7 @@
 package do
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -13,21 +14,30 @@ import (
 	"github.com/hashicorp/hcdiag/op"
 )
 
-var _ runner.Runner = Sync{}
+var _ runner.Runner = Seq{}
 
-// Sync wraps a collection of runners and executes them in order, returning all of their Ops keyed by their ID(). If one
+// Seq wraps a collection of runners and executes them in order, returning all of their Ops keyed by their ID(). If one
 // of the runners has a status other than Success, subsequent runners will not be executed and the do-sync will return
 // a status.Fail.
-type Sync struct {
+type Seq struct {
 	Runners     []runner.Runner `json:"runners"`
 	Label       string          `json:"label"`
 	Description string          `json:"description"`
 	log         hclog.Logger
+	ctx         context.Context
 }
 
-// NewSync initializes a DoSync runner.
-func NewSync(l hclog.Logger, label, description string, runners []runner.Runner) *Sync {
-	return &Sync{
+// NewSeq initializes a Seq runner.
+func NewSeq(l hclog.Logger, label, description string, runners []runner.Runner) *Seq {
+	return NewSeqWithContext(context.Background(), l, label, description, runners)
+}
+
+func NewSeqWithContext(ctx context.Context, l hclog.Logger, label, description string, runners []runner.Runner) *Seq {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return &Seq{
+		ctx:         ctx,
 		Label:       label,
 		Description: description,
 		Runners:     runners,
@@ -35,12 +45,12 @@ func NewSync(l hclog.Logger, label, description string, runners []runner.Runner)
 	}
 }
 
-func (d Sync) ID() string {
-	return "do-sync " + d.Label
+func (d Seq) ID() string {
+	return "seq " + d.Label
 }
 
 // Run executes the Command
-func (d Sync) Run() op.Op {
+func (d Seq) Run() op.Op {
 	startTime := time.Now()
 	results := make(map[string]any, 0)
 
