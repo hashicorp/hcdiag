@@ -41,8 +41,7 @@ func NewFSTabWithContext(ctx context.Context, cfg FSTabConfig) (*FSTab, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	// os string, redactions []*redact.Redact
-	shell, err := runner.NewShell(runner.ShellConfig{
+	shell, err := runner.NewShellWithContext(ctx, runner.ShellConfig{
 		Command:    "cat /etc/fstab",
 		Redactions: cfg.Redactions,
 		Timeout:    time.Duration(cfg.Timeout),
