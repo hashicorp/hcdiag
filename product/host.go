@@ -102,8 +102,15 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		}),
 	}
 
-	// FIXME(mkcp): handle this error
-	fsTab, _ := host.NewFSTab(os, redactions)
+	fsTab, err := host.NewFSTab(host.FSTabConfig{
+		OS:         os,
+		Timeout:    runner.Timeout(1 * time.Millisecond),
+		Redactions: redactions,
+	})
+	// TODO(mkcp): Errors should propagate back from hostRunners().
+	if err != nil {
+		l.Error("unable to create host.FSTab runner.", "err=", err)
+	}
 	r = append(r, fsTab)
 
 	runners := []runner.Runner{
