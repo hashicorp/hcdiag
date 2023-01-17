@@ -52,6 +52,7 @@ func NewFSTabWithContext(ctx context.Context, cfg FSTabConfig) (*FSTab, error) {
 	return &FSTab{
 		OS:    cfg.OS,
 		Shell: shell,
+		ctx:   ctx,
 	}, nil
 }
 
