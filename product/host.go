@@ -81,7 +81,6 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		host.NewOSWithContext(ctx, host.OSConfig{OS: os, Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
 		host.NewDiskWithContext(ctx, host.DiskConfig{Redactions: redactions}),
 		host.NewInfoWithContext(ctx, host.InfoConfig{Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
-		// TODO(mkcp): Source the timeout value from agent/CLI params, or extract to a const.
 		host.NewMemoryWithContext(ctx, TimeoutThirtySeconds),
 		host.NewProcessWithContext(ctx, host.ProcessConfig{Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
 		host.NewNetworkWithContext(ctx, host.NetworkConfig{Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
@@ -93,7 +92,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		host.NewEtcHostsWithContext(ctx, host.EtcHostsConfig{
 			OS:         os,
 			Redactions: redactions,
-			Timeout:    TimeoutTenSeconds,
+			Timeout:    TimeoutThirtySeconds,
 		}),
 		host.NewProcFileWithContext(ctx, host.ProcFileConfig{
 			OS:         os,
@@ -104,7 +103,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 
 	fsTab, err := host.NewFSTab(host.FSTabConfig{
 		OS:         os,
-		Timeout:    runner.Timeout(1 * time.Millisecond),
+		Timeout:    TimeoutTenSeconds,
 		Redactions: redactions,
 	})
 	// TODO(mkcp): Errors should propagate back from hostRunners().
