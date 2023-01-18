@@ -55,31 +55,67 @@ func NewSeqWithContext(ctx context.Context, cfg SeqConfig) *Seq {
 	}
 }
 
-func (d Seq) ID() string {
-	return "seq " + d.Label
+func (s Seq) ID() string {
+	return "seq " + s.Label
 }
 
 // Run executes the Command
-func (d Seq) Run() op.Op {
+func (s Seq) Run() op.Op {
 	startTime := time.Now()
-	results := make(map[string]any, 0)
 
-	for _, r := range d.Runners {
-		d.log.Info("running operation", "runner", r.ID())
+	if s.ctx == nil {
+		s.ctx = context.Background()
+	}
+
+	resChan := make(chan op.Op, 0)
+
+	runCtx := s.ctx
+	var cancel context.CancelFunc
+	if 0 < s.Timeout {
+		runCtx, cancel = context.WithTimeout(s.ctx, time.Duration(s.Timeout))
+		defer cancel()
+	}
+
+	go func(resChan chan<- op.Op, start time.Time) {
+		o := s.run()
+		o.Start = start
+		resChan <- o
+	}(resChan, startTime)
+
+	select {
+	case <-runCtx.Done():
+		switch runCtx.Err() {
+		case context.Canceled:
+			return op.NewCancel(s.ID(), runCtx.Err(), runner.Params(s), startTime)
+		case context.DeadlineExceeded:
+			return op.NewTimeout(s.ID(), runCtx.Err(), runner.Params(s), startTime)
+		default:
+			return op.New(s.ID(), nil, op.Unknown, runCtx.Err(), runner.Params(s), startTime, time.Now())
+		}
+	case result := <-resChan:
+		return result
+	}
+
+}
+
+func (s Seq) run() op.Op {
+	results := make(map[string]any, 0)
+	for _, r := range s.Runners {
+		s.log.Info("running operation", "runner", r.ID())
 		o := r.Run()
 		// If any result op is not Success, abort and return all existing ops
 		if o.Status != op.Success {
 			// Add an op for this failed DoSync at the end of the slice
 			results[o.Identifier] = o
-			return op.New(d.ID(), results, op.Fail, ChildRunnerError{
-				Parent: d.ID(),
+			return op.New(s.ID(), results, op.Fail, ChildRunnerError{
+				Parent: s.ID(),
 				Child:  o.Identifier,
 				err:    o.Error,
-			}, runner.Params(d), startTime, time.Now())
+			}, runner.Params(s), time.Time{}, time.Now())
 		}
 	}
 	// Return runner ops, adding one at the end for our successful DoSync run
-	return op.New(d.ID(), results, op.Success, nil, runner.Params(d), startTime, time.Now())
+	return op.New(s.ID(), results, op.Success, nil, runner.Params(s), time.Time{}, time.Now())
 }
 
 type ChildRunnerError struct {
