@@ -90,7 +90,7 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 	}
 
 	r = append(r,
-		do.NewSync(l, "support-bundle", "replicated support bundle",
+		do.NewSeq(l, "support-bundle", "replicated support bundle",
 			// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
 			// that these run serially.
 			[]runner.Runner{
