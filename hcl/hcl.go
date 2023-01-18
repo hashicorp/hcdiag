@@ -36,8 +36,8 @@ type Agent struct {
 
 type Host struct {
 	// Do
-	Do     []Do     `hcl:"do,block" json:"do,omitempty"`
-	DoSync []DoSync `hcl:"do-sync,block" json:"do-sync,omitempty"`
+	Do  []Do  `hcl:"do,block" json:"do,omitempty"`
+	Seq []Seq `hcl:"seq,block" json:"seq,omitempty"`
 
 	// Runners
 	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
@@ -59,8 +59,8 @@ type Product struct {
 	Name string `hcl:"name,label" json:"name"`
 
 	// Do
-	Do     []Do     `hcl:"do,block" json:"do,omitempty"`
-	DoSync []DoSync `hcl:"do-sync,block" json:"do-sync,omitempty"`
+	Do  []Do  `hcl:"do,block" json:"do,omitempty"`
+	Seq []Seq `hcl:"seq,block" json:"seq,omitempty"`
 
 	// Runners
 	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
@@ -81,9 +81,8 @@ type Do struct {
 	Label       string `hcl:"name,label" json:"label"`
 	Description string `hcl:"description,optional" json:"since"`
 
-	// Do
-	Do     []Do     `hcl:"do,block" json:"do,omitempty"`
-	DoSync []DoSync `hcl:"do-sync,block" json:"do-sync,omitempty"`
+	Do  []Do  `hcl:"do,block" json:"do,omitempty"`
+	Seq []Seq `hcl:"seq,block" json:"seq,omitempty"`
 
 	// Runners
 	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
@@ -104,13 +103,13 @@ type Do struct {
 	// Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
 }
 
-type DoSync struct {
+type Seq struct {
 	Label       string `hcl:"name,label" json:"label"`
 	Description string `hcl:"description,optional" json:"since"`
 
 	// Do
-	Do     []Do     `hcl:"do,block" json:"do,omitempty"`
-	DoSync []DoSync `hcl:"do-sync,block" json:"do-sync,omitempty"`
+	Do  []Do  `hcl:"do,block" json:"do,omitempty"`
+	Seq []Seq `hcl:"seq,block" json:"seq,omitempty"`
 
 	// Runners
 	Commands     []Command     `hcl:"command,block" json:"commands,omitempty"`
