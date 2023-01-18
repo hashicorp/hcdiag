@@ -16,6 +16,14 @@ import (
 
 var _ runner.Runner = Seq{}
 
+type SeqConfig struct {
+	Runners     []runner.Runner
+	Label       string
+	Description string
+	Timeout     runner.Timeout
+	Logger      hclog.Logger
+}
+
 // Seq wraps a collection of runners and executes them in order, returning all of their Ops keyed by their ID(). If one
 // of the runners has a status other than Success, subsequent runners will not be executed and the do-sync will return
 // a status.Fail.
@@ -23,25 +31,27 @@ type Seq struct {
 	Runners     []runner.Runner `json:"runners"`
 	Label       string          `json:"label"`
 	Description string          `json:"description"`
+	Timeout     runner.Timeout  `json:"timeout"`
 	log         hclog.Logger
 	ctx         context.Context
 }
 
 // NewSeq initializes a Seq runner.
-func NewSeq(l hclog.Logger, label, description string, runners []runner.Runner) *Seq {
-	return NewSeqWithContext(context.Background(), l, label, description, runners)
+func NewSeq(cfg SeqConfig) *Seq {
+	return NewSeqWithContext(context.Background(), cfg)
 }
 
-func NewSeqWithContext(ctx context.Context, l hclog.Logger, label, description string, runners []runner.Runner) *Seq {
+func NewSeqWithContext(ctx context.Context, cfg SeqConfig) *Seq {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	return &Seq{
 		ctx:         ctx,
-		Label:       label,
-		Description: description,
-		Runners:     runners,
-		log:         l,
+		Label:       cfg.Label,
+		Description: cfg.Description,
+		Runners:     cfg.Runners,
+		Timeout:     cfg.Timeout,
+		log:         cfg.Logger,
 	}
 }
 

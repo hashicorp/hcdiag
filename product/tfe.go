@@ -89,14 +89,18 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 		return nil, err
 	}
 
-	r = append(r,
-		do.NewSeq(l, "support-bundle", "replicated support bundle",
-			// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
-			// that these run serially.
-			[]runner.Runner{
-				supportBundleCmd,
-				supportBundleCopy,
-			}))
+	// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
+	// that these run in sequence.
+	replicatedSeq := do.NewSeq(do.SeqConfig{
+		Runners: []runner.Runner{
+			supportBundleCmd,
+			supportBundleCopy,
+		},
+		Label:       "support-bundle",
+		Description: "replicated support bundle",
+		Logger:      l,
+	})
+	r = append(r, replicatedSeq)
 
 	// Set up HTTP runners
 	for _, hc := range []runner.HttpConfig{
