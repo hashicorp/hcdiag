@@ -67,7 +67,7 @@ func (s Seq) Run() op.Op {
 		s.ctx = context.Background()
 	}
 
-	resChan := make(chan op.Op, 0)
+	resChan := make(chan op.Op)
 
 	runCtx := s.ctx
 	var cancel context.CancelFunc
@@ -95,7 +95,6 @@ func (s Seq) Run() op.Op {
 	case result := <-resChan:
 		return result
 	}
-
 }
 
 func (s Seq) run() op.Op {
