@@ -5,7 +5,6 @@ package product
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"github.com/hashicorp/hcdiag/hcl"
@@ -89,7 +88,6 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		{Command: "vault read sys/health -format=json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "vault read sys/seal-status -format=json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "vault read sys/host-info -format=json", Format: "json", Redactions: cfg.Redactions},
-		{Command: fmt.Sprintf("vault debug -output=%s/VaultDebug.tar.gz -duration=%s -interval=%s", cfg.TmpDir, cfg.DebugDuration, cfg.DebugInterval), Redactions: cfg.Redactions},
 	} {
 		c, err := runner.NewCommandWithContext(ctx, cc)
 		if err != nil {
