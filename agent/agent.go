@@ -45,6 +45,18 @@ type Config struct {
 	DebugDuration time.Duration `json:"debug_duration"`
 	// DebugInterval
 	DebugInterval time.Duration `json:"debug_interval"`
+	// We omit this from JSON to avoid duplicates in manifest.json; it is copied and serialized in Agent instead.
+	Environment Environment `json:"-"`
+}
+
+// Environment describes runtime details about the execution environment of the Agent.
+type Environment struct {
+	// Command is the CLI command entered to execute a Run.
+	Command string `json:"command"`
+	// Username is the username of the process that started a Run.
+	Username string `json:"username"`
+	// Hostname is the hostname of the machine where the Run was executed.
+	Hostname string `json:"hostname"`
 }
 
 // Agent stores the runtime state that we use throughout the Agent's lifecycle.
@@ -67,6 +79,8 @@ type Agent struct {
 	ManifestOps map[string][]ManifestOp `json:"ops"`
 	// Agent-level redactions are passed through to all products
 	Redactions []*redact.Redact `json:"redactions"`
+	// Environment describes details about the process that constructed the agent
+	Environment Environment `json:"environment"`
 }
 
 // NewAgent produces a new Agent, initialized for subsequent running.
@@ -99,6 +113,7 @@ func NewAgentWithContext(ctx context.Context, config Config, logger hclog.Logger
 		ManifestOps: make(map[string][]ManifestOp),
 		Version:     version.GetVersion(),
 		Redactions:  redacts,
+		Environment: config.Environment,
 	}, nil
 }
 

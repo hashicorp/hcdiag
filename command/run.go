@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"path"
 	"sort"
 	"strconv"
@@ -180,6 +181,21 @@ func (c *RunCommand) Run(args []string) int {
 	since := pickSinceVsIncludeSince(l, c.since, c.includeSince)
 	cfg = setTime(cfg, now, since)
 	l.Debug("merged cfg", "cfg", fmt.Sprintf("%+v", cfg))
+
+	environment := agent.Environment{
+		Command: strings.Join(os.Args, " "),
+	}
+
+	hostname, err := os.Hostname()
+	if err == nil {
+		environment.Hostname = hostname
+	}
+
+	u, err := user.Current()
+	if err == nil {
+		environment.Username = u.Username
+	}
+	cfg.Environment = environment
 
 	// Create agent
 	a, err := agent.NewAgent(cfg, l)
