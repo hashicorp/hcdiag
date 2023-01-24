@@ -1,0 +1,3 @@
+```release-note:improvement
+manifest: manifest.json now includes environment metadata, including the command entered to run hcdiag, the username of the user who ran it, and the hostname where it was run.
+```
