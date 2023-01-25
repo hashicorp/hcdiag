@@ -67,7 +67,7 @@ func TestFunctional(t *testing.T) {
 				},
 				"consul": {
 					flags:    []string{"-consul"},
-					outFiles: []string{"ConsulDebug*.tar.gz"},
+					outFiles: []string{"ConsulDebug*/ConsulDebug.tar.gz"},
 					skip:     false,
 				},
 				"nomad": {
@@ -79,7 +79,7 @@ func TestFunctional(t *testing.T) {
 				},
 				"vault-unix": {
 					flags:    []string{"-vault"},
-					outFiles: []string{"VaultDebug*.tar.gz"},
+					outFiles: []string{"VaultDebug*/VaultDebug.tar.gz"},
 					// TODO(gulducat): de-unique-ize when `vault debug` is fixed on windows
 					// dave's pr: https://github.com/hashicorp/vault/pull/14399
 					skip: runtime.GOOS == "windows",
