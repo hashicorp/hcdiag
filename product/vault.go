@@ -98,6 +98,20 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		r = append(r, c)
 	}
 
+	// Set up HTTP runners
+	for _, hc := range []runner.HttpConfig{
+		{Client: api, Path: "/v1/sys/audit", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/sys/version-history?list=true", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/sys/license/status", Redactions: cfg.Redactions},
+		{Client: api, Path: "/v1/sys/replication/status", Redactions: cfg.Redactions},
+	} {
+		h, err := runner.NewHTTPWithContext(ctx, hc)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, h)
+	}
+
 	dbg, err := debug.NewVaultDebug(
 		debug.VaultDebugConfig{
 			Redactions: cfg.Redactions,

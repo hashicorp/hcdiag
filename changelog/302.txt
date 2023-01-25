@@ -1,0 +1,3 @@
+```release-note:improvement
+vault: Vault now includes additional runners for troubleshooting, from the following API endpoints: sys/audit, sys/version-history?list=true, sys/license/status, sys/replication-status.
+```
