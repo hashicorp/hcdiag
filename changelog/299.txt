@@ -1,3 +1,6 @@
 ```release-note:improvement
+runners: Rename DoSync to Seq.
+```
+```release-note:improvement
 runners: The seq runner now takes an optional Timeout value, so that long-running executions can be gracefully stopped.
 ```
