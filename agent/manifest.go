@@ -19,7 +19,7 @@ type ManifestOp struct {
 }
 
 // WalkResultsForManifest translates maps of arbitrarily deeply nested op.Ops and flattens them into a slice of ManifestOp.
-// In the case of nested runners, such as in Do or DoSync blocks, outer Op will contain results for all of the inner
+// In the case of nested runners, such as in Do or Seq blocks, outer Op will contain results for all the inner
 // runners. This function allows for reporting on the total number of Ops rather than just the outer Op.
 func WalkResultsForManifest(results map[string]op.Op) []ManifestOp {
 	m := make(map[string]any, 0)

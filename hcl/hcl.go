@@ -106,6 +106,7 @@ type Do struct {
 type Seq struct {
 	Label       string `hcl:"name,label" json:"label"`
 	Description string `hcl:"description,optional" json:"since"`
+	Timeout     string `hcl:"timeout,optional" json:"timeout,omitempty"`
 
 	// Do
 	Do  []Do  `hcl:"do,block" json:"do,omitempty"`
@@ -127,7 +128,6 @@ type Seq struct {
 	// Selects      []string      `hcl:"selects,optional" json:"selects,omitempty"`
 
 	// Params
-	// Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
 	// Redactions   []Redact      `hcl:"redact,block" json:"redactions,omitempty"`
 }
 

@@ -25,7 +25,7 @@ type SeqConfig struct {
 }
 
 // Seq wraps a collection of runners and executes them in order, returning all of their Ops keyed by their ID(). If one
-// of the runners has a status other than Success, subsequent runners will not be executed and the do-sync will return
+// of the runners has a status other than Success, subsequent runners will not be executed and the Seq will return
 // a status.Fail.
 type Seq struct {
 	Runners     []runner.Runner `json:"runners"`
@@ -104,7 +104,7 @@ func (s Seq) run() op.Op {
 		o := r.Run()
 		// If any result op is not Success, abort and return all existing ops
 		if o.Status != op.Success {
-			// Add an op for this failed DoSync at the end of the slice
+			// Add an op for this failed Seq at the end of the slice
 			results[o.Identifier] = o
 			return op.New(s.ID(), results, op.Fail, ChildRunnerError{
 				Parent: s.ID(),
@@ -113,7 +113,7 @@ func (s Seq) run() op.Op {
 			}, runner.Params(s), time.Time{}, time.Now())
 		}
 	}
-	// Return runner ops, adding one at the end for our successful DoSync run
+	// Return runner ops, adding one at the end for our successful Seq run
 	return op.New(s.ID(), results, op.Success, nil, runner.Params(s), time.Time{}, time.Now())
 }
 

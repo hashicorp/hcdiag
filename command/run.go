@@ -85,7 +85,7 @@ func (c *RunCommand) init() {
 
 		// Deprecated options
 		includesUsageText      = "DEPRECATED: Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead."
-		serialUsageText        = "DEPRECATED: Run products in sequence rather than concurrently. NOTE: This option will be removed in an upcoming version of hcdiag. Runners within products run concurrently beginning in 0.5.0. Please use HCL do-sync blocks instead."
+		serialUsageText        = "DEPRECATED: Run products in sequence rather than concurrently. NOTE: This option will be removed in an upcoming version of hcdiag. Runners within products run concurrently beginning in 0.5.0. Please use HCL seq blocks instead."
 		debugDurationUsageText = "DEPRECATED: How long to run product debug bundle commands. Provide a duration ex: '00h00m00s'. See: -duration in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
 		debugIntervalUsageText = "DEPRECATED: How long metrics collection intervals in product debug commands last. Provide a duration ex: '00h00m00s'. See: -interval in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
 	)
