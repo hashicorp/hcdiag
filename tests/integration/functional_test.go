@@ -67,7 +67,7 @@ func TestFunctional(t *testing.T) {
 				},
 				"consul": {
 					flags:    []string{"-consul"},
-					outFiles: []string{"ConsulDebug*/ConsulDebug.tar.gz"},
+					outFiles: []string{filepath.Join("ConsulDebug*", "ConsulDebug.tar.gz")},
 					skip:     false,
 				},
 				"nomad": {
@@ -79,7 +79,7 @@ func TestFunctional(t *testing.T) {
 				},
 				"vault-unix": {
 					flags:    []string{"-vault"},
-					outFiles: []string{"VaultDebug*/VaultDebug.tar.gz"},
+					outFiles: []string{filepath.Join("VaultDebug*", "VaultDebug.tar.gz")},
 					// TODO(gulducat): de-unique-ize when `vault debug` is fixed on windows
 					// dave's pr: https://github.com/hashicorp/vault/pull/14399
 					skip: runtime.GOOS == "windows",
@@ -87,9 +87,9 @@ func TestFunctional(t *testing.T) {
 				"autodetect-unix": {
 					flags: []string{},
 					outFiles: []string{
-						"ConsulDebug*.tar.gz",
+						filepath.Join("ConsulDebug*", "ConsulDebug.tar.gz"),
 						filepath.Join("NomadDebug*", "NomadDebug", "nomad*", "index.json"),
-						"VaultDebug*.tar.gz",
+						filepath.Join("VaultDebug*", "VaultDebug.tar.gz"),
 					},
 					skip: runtime.GOOS == "windows",
 				},
