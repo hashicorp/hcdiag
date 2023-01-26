@@ -1,3 +1,0 @@
-```release-note:feature
-Runners now take configurable timeout values.
-```

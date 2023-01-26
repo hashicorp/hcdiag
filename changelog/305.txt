@@ -1,0 +1,21 @@
+```release-note:feature
+Products now execute default runners in parallele, via a Do runner. Products with many file copies and network requests should see significant improvements.
+```
+```release-note:feature
+Runners now take timeouts, and these may be set via configuration.
+```
+```release-note:feature
+Configurable debug runners allow full customization without relying on Command or Shell runners.
+```
+```release-note:feature
+Consul updates include cli command `consul operator raft list-peers` and the API endpoint `/v1/agent/members`.
+```
+```release-note:feature
+Vault now includes additional runners for troubleshooting, from the following API endpoints: sys/audit, sys/version-history?list=true, sys/license/status, sys/replication-status.
+```
+```release-note:feature
+Sequencing runners (Do and Seq) are now available. Do is used to execute runners in parallel, while Seq runs them in guaranteed order.
+```
+```release-note:feature
+Runners that are skipped or time out are now reported appropriately in the end-of-run report.
+```
