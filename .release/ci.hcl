@@ -15,6 +15,8 @@ project "hcdiag" {
     release_branches = [
       "main",
       "release/0.3.x",
+      "release/0.4.x",
+      "release/0.5.x",
     ]
   }
 }
