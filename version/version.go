@@ -19,7 +19,7 @@ var (
 	// prerelease is a pre-release marker for the version. If this is "" (empty string) then it means that
 	// it is a final release. Otherwise, this is a pre-release such as "dev" (in development),
 	// "beta", "rc1", etc.
-	prerelease = "rc0"
+	prerelease = "rc1"
 
 	// metadata is any additional (optional) information regarding the build, as described by the semantic
 	// versioning specification.
