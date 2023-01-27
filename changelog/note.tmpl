@@ -1,3 +1,7 @@
 {{- define "note" -}}
     {{.Body}} [[GH-{{- .Issue -}}](https://github.com/hashicorp/hcdiag/pull/{{- .Issue -}})]
 {{- end -}}
+
+{{- define "feature" -}}
+    {{.Body}}
+{{- end -}}
