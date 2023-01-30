@@ -1,0 +1,3 @@
+```release-note:improvement
+go: Do not use CGO when building hcdiag binaries, so that C libraries won't be required on target machines.
+```
