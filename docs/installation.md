@@ -16,9 +16,12 @@ The advantage of installing via a package manager is that hcdiag will automatica
 
 ### Example: Ubuntu
 
-On the latest LTS version of Ubuntu 22.04, you'd run:
+On the latest LTS version of Ubuntu 22.04, you'd run the following commands as the `root` user:
 
 ```
+# become the root user
+sudo -i
+
 # Add the hashicorp repository
 wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg && echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com jammy main" | tee /etc/apt/sources.list.d/hashicorp.list
 
