@@ -1,0 +1,3 @@
+```release-note:improvement
+documentation: add note about ubuntu installation requiring root privileges, and demonstrate switching user in the example commands
+```

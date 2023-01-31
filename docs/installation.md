@@ -16,7 +16,7 @@ The advantage of installing via a package manager is that hcdiag will automatica
 
 ### Example: Ubuntu
 
-On the latest LTS version of Ubuntu 22.04, you'd run:
+On the latest LTS version of Ubuntu 22.04, you'd run the following commands as the `root` user (if you're not already `root`, run `sudo -i` first).
 
 ```
 # Add the hashicorp repository
