@@ -25,11 +25,11 @@ jobs:
         id: set-ticket-type
         run: |
           if [[ "${{ contains(github.event.issue.labels.*.name, 'bug') }}" == "true" ]]; then
-            echo "::set-output name=type::Bug"
+            echo "type=Bug" >> $GITHUB_OUTPUT
           elif [[ "${{ contains(github.event.issue.labels.*.name, 'enhancement') }}" == "true" ]]; then
-            echo "::set-output name=type::Story"
+            echo "type=Story" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=type::Task"
+            echo "type=Task" >> $GITHUB_OUTPUT
           fi
 
       - name: Set ticket labels
@@ -46,7 +46,7 @@ jobs:
           if [[ "${{ contains(github.event.issue.labels.*.name, 'boundary') }}" == "true" ]]; then LABELS+="\"boundary\", "; fi
           if [[ "${{ contains(github.event.issue.labels.*.name, 'waypoint') }}" == "true" ]]; then LABELS+="\"waypoint\", "; fi
           if [[ ${#LABELS} != 1 ]]; then LABELS=${LABELS::-2}"]"; else LABELS+="]"; fi
-          echo "::set-output name=labels::${LABELS}"
+          echo "labels=${LABELS}" >> $GITHUB_OUTPUT
           
       - name: Check if team member
         if: github.event.action == 'opened' && steps.set-ticket-type.outputs.type == 'Task'
@@ -56,10 +56,10 @@ jobs:
           ROLE="$(hub api orgs/hashicorp/teams/${TEAM}/memberships/${{ github.actor }} | jq -r '.role | select(.!=null)')"
           if [[ -n ${ROLE} ]]; then
             echo "Actor ${{ github.actor }} is a ${TEAM} team member"
-            echo "::set-output name=message::true"
+            echo "message=true" >> $GITHUB_OUTPUT
           else
             echo "Actor ${{ github.actor }} is NOT a ${TEAM} team member"
-            echo "::set-output name=message::false"
+            echo "message=false" >> $GITHUB_OUTPUT
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.JIRA_SYNC_GITHUB_TOKEN }}
