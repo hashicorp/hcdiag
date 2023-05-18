@@ -1,0 +1,3 @@
+```release-note:improvement
+seeker: add hcdiag-ext seekers/runners into hcdiag core due to lightweight improvement and benefit to customer experience
+```
