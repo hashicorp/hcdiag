@@ -102,11 +102,6 @@ func vaultRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclo
 		{Client: api, Path: "/v1/sys/version-history?list=true", Redactions: cfg.Redactions},
 		{Client: api, Path: "/v1/sys/license/status", Redactions: cfg.Redactions},
 		{Client: api, Path: "/v1/sys/replication/status", Redactions: cfg.Redactions},
-		{Client: api, Path: "/v1/sys/health", Redactions: cfg.Redactions},
-		{Client: api, Path: "/v1/sys/internal/counters/activity", Redactions: cfg.Redactions},
-		{Client: api, Path: "/v1/sys/storage/raft/autopilot/configuration", Redactions: cfg.Redactions},
-		{Client: api, Path: "/v1/sys/storage/raft/autopilot/state", Redactions: cfg.Redactions},
-		{Client: api, Path: "/v1/sys/storage/raft/snapshot-auto/config?list=true", Redactions: cfg.Redactions},
 	} {
 		h, err := runner.NewHTTPWithContext(ctx, hc)
 		if err != nil {
