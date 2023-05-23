@@ -104,7 +104,6 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 
 	// Set up HTTP runners
 	for _, hc := range []runner.HttpConfig{
-		{Client: api, Path: "/api/v2/admin/release", Redactions: cfg.Redactions},
 		{Client: api, Path: "/api/v2/admin/customization-settings", Redactions: cfg.Redactions},
 		{Client: api, Path: "/api/v2/admin/general-settings", Redactions: cfg.Redactions},
 		{Client: api, Path: "/api/v2/admin/organizations", Redactions: cfg.Redactions},
@@ -127,7 +126,6 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 		{Command: "docker -v", Redactions: cfg.Redactions},
 		{Command: "replicatedctl app status --output json", Format: "json", Redactions: cfg.Redactions},
 		{Command: "lsblk --json", Format: "json", Redactions: cfg.Redactions},
-		{Command: "replicatedctl license inspect", Format: "json", Redactions: cfg.Redactions},
 		{Command: "replicatedctl app-config view -o json --group capacity", Format: "json", Redactions: cfg.Redactions},
 		{Command: "replicatedctl app-config view -o json --group production_type", Format: "json", Redactions: cfg.Redactions},
 		{Command: "replicatedctl app-config view -o json --group log_forwarding", Format: "json", Redactions: cfg.Redactions},
