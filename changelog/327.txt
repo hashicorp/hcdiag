@@ -1,0 +1,4 @@
+```release-note:improvement
+TFE: Change replicated support bundle generation command to avoid the necessity for an app ID variable to be provided.
+```
+
