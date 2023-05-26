@@ -72,7 +72,7 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 
 	// Set up the Replicated Support Bundle runners
 	supportBundleCmd, err := runner.NewCommandWithContext(ctx, runner.CommandConfig{
-		Command:    "replicated support-bundle",
+		Command:    "replicatedctl support-bundle",
 		Redactions: cfg.Redactions,
 	})
 	if err != nil {
