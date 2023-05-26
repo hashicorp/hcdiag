@@ -89,7 +89,7 @@ func tfeRunners(ctx context.Context, cfg Config, api *client.APIClient, l hclog.
 		return nil, err
 	}
 
-	// The support bundle that we copy is built by the `replicated support-bundle` command, so we need to ensure
+	// The support bundle that we copy is built by the `replicatedctl support-bundle` command, so we need to ensure
 	// that these run in sequence.
 	replicatedSeq := do.NewSeq(do.SeqConfig{
 		Runners: []runner.Runner{
