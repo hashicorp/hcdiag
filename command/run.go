@@ -36,7 +36,6 @@ type RunCommand struct {
 	flags *flag.FlagSet
 
 	os     string
-	serial bool
 	dryrun bool
 
 	// Products
@@ -85,7 +84,6 @@ func (c *RunCommand) init() {
 
 		// Deprecated options
 		includesUsageText      = "DEPRECATED: Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead."
-		serialUsageText        = "DEPRECATED: Run products in sequence rather than concurrently. NOTE: This option will be removed in an upcoming version of hcdiag. Runners within products run concurrently beginning in 0.5.0. Please use HCL seq blocks instead."
 		debugDurationUsageText = "DEPRECATED: How long to run product debug bundle commands. Provide a duration ex: '00h00m00s'. See: -duration in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
 		debugIntervalUsageText = "DEPRECATED: How long metrics collection intervals in product debug commands last. Provide a duration ex: '00h00m00s'. See: -interval in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
 	)
@@ -95,7 +93,6 @@ func (c *RunCommand) init() {
 	c.flags = flag.NewFlagSet("run", flag.ContinueOnError)
 
 	c.flags.BoolVar(&c.dryrun, "dryrun", false, dryrunUsageText)
-	c.flags.BoolVar(&c.serial, "serial", false, serialUsageText)
 	c.flags.BoolVar(&c.consul, "consul", false, consulUsageText)
 	c.flags.BoolVar(&c.nomad, "nomad", false, nomadUsageText)
 	c.flags.BoolVar(&c.tfe, "terraform-ent", false, terraformEntUsageText)
@@ -265,7 +262,6 @@ func (c *RunCommand) parseFlags(args []string) error {
 // mergeAgentConfig merges flags into the agent.Config, prioritizing flags over HCL config.
 func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 	config.OS = c.os
-	config.Serial = c.serial
 	config.Dryrun = c.dryrun
 
 	config.Consul = c.consul

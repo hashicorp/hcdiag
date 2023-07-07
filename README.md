@@ -114,7 +114,6 @@ Terraform Enterprise historically uses replicated to provide similar functionali
 | `destination`   | Path to the directory the bundle should be written in                                                                                                               | string | "."           |
 | `dest`          | Shorthand for -destination                                                                                                                                          | string | "."           |
 | `config`        | Path to HCL configuration file                                                                                                                                      | string | ""            |
-| `serial`        | (DEPRECATED) Run products in sequence rather than concurrently. Mostly for dev - use only if you want to be especially delicate with system load.                   | bool   | false         |
 
 ### Installation
 
