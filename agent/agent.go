@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -20,7 +19,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/product"
-	"github.com/hashicorp/hcdiag/runner"
 	"github.com/hashicorp/hcdiag/util"
 	"github.com/hashicorp/hcdiag/version"
 )
@@ -37,7 +35,6 @@ type Config struct {
 	Vault       bool      `json:"vault_enabled"`
 	Since       time.Time `json:"since"`
 	Until       time.Time `json:"until"`
-	Includes    []string  `json:"includes"`
 	Destination string    `json:"destination"`
 
 	// DebugDuration
@@ -147,11 +144,6 @@ func (a *Agent) Run() []error {
 		}
 	}()
 
-	if errCopy := a.CopyIncludes(); errCopy != nil {
-		errs = append(errs, errCopy)
-		a.l.Error("Failed copying includes", "error", errCopy)
-	}
-
 	// Product processing
 	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
 	// users to send us incomplete diagnostics.
@@ -217,7 +209,6 @@ func (a *Agent) DryRun() []error {
 	// glob "*" here is to support copy/paste of runner identifiers
 	// from -dryrun output into select/exclude filters
 	a.tmpDir = "*"
-	a.l.Info("Would copy included files", "includes", a.Config.Includes)
 
 	// Running healthchecks for products. We don't want to stop if any fail though.
 	a.l.Info("Checking product availability")
@@ -297,49 +288,6 @@ func (a *Agent) Cleanup() (err error) {
 		a.l.Warn("Failed to clean up temp dir", "message", err)
 	}
 	return err
-}
-
-// CopyIncludes copies user-specified files over to our tempdir.
-func (a *Agent) CopyIncludes() (err error) {
-	if len(a.Config.Includes) == 0 {
-		return nil
-	}
-
-	a.l.Info("Copying includes")
-
-	dest := filepath.Join(a.tmpDir, "includes")
-	err = os.MkdirAll(dest, 0755)
-	if err != nil {
-		return err
-	}
-
-	for _, f := range a.Config.Includes {
-		a.l.Debug("validating include exists", "path", f)
-		// Wildcards don't represent a single file or dir, so we can't validate that they exist.
-		if !strings.Contains(f, "*") {
-			_, err := os.Stat(f)
-			if err != nil {
-				return err
-			}
-		}
-
-		a.l.Debug("getting Copy", "path", f)
-		c, err := runner.NewCopyWithContext(a.ctx, runner.CopyConfig{
-			Path:    f,
-			DestDir: dest,
-			Since:   a.Config.Since,
-			Until:   a.Config.Until,
-		})
-		if err != nil {
-			return err
-		}
-		o := c.Run()
-		if o.Error != nil {
-			return o.Error
-		}
-	}
-
-	return nil
 }
 
 // RunProducts executes all ops for this run.

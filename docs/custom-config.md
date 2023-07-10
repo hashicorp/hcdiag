@@ -95,7 +95,6 @@ product "consul" {
     format = "string"
   }
 
-  // You could copy files with -includes as well
   command {
     run = "cat /etc/consul.d/example.hcl"
     format = "string"

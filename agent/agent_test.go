@@ -103,55 +103,6 @@ func TestCreateTempAndCleanup(t *testing.T) {
 	}
 }
 
-func TestCopyIncludes(t *testing.T) {
-	// set up a table of test cases
-	// these dirs/files are checked in to this repo under tests/resources/
-	testTable := []map[string]string{
-		{
-			"path":   "file.0",
-			"expect": "file.0",
-		},
-		{
-			"path":   "dir1",
-			"expect": filepath.Join("dir1", "file.1"),
-		},
-		{
-			"path":   filepath.Join("dir2", "file*"),
-			"expect": filepath.Join("dir2", "file.2"),
-		},
-	}
-
-	var includeStr []string
-	for _, data := range testTable {
-		path := filepath.Join("../", "tests", "resources", data["path"])
-		absPath, err := filepath.Abs(path)
-		assert.NoError(t, err)
-		includeStr = append(includeStr, absPath)
-	}
-
-	cfg := Config{Includes: includeStr}
-	a, err := NewAgent(cfg, hclog.Default())
-	assert.NoError(t, err, "Error creating agent")
-	err = a.CreateTemp()
-	assert.NoError(t, err, "Error creating tmpDir")
-	defer cleanupHelper(t, a)
-
-	// execute what we're aiming to test
-	err = a.CopyIncludes()
-	assert.NoError(t, err, "Could not copy includes")
-
-	// verify expected file locations
-	for _, data := range testTable {
-		path := filepath.Join("../", "tests", "resources", data["expect"])
-		absPath, err := filepath.Abs(path)
-		assert.NoError(t, err)
-		expect := filepath.Join(a.tmpDir, "includes", absPath)
-		if _, err := os.Stat(expect); err != nil {
-			t.Errorf("Expect %s to exist, got error: %s", expect, err)
-		}
-	}
-}
-
 func TestRunProducts(t *testing.T) {
 	l := hclog.Default()
 	pCfg := product.Config{OS: "auto"}

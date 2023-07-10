@@ -51,9 +51,6 @@ type RunCommand struct {
 	// includeSince provides a time range for ops to work from
 	includeSince time.Duration
 
-	// includes
-	includes []string
-
 	// Bundle write location
 	destination string
 
@@ -106,7 +103,6 @@ func (c *RunCommand) init() {
 	c.flags.StringVar(&c.destination, "destination", ".", destinationUsageText)
 	c.flags.StringVar(&c.destination, "dest", ".", destUsageText)
 	c.flags.StringVar(&c.config, "config", "", configUsageText)
-	c.flags.Var(&CSVFlag{&c.includes}, "includes", includesUsageText)
 
 	// Ensure f.Destination points to some kind of directory by its notation
 	// FIXME(mkcp): trailing slashes should be trimmed in path.Dir... why does a double slash end in a slash?
@@ -285,14 +281,6 @@ func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 				"vault", config.Vault,
 			)
 		}
-	}
-
-	// Params for --includes
-	config.Includes = c.includes
-	if len(c.includes) > 0 {
-		hclog.L().Warn(
-			"DEPRECATION NOTICE: The '-includes' option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead.",
-		)
 	}
 
 	// Bundle write location
