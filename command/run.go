@@ -55,12 +55,6 @@ type RunCommand struct {
 
 	// HCL file location
 	config string
-
-	// debugDuration param for product debug bundles
-	debugDuration time.Duration
-
-	// debugInterval param for product debug bundles
-	debugInterval time.Duration
 }
 
 func (c *RunCommand) init() {
