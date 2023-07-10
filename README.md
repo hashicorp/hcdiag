@@ -91,9 +91,6 @@ Terraform Enterprise historically uses replicated to provide similar functionali
 - Gather diagnostics and write bundle to a specific location. (default is `$PWD`)
   - `hcdiag -vault -dest /tmp/hcdiag`
 
-- Gather diagnostics and use the CLI to copy individual files or whole directories
-  - `hcdiag -vault -includes "/var/log/dmesg,/var/log/vault-"`
-
 - Gather only host diagnostics (prior to `0.4.0`, this was the behavior of running `hcdiag` with no flags).
   - `hcdiag -autodetect=false`
   - *Note:* The `=` is required here because it is a boolean flag.
@@ -110,7 +107,6 @@ Terraform Enterprise historically uses replicated to provide similar functionali
 | `autodetect`    | Automatically detect which product CLIs are installed and gather diagnostics for each. If any product flags are provided, they override this one.                   | bool   | true          |
 | `since`         | Collect information within this time. Takes a 'go-formatted' duration, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                             | string | "72h"         |
 | `include-since` | Alias for -since, will be overridden if -since is also provided, usage examples: `72h`, `25m`, `45s`, `120h1m90s`                                                   | string | "72h"         |
-| `includes`      | (DEPRECATED) Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes') e.g. '/var/log/consul-*,/var/log/nomad-*' | string | ""            |
 | `destination`   | Path to the directory the bundle should be written in                                                                                                               | string | "."           |
 | `dest`          | Shorthand for -destination                                                                                                                                          | string | "."           |
 | `config`        | Path to HCL configuration file                                                                                                                                      | string | ""            |
