@@ -103,7 +103,10 @@ func (p Process) run() op.Op {
 	}
 
 	procs, err = p.procs(psProcs)
-	results := map[string]any{"procs": procs}
+	results := map[string]any{
+		"procs":      procs,
+		"proc_count": len(procs),
+	}
 	if err != nil {
 		hclog.L().Trace("runner/host.Process.Run()", "error", err)
 		return op.New(p.ID(), results, op.Fail, err, runner.Params(p), time.Time{}, time.Now())
