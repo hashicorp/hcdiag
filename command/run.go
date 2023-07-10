@@ -22,7 +22,6 @@ import (
 
 	"github.com/hashicorp/hcdiag/agent"
 	"github.com/hashicorp/hcdiag/hcl"
-	"github.com/hashicorp/hcdiag/product"
 	"github.com/hashicorp/hcdiag/util"
 )
 
@@ -78,10 +77,6 @@ func (c *RunCommand) init() {
 		destinationUsageText  = "Path to the directory the bundle should be written in"
 		destUsageText         = "Shorthand for -destination"
 		configUsageText       = "Path to HCL configuration file"
-
-		// Deprecated options
-		debugDurationUsageText = "DEPRECATED: How long to run product debug bundle commands. Provide a duration ex: '00h00m00s'. See: -duration in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
-		debugIntervalUsageText = "DEPRECATED: How long metrics collection intervals in product debug commands last. Provide a duration ex: '00h00m00s'. See: -interval in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
 	)
 
 	// flag.ContinueOnError allows flag.Parse to return an error if one comes up, rather than doing an `os.Exit(2)`
@@ -96,8 +91,6 @@ func (c *RunCommand) init() {
 	c.flags.BoolVar(&c.autoDetectProducts, "autodetect", true, autodetectUsageText)
 	c.flags.DurationVar(&c.includeSince, "include-since", seventyTwoHours, includeSinceUsageText)
 	c.flags.DurationVar(&c.since, "since", seventyTwoHours, sinceUsageText)
-	c.flags.DurationVar(&c.debugDuration, "debug-duration", product.DefaultDuration, debugDurationUsageText)
-	c.flags.DurationVar(&c.debugInterval, "debug-interval", product.DefaultInterval, debugIntervalUsageText)
 	c.flags.StringVar(&c.os, "os", "auto", osUsageText)
 	c.flags.StringVar(&c.destination, "destination", ".", destinationUsageText)
 	c.flags.StringVar(&c.destination, "dest", ".", destUsageText)
@@ -284,10 +277,6 @@ func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 
 	// Bundle write location
 	config.Destination = c.destination
-
-	// Apply Debug{Duration,Interval}
-	config.DebugDuration = c.debugDuration
-	config.DebugInterval = c.debugInterval
 
 	return config
 }

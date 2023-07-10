@@ -37,10 +37,6 @@ type Config struct {
 	Until       time.Time `json:"until"`
 	Destination string    `json:"destination"`
 
-	// DebugDuration
-	DebugDuration time.Duration `json:"debug_duration"`
-	// DebugInterval
-	DebugInterval time.Duration `json:"debug_interval"`
 	// We omit this from JSON to avoid duplicates in manifest.json; it is copied and serialized in Agent instead.
 	Environment Environment `json:"-"`
 }
@@ -419,13 +415,11 @@ func (a *Agent) Setup() error {
 
 	// Create the base config that we copy into each product
 	baseCfg := product.Config{
-		TmpDir:        a.tmpDir,
-		Since:         a.Config.Since,
-		Until:         a.Config.Until,
-		OS:            a.Config.OS,
-		DebugDuration: a.Config.DebugDuration,
-		DebugInterval: a.Config.DebugInterval,
-		Redactions:    a.Redactions,
+		TmpDir:     a.tmpDir,
+		Since:      a.Config.Since,
+		Until:      a.Config.Until,
+		OS:         a.Config.OS,
+		Redactions: a.Redactions,
 	}
 
 	// Build Consul and assign it to the product map.
