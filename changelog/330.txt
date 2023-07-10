@@ -1,0 +1,4 @@
+```release-note:improvement
+documentation: added link to hcdiag learn guides in the readme's installation section.
+```
+
