@@ -30,7 +30,6 @@ type Config struct {
 	// HCL stores configuration we receive from the custom config.
 	HCL         hcl.HCL   `json:"hcl"`
 	OS          string    `json:"operating_system"`
-	Serial      bool      `json:"serial"`
 	Dryrun      bool      `json:"dry_run"`
 	Consul      bool      `json:"consul_enabled"`
 	Nomad       bool      `json:"nomad_enabled"`
@@ -371,12 +370,6 @@ func (a *Agent) RunProducts() error {
 
 	// Run each product
 	for name, p := range a.products {
-		// Run synchronously if -serial is enabled
-		if a.Config.Serial {
-			run(&wg, name, p)
-			continue
-		}
-		// Run concurrently by default
 		go run(&wg, name, p)
 	}
 
