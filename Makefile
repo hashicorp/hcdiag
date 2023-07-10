@@ -55,5 +55,9 @@ version: ## Show the version of the project
 	@echo $(VERSION)
 .PHONY: version
 
+compose-up: # run docker compose in the foreground
+	docker-compose up --force-recreate --build --remove-orphans
+.PHONY: compose-up
+
 # windows:
 # $env:path = "$pwd/bin;$env:path"
