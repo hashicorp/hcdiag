@@ -113,6 +113,8 @@ Terraform Enterprise historically uses replicated to provide similar functionali
 
 ### Installation
 
+You can see detailed installation instructions in each of our [Learn Tutorials](#learn-tutorials).
+
 hcdiag is available on our [releases page](https://releases.hashicorp.com/hcdiag/), as well as via many popular package managers on different operating systems. Please see [docs/Installation.md](docs/installation.md) for details.
 
 ### Adding and Filtering Runners with Configuration
