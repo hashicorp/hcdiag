@@ -210,6 +210,20 @@ func FindInInterface(iface interface{}, mapKeys ...string) (interface{}, error) 
 	return mapped, nil
 }
 
+// CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
+// artifact. It returns a string representing a filepath, and an optional error.
+func CreateTemp() (string, error) {
+	tmp, err := os.MkdirTemp(os.TempDir(), "hcdiag")
+	if err != nil {
+		return "", fmt.Errorf("Error creating temp directory, message=%w", err)
+	}
+	tmp, err = filepath.Abs(tmp)
+	if err != nil {
+		return "", fmt.Errorf("Error identifying absolute path for temp directory, message=%w", err)
+	}
+	return tmp, nil
+}
+
 // EnsureDirectory will ensure that the full path to the destination directory exists. If the full
 // path exists, this is a no-op and will return nil. Otherwise, it will create any directories that do not
 // exist in the destination path. Any directories created will be given file permissions 0755.

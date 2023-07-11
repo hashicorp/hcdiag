@@ -36,6 +36,7 @@ type Config struct {
 	Since       time.Time `json:"since"`
 	Until       time.Time `json:"until"`
 	Destination string    `json:"destination"`
+	TmpDir      string    `json:"tmpdir"`
 
 	// DebugDuration
 	DebugDuration time.Duration `json:"debug_duration"`
@@ -63,7 +64,6 @@ type Agent struct {
 	results     map[product.Name]map[string]op.Op
 	resultsLock sync.Mutex
 	tmpDir      string
-	resultsDest string
 
 	Start    time.Time       `json:"started_at"`
 	End      time.Time       `json:"ended_at"`
@@ -100,6 +100,11 @@ func NewAgentWithContext(ctx context.Context, config Config, logger hclog.Logger
 		redacts = redact.Flatten(hclRedacts, redacts)
 	}
 
+	// Ensure temporary directory exists
+	if _, err = os.Stat(config.TmpDir); err != nil {
+		return nil, fmt.Errorf("Error creating tmpdir for new agent: %w", err)
+	}
+
 	return &Agent{
 		l:           logger,
 		ctx:         ctx,
@@ -110,6 +115,7 @@ func NewAgentWithContext(ctx context.Context, config Config, logger hclog.Logger
 		Version:     version.GetVersion(),
 		Redactions:  redacts,
 		Environment: config.Environment,
+		tmpDir:      config.TmpDir,
 	}, nil
 }
 
@@ -132,17 +138,6 @@ func (a *Agent) Run() []error {
 		errs = append(errs, errDest)
 		a.l.Error("Failed to ensure destination directory exists", "dir", a.Config.Destination, "error", errDest)
 	}
-
-	// File processing
-	if errTemp := a.CreateTemp(); errTemp != nil {
-		errs = append(errs, errTemp)
-		a.l.Error("Failed to create temp directory", "error", errTemp)
-	}
-	defer func() {
-		if err := a.Cleanup(); err != nil {
-			a.l.Error("Failed to cleanup after the run", "error", err)
-		}
-	}()
 
 	// Product processing
 	// If any of the products' healthchecks fail, we abort the run. We want to abort the run here so we don't encourage
@@ -252,44 +247,6 @@ func (a *Agent) recordEnd() {
 	a.Duration = fmt.Sprintf("%v seconds", a.End.Sub(a.Start).Seconds())
 }
 
-// TempDir returns "hcdiag-" and an ISO 8601-formatted timestamp for temporary directory and tar file names.
-// e.g. "hcdiag-2021-11-22T223938Z"
-func (a *Agent) TempDir() string {
-	// specifically excluding colons ":" since they are anathema to some filesystems and programs.
-	ts := a.Start.UTC().Format("2006-01-02T150405Z")
-	return "hcdiag-" + ts
-}
-
-// CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
-// artifact.
-func (a *Agent) CreateTemp() error {
-	tmp, err := os.MkdirTemp(a.Config.Destination, a.TempDir())
-	if err != nil {
-		a.l.Error("Error creating temp directory", "message", err)
-		return err
-	}
-	tmp, err = filepath.Abs(tmp)
-	if err != nil {
-		a.l.Error("Error identifying absolute path for temp directory", "message", err)
-		return err
-	}
-	a.tmpDir = tmp
-	a.l.Debug("Created temp directory", "name", a.tmpDir)
-
-	return nil
-}
-
-// Cleanup removes the temporary directory and its contents, returning an error if it is unable to do so.
-func (a *Agent) Cleanup() (err error) {
-	a.l.Debug("Cleaning up temporary files")
-
-	err = os.RemoveAll(a.tmpDir)
-	if err != nil {
-		a.l.Warn("Failed to clean up temp dir", "message", err)
-	}
-	return err
-}
-
 // RunProducts executes all ops for this run.
 // TODO(mkcp): We can avoid locking and waiting on results if all results are generated async. Then they can get streamed
 // back to the dispatcher and merged into either a sync.Map or a purpose-built results map with insert(), read(), and merge().
@@ -337,15 +294,9 @@ func (a *Agent) RecordManifest() {
 	a.ManifestOps = result
 }
 
-// WriteOutput renders the manifest and results of the diagnostics run and writes the compressed archive.
+// WriteOutput renders the manifest and results of the diagnostics run into Agent.tmpdir
 func (a *Agent) WriteOutput() (err error) {
-	err = util.EnsureDirectory(a.Config.Destination)
-	if err != nil {
-		a.l.Error("Failed to ensure destination directory exists", "dir", a.Config.Destination, "error", err)
-		return err
-	}
-
-	a.l.Debug("Writing results and manifest, and creating tar.gz archive")
+	a.l.Debug("Writing results and manifest")
 
 	// Write out results
 	rFile := filepath.Join(a.tmpDir, "results.json")
@@ -364,19 +315,6 @@ func (a *Agent) WriteOutput() (err error) {
 		return err
 	}
 	a.l.Info("Created manifest.json file", "dest", mFile)
-
-	// Build bundle destination path from config
-	resultsFile := fmt.Sprintf("%s.tar.gz", a.TempDir())
-	resultsDest := filepath.Join(a.Config.Destination, resultsFile)
-
-	// Archive and compress outputs
-	err = util.TarGz(a.tmpDir, resultsDest, a.TempDir())
-	if err != nil {
-		a.l.Error("util.TarGz", "error", err)
-		return err
-	}
-	a.resultsDest = resultsDest
-	a.l.Info("Compressed and archived output file", "dest", resultsDest)
 
 	return nil
 }
@@ -477,14 +415,6 @@ func (a *Agent) Setup() error {
 	a.products[product.Host] = newHost
 
 	return nil
-}
-
-// ResultsDest is provided for read-only access to the destination where the agent writes its results. The particular
-// destination is determined by the agent while running; it is unexported to avoid accidental overwrite by external
-// packages. However, its value is useful to know for downstream user interaction, so this method intends to provide
-// that ability.
-func (a *Agent) ResultsDest() string {
-	return a.resultsDest
 }
 
 // agentRedactions returns the default agent-level redactions that we ship with hcdiag
