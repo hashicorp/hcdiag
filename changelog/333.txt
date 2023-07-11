@@ -1,0 +1,4 @@
+```release-note:improvement
+runners: the process runner now also includes a process count, proc_count, in its results.
+```
+
