@@ -415,11 +415,13 @@ func (a *Agent) Setup() error {
 
 	// Create the base config that we copy into each product
 	baseCfg := product.Config{
-		TmpDir:     a.tmpDir,
-		Since:      a.Config.Since,
-		Until:      a.Config.Until,
-		OS:         a.Config.OS,
-		Redactions: a.Redactions,
+		TmpDir:        a.tmpDir,
+		Since:         a.Config.Since,
+		Until:         a.Config.Until,
+		OS:            a.Config.OS,
+		DebugDuration: product.DefaultDuration,
+		DebugInterval: product.DefaultInterval,
+		Redactions:    a.Redactions,
 	}
 
 	// Build Consul and assign it to the product map.
