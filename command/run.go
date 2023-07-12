@@ -155,7 +155,7 @@ func (c *RunCommand) Run(args []string) int {
 	if !c.dryrun {
 		if tmp, err = util.CreateTemp(); err != nil {
 			fmt.Println("Failed to create temp directory. error:", err)
-			return 1
+			return SetupError
 		}
 
 		// remove the temporary directory and its contents

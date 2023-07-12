@@ -36,7 +36,7 @@ type Config struct {
 	Since       time.Time `json:"since"`
 	Until       time.Time `json:"until"`
 	Destination string    `json:"destination"`
-	TmpDir      string    `json:"tmpdir"`
+	TmpDir      string    `json:"tmp_dir"`
 
 	// DebugDuration
 	DebugDuration time.Duration `json:"debug_duration"`
@@ -102,7 +102,7 @@ func NewAgentWithContext(ctx context.Context, config Config, logger hclog.Logger
 
 	// Ensure temporary directory exists
 	if _, err = os.Stat(config.TmpDir); err != nil {
-		return nil, fmt.Errorf("Error creating tmpdir for new agent: %w", err)
+		return nil, fmt.Errorf("Agent.Config.TmpDir doesn't exist: %w", err)
 	}
 
 	return &Agent{
@@ -296,7 +296,7 @@ func (a *Agent) RecordManifest() {
 
 // WriteOutput renders the manifest and results of the diagnostics run into Agent.tmpdir
 func (a *Agent) WriteOutput() (err error) {
-	a.l.Debug("Writing results and manifest")
+	a.l.Debug("Agent.WriteOutput: Writing results and manifest")
 
 	// Write out results
 	rFile := filepath.Join(a.tmpDir, "results.json")
