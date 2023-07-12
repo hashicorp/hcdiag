@@ -1,0 +1,4 @@
+```release-note:breaking
+cli: The -debug-duration and -debug-interval flags have been removed, after having been deprecated in version 0.5.0. HCL configuration and the product debug runners should be used instead.
+```
+
