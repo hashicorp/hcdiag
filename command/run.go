@@ -256,7 +256,7 @@ func (c *RunCommand) Run(args []string) int {
 	}
 
 	absDest, _ := filepath.Abs(a.Config.Destination)
-	if err = writeSummary(teeWriter, path.Join(absDest, ("hcdiag"+ts+".tar.gz")), a.ManifestOps); err != nil {
+	if err = writeSummary(teeWriter, filepath.Join(absDest, ("hcdiag"+ts+".tar.gz")), a.ManifestOps); err != nil {
 		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
 		return OutputError
 	}
