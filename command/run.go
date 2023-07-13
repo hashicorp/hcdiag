@@ -288,6 +288,7 @@ func configureLogging(loggerName string, loggerOutput io.Writer) hclog.Logger {
 	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
 		Name: loggerName,
+		// NOTE(dcohen) Currently broken due to multiplexing -- stdout supports color codes, but logfiles don't
 		// Color:  hclog.AutoColor,
 		Output: loggerOutput,
 	})

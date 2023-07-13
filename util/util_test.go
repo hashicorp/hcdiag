@@ -233,17 +233,21 @@ func TestCreateAndCleanupTemporaryDirectory(t *testing.T) {
 
 	fileInfo, err := os.Stat(tmp)
 	if err != nil {
-		t.Errorf("Error checking for temp dir: %s", err)
+		t.Errorf("error checking for temp dir: %s", err)
 	}
 	if !fileInfo.IsDir() {
 		t.Error("temporary directory was not created")
 	}
 
 	// test cleanup
-	cleanup()
-	fileInfo, err = os.Stat(tmp)
+	err = cleanup()
+	if err != nil {
+		t.Errorf("error while cleaning up temporary directory: %s", err)
+	}
+
+	_, err = os.Stat(tmp)
 	if err == nil {
-		t.Errorf("Error checking for temp dir: %s", err)
+		t.Errorf("error checking for temp dir: %s", err)
 	}
 }
 

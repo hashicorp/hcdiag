@@ -294,7 +294,7 @@ func (a *Agent) RecordManifest() {
 	a.ManifestOps = result
 }
 
-// WriteOutput renders the manifest and results of the diagnostics run into Agent.tmpdir
+// WriteOutput renders the manifest and results of the diagnostics run into Agent.tmpDir
 func (a *Agent) WriteOutput() (err error) {
 	a.l.Debug("Agent.WriteOutput: Writing results and manifest")
 
