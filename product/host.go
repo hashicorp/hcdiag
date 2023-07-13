@@ -101,6 +101,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		}),
 	}
 
+	//Creates the host.FStab runner and adds it to the list of runners
 	fsTab, err := host.NewFSTab(host.FSTabConfig{
 		OS:         os,
 		Timeout:    TimeoutTenSeconds,
@@ -111,6 +112,17 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		l.Error("unable to create host.FSTab runner.", "err=", err)
 	}
 	r = append(r, fsTab)
+
+	//Creates the host.Lsmod runner and adds it to the list of runners
+	lsMod, err := host.NewLsmod(host.LsmodConfig{
+		OS:         os,
+		Timeout:    TimeoutTenSeconds,
+		Redactions: redactions,
+	})
+	if err != nil {
+		l.Error("unable to create host.Lsmod runner.", "err=", err)
+	}
+	r = append(r, lsMod)
 
 	runners := []runner.Runner{
 		do.New(l, "host", "host runners", r),
