@@ -6,6 +6,7 @@ package host
 import (
 	"testing"
 
+	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
 	"github.com/stretchr/testify/require"
 )
@@ -28,4 +29,22 @@ func createRedaction(t *testing.T, config redact.Config) *redact.Redact {
 		require.NoError(t, err)
 	}
 	return redaction
+}
+
+type mockShellRunner struct {
+	result map[string]any
+	status op.Status
+	err    error
+}
+
+func (m mockShellRunner) Run() op.Op {
+	return op.Op{
+		Result: m.result,
+		Status: m.status,
+		Error:  m.err,
+	}
+}
+
+func (m mockShellRunner) ID() string {
+	return ""
 }

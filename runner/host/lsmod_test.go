@@ -1,4 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package host
 
 import (
@@ -7,31 +9,11 @@ import (
 
 	"github.com/hashicorp/hcdiag/op"
 
-	"github.com/hashicorp/hcdiag/runner"
 	"github.com/stretchr/testify/assert"
 )
 
-type sampleShellRunner struct {
-	result map[string]any
-	status op.Status
-	err    error
-}
+//var _ runner.Runner = mockShellRunner{}
 
-func (m sampleShellRunner) Run() op.Op {
-	return op.Op{
-		Result: m.result,
-		Status: m.status,
-		Error:  m.err,
-	}
-}
-
-func (m sampleShellRunner) ID() string {
-	return ""
-}
-
-var _ runner.Runner = sampleShellRunner{}
-
-// Running a first test case at once
 func TestLsmod_Run(t *testing.T) {
 	type response struct {
 		result    map[string]any
@@ -68,7 +50,7 @@ func TestLsmod_Run(t *testing.T) {
 			name: "Testing a Successful Run",
 			lsmod: Lsmod{
 				OS: "linux",
-				Shell: &sampleShellRunner{
+				Shell: &mockShellRunner{
 					result: map[string]any{"shell": "contents"},
 					status: op.Success,
 					err:    nil,
@@ -84,7 +66,7 @@ func TestLsmod_Run(t *testing.T) {
 			name: "Testing an Unsuccessful Linux Run",
 			lsmod: Lsmod{
 				OS: "linux",
-				Shell: &sampleShellRunner{
+				Shell: &mockShellRunner{
 					status: op.Unknown,
 					err:    fmt.Errorf("an error"),
 				},
@@ -110,7 +92,6 @@ func TestLsmod_Run(t *testing.T) {
 	}
 }
 
-// Giving a sample test to be run.
 func TestNewLsmod(t *testing.T) {
 	testCases := []struct {
 		name     string

@@ -9,29 +9,10 @@ import (
 
 	"github.com/hashicorp/hcdiag/op"
 
-	"github.com/hashicorp/hcdiag/runner"
 	"github.com/stretchr/testify/assert"
 )
 
-type mockShellRunner struct {
-	result map[string]any
-	status op.Status
-	err    error
-}
-
-func (m mockShellRunner) Run() op.Op {
-	return op.Op{
-		Result: m.result,
-		Status: m.status,
-		Error:  m.err,
-	}
-}
-
-func (m mockShellRunner) ID() string {
-	return ""
-}
-
-var _ runner.Runner = mockShellRunner{}
+//var _ runner.Runner = mockShellRunner{}
 
 func TestFSTab_Run(t *testing.T) {
 	type response struct {
