@@ -1,0 +1,9 @@
+services:
+  hashistack:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: /bin/bash /usr/local/bin/docker-init.sh
+    volumes:
+      - ./bin:/hcdiag
+
