@@ -246,17 +246,18 @@ func (c *RunCommand) Run(args []string) int {
 		return Success
 	}
 
-	if err = writeSummary(teeWriter, tmp, a.ManifestOps); err != nil {
-		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
-		return OutputError
-	}
-
 	// Include a timestamp based on agent start time
 	// specifically excluding colons ":" since they are anathema to some filesystems and programs.
 	ts := a.Start.UTC().Format("2006-01-02T150405Z")
 	err = compressOutputDir(tmp, "hcdiag"+ts, a.Config.Destination)
 	if err != nil {
 		l.Warn("failed to compress output directory; please review output files", "tmpdir", tmp, "err", err)
+		return OutputError
+	}
+
+	absDest, _ := filepath.Abs(a.Config.Destination)
+	if err = writeSummary(teeWriter, path.Join(absDest, ("hcdiag"+ts+".tar.gz")), a.ManifestOps); err != nil {
+		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
 		return OutputError
 	}
 
