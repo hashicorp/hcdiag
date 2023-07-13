@@ -145,7 +145,9 @@ func (c *RunCommand) Synopsis() string {
 
 // Run executes the command.
 func (c *RunCommand) Run(args []string) int {
+	// a randomly-named temporary directory
 	var tmp string
+	var cleanup func() error
 	var err error
 
 	// Default teeWriter just prints to stdout
@@ -153,18 +155,12 @@ func (c *RunCommand) Run(args []string) int {
 
 	// Create a temporary directory and logfile
 	if !c.dryrun {
-		if tmp, err = util.CreateTemp(c.destination); err != nil {
+		if tmp, cleanup, err = util.CreateTemp(c.destination); err != nil {
 			fmt.Println("Failed to create temp directory. error:", err)
 			return SetupError
 		}
-
 		// remove the temporary directory and its contents
-		defer func() {
-			err = os.RemoveAll(tmp)
-			if err != nil {
-				fmt.Println("Failed to clean up temp dir:", tmp, "message", err)
-			}
-		}()
+		defer cleanup()
 
 		// Set up stdout/logfile output
 		logfile, err := os.Create(path.Join(tmp, "hcdiag.log")) // creates a file at current directory

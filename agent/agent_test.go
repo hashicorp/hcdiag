@@ -25,27 +25,20 @@ import (
 // so mocks can be used instead of actually writing files?
 // that would also allow us to run these tests in parallel if we wish.
 
-// helperCreateTmpDir creates a tmpdir for testing
-func helperCreateTmpDir(t *testing.T) (string, error) {
-	tmp, err := util.CreateTemp(".")
-	if err != nil {
-		t.Errorf("failed to create tempDir, err=%s", err)
-	}
-	return tmp, nil
-}
-
 // Wraps NewAgent(Config{}, hclog.Default()) for testing
-func newTestAgent(t *testing.T) *Agent {
+func newTestAgent(t *testing.T) (*Agent, func() error) {
 	t.Helper()
-	tmp, _ := helperCreateTmpDir(t)
+	tmp, cleanup, _ := util.CreateTemp(".")
+
 	a, err := NewAgent(Config{TmpDir: tmp}, hclog.Default())
 	require.NoError(t, err, "Error new test Agent")
 	require.NotNil(t, a)
-	return a
+	return a, cleanup
 }
 
 func TestNewAgentIncludesBackgroundContext(t *testing.T) {
-	a := newTestAgent(t)
+	a, cleanup := newTestAgent(t)
+	defer cleanup()
 	assert.Equal(t, context.Background(), a.ctx)
 }
 
@@ -53,7 +46,9 @@ func TestNewAgentWithContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	tmp, _ := helperCreateTmpDir(t)
+	tmp, cleanup, _ := util.CreateTemp(".")
+	defer cleanup()
+
 	a, err := NewAgentWithContext(ctx, Config{TmpDir: tmp}, hclog.Default())
 	require.NoError(t, err, "Error new test Agent with context")
 	require.NotNil(t, a)
@@ -61,7 +56,8 @@ func TestNewAgentWithContext(t *testing.T) {
 }
 
 func TestStartAndEnd(t *testing.T) {
-	a := newTestAgent(t)
+	a, cleanup := newTestAgent(t)
+	defer cleanup()
 
 	// Start and End fields should be zero at first,
 	// and Duration should be empty ""
@@ -76,52 +72,12 @@ func TestStartAndEnd(t *testing.T) {
 	assert.NotEqual(t, "", a.Duration, "Duration value still an empty string after recordEnd()")
 }
 
-func TestCreateTemp(t *testing.T) {
-	a := newTestAgent(t)
-	defer cleanupHelper(t, a)
-
-	tmp, err := util.CreateTemp(".")
-	if err != nil {
-		t.Errorf("failed to create tempDir, err=%s", err)
-	}
-	a.tmpDir = tmp
-
-	fileInfo, err := os.Stat(a.tmpDir)
-	if err != nil {
-		t.Errorf("Error checking for temp dir: %s", err)
-	}
-	if !fileInfo.IsDir() {
-		t.Error("tmpDir is not a directory")
-	}
-}
-
-func TestCreateTempAndCleanup(t *testing.T) {
-	var err error
-	a := newTestAgent(t)
-
-	tmp, err := util.CreateTemp(".")
-	if err != nil {
-		t.Errorf("failed to create tempDir, err=%s", err)
-	}
-	a.tmpDir = tmp
-
-	if _, err = os.Stat(a.tmpDir); err != nil {
-		t.Errorf("Error checking for temp dir: %s", err)
-	}
-
-	cleanupHelper(t, a)
-
-	_, err = os.Stat(a.tmpDir)
-	if os.IsExist(err) {
-		t.Errorf("Got unexpected error when validating that tmpDir was removed: %s", err)
-	}
-}
-
 func TestRunProducts(t *testing.T) {
 	l := hclog.Default()
 	pCfg := product.Config{OS: "auto"}
 	p := make(map[product.Name]*product.Product)
-	a := newTestAgent(t)
+	a, cleanup := newTestAgent(t)
+	defer cleanup()
 
 	a.products = p
 	h, err := product.NewHostWithContext(context.Background(), l, pCfg, &hcl.Host{})
@@ -141,7 +97,8 @@ func TestAgent_RecordManifest(t *testing.T) {
 		testResults := map[string]op.Op{
 			"": {},
 		}
-		a := newTestAgent(t)
+		a, cleanup := newTestAgent(t)
+		defer cleanup()
 
 		a.results[testProduct] = testResults
 		assert.NotEmptyf(t, a.results[testProduct], "test setup failure, no ops available")
@@ -153,10 +110,8 @@ func TestAgent_RecordManifest(t *testing.T) {
 }
 
 func TestWriteOutput(t *testing.T) {
-	a := newTestAgent(t)
-	defer func() {
-		cleanupHelper(t, a)
-	}()
+	a, cleanup := newTestAgent(t)
+	defer cleanup()
 
 	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
@@ -174,7 +129,8 @@ func TestWriteOutput(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
-	tmp, _ := helperCreateTmpDir(t)
+	tmp, cleanup, _ := util.CreateTemp(".")
+	defer cleanup()
 
 	testCases := []struct {
 		name        string
@@ -209,12 +165,5 @@ func TestSetup(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, a.products, tc.expectedLen)
 		})
-	}
-}
-
-func cleanupHelper(t *testing.T, a *Agent) {
-	err := os.RemoveAll(a.tmpDir)
-	if err != nil {
-		t.Errorf("Failed to clean up")
 	}
 }

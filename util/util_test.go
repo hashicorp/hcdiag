@@ -225,6 +225,28 @@ func TestHostCommandExists(t *testing.T) {
 	}
 }
 
+func TestCreateAndCleanupTemporaryDirectory(t *testing.T) {
+	tmp, cleanup, err := CreateTemp(".")
+	if err != nil {
+		t.Errorf("failed to create temporary directory, err=%s", err)
+	}
+
+	fileInfo, err := os.Stat(tmp)
+	if err != nil {
+		t.Errorf("Error checking for temp dir: %s", err)
+	}
+	if !fileInfo.IsDir() {
+		t.Error("temporary directory was not created")
+	}
+
+	// test cleanup
+	cleanup()
+	fileInfo, err = os.Stat(tmp)
+	if err == nil {
+		t.Errorf("Error checking for temp dir: %s", err)
+	}
+}
+
 // FIXME(mkcp): Ensure the since and until works with modtime properly
 // func TestFilterWalk(t *testing.T) {
 // 	testTable := []struct{
