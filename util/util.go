@@ -212,8 +212,8 @@ func FindInInterface(iface interface{}, mapKeys ...string) (interface{}, error) 
 
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
 // artifact. It returns a string representing a filepath, and an optional error.
-func CreateTemp() (string, error) {
-	tmp, err := os.MkdirTemp(os.TempDir(), "hcdiag")
+func CreateTemp(parent_directory string) (string, error) {
+	tmp, err := os.MkdirTemp(parent_directory, "hcdiag")
 	if err != nil {
 		return "", fmt.Errorf("Error creating temp directory, message=%w", err)
 	}

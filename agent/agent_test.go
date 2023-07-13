@@ -27,7 +27,7 @@ import (
 
 // helperCreateTmpDir creates a tmpdir for testing
 func helperCreateTmpDir(t *testing.T) (string, error) {
-	tmp, err := util.CreateTemp()
+	tmp, err := util.CreateTemp(".")
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}
@@ -80,7 +80,7 @@ func TestCreateTemp(t *testing.T) {
 	a := newTestAgent(t)
 	defer cleanupHelper(t, a)
 
-	tmp, err := util.CreateTemp()
+	tmp, err := util.CreateTemp(".")
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}
@@ -99,7 +99,7 @@ func TestCreateTempAndCleanup(t *testing.T) {
 	var err error
 	a := newTestAgent(t)
 
-	tmp, err := util.CreateTemp()
+	tmp, err := util.CreateTemp(".")
 	if err != nil {
 		t.Errorf("failed to create tempDir, err=%s", err)
 	}

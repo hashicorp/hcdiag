@@ -153,7 +153,7 @@ func (c *RunCommand) Run(args []string) int {
 
 	// Create a temporary directory and logfile
 	if !c.dryrun {
-		if tmp, err = util.CreateTemp(); err != nil {
+		if tmp, err = util.CreateTemp(c.destination); err != nil {
 			fmt.Println("Failed to create temp directory. error:", err)
 			return SetupError
 		}
