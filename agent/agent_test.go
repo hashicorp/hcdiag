@@ -25,8 +25,10 @@ import (
 // so mocks can be used instead of actually writing files?
 // that would also allow us to run these tests in parallel if we wish.
 
+var emptyLogger = hclog.NewNullLogger()
+
 // Wraps NewAgent(Config{}, hclog.Default()) for testing
-func newTestAgent(t *testing.T) (*Agent, func() error) {
+func newTestAgent(t *testing.T) (*Agent, func(hclog.Logger)) {
 	t.Helper()
 	tmp, cleanup, _ := util.CreateTemp(".")
 
@@ -38,7 +40,7 @@ func newTestAgent(t *testing.T) (*Agent, func() error) {
 
 func TestNewAgentIncludesBackgroundContext(t *testing.T) {
 	a, cleanup := newTestAgent(t)
-	defer cleanup()
+	defer cleanup(emptyLogger)
 	assert.Equal(t, context.Background(), a.ctx)
 }
 
@@ -47,7 +49,7 @@ func TestNewAgentWithContext(t *testing.T) {
 	defer cancel()
 
 	tmp, cleanup, _ := util.CreateTemp(".")
-	defer cleanup()
+	defer cleanup(emptyLogger)
 
 	a, err := NewAgentWithContext(ctx, Config{TmpDir: tmp}, hclog.Default())
 	require.NoError(t, err, "Error new test Agent with context")
@@ -57,7 +59,7 @@ func TestNewAgentWithContext(t *testing.T) {
 
 func TestStartAndEnd(t *testing.T) {
 	a, cleanup := newTestAgent(t)
-	defer cleanup()
+	defer cleanup(emptyLogger)
 
 	// Start and End fields should be zero at first,
 	// and Duration should be empty ""
@@ -77,7 +79,7 @@ func TestRunProducts(t *testing.T) {
 	pCfg := product.Config{OS: "auto"}
 	p := make(map[product.Name]*product.Product)
 	a, cleanup := newTestAgent(t)
-	defer cleanup()
+	defer cleanup(emptyLogger)
 
 	a.products = p
 	h, err := product.NewHostWithContext(context.Background(), l, pCfg, &hcl.Host{})
@@ -98,7 +100,7 @@ func TestAgent_RecordManifest(t *testing.T) {
 			"": {},
 		}
 		a, cleanup := newTestAgent(t)
-		defer cleanup()
+		defer cleanup(emptyLogger)
 
 		a.results[testProduct] = testResults
 		assert.NotEmptyf(t, a.results[testProduct], "test setup failure, no ops available")
@@ -111,7 +113,7 @@ func TestAgent_RecordManifest(t *testing.T) {
 
 func TestWriteOutput(t *testing.T) {
 	a, cleanup := newTestAgent(t)
-	defer cleanup()
+	defer cleanup(emptyLogger)
 
 	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
@@ -130,7 +132,7 @@ func TestWriteOutput(t *testing.T) {
 
 func TestSetup(t *testing.T) {
 	tmp, cleanup, _ := util.CreateTemp(".")
-	defer cleanup()
+	defer cleanup(emptyLogger)
 
 	testCases := []struct {
 		name        string

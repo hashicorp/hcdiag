@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -240,7 +241,7 @@ func TestCreateAndCleanupTemporaryDirectory(t *testing.T) {
 	}
 
 	// test cleanup
-	err = cleanup()
+	cleanup(hclog.NewNullLogger())
 	if err != nil {
 		t.Errorf("error while cleaning up temporary directory: %s", err)
 	}

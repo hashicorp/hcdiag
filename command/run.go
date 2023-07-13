@@ -147,11 +147,12 @@ func (c *RunCommand) Synopsis() string {
 func (c *RunCommand) Run(args []string) int {
 	// a randomly-named temporary directory
 	var tmp string
-	var cleanup func() error
+	var cleanup func(hclog.Logger)
 	var err error
 
 	// Default teeWriter just prints to stdout
 	var teeWriter io.Writer = os.Stdout
+	l := configureLogging("hcdiag", teeWriter)
 
 	// Create a temporary directory and logfile
 	if !c.dryrun {
@@ -160,7 +161,7 @@ func (c *RunCommand) Run(args []string) int {
 			return SetupError
 		}
 		// remove the temporary directory and its contents
-		defer cleanup()
+		defer cleanup(l)
 
 		// Set up stdout/logfile output
 		logfile, err := os.Create(path.Join(tmp, "hcdiag.log")) // creates a file at current directory
@@ -186,8 +187,6 @@ func (c *RunCommand) Run(args []string) int {
 		c.ui.Warn(c.Help())
 		return FlagParseError
 	}
-
-	l := configureLogging("hcdiag", teeWriter)
 
 	// Build agent configuration from flags, HCL, and system time
 	var config agent.Config

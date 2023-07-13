@@ -211,10 +211,10 @@ func FindInInterface(iface interface{}, mapKeys ...string) (interface{}, error) 
 }
 
 // CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
-// artifact. It returns a string representing a filepath, and an optional error.
-func CreateTemp(parent_directory string) (string, func() error, error) {
+// artifact. It returns a string representing a filepath, a cleanup function that takes a logger in case of a cleanup error, and an optional error.
+func CreateTemp(parent_directory string) (string, func(hclog.Logger), error) {
 	// default "empty" cleanupfunc
-	emptyCleanup := func() error { return nil }
+	emptyCleanup := func(hclog.Logger) {}
 
 	// Create the temporary directory inside the given parent directory
 	tmp, err := os.MkdirTemp(parent_directory, "hcdiag")
@@ -228,12 +228,11 @@ func CreateTemp(parent_directory string) (string, func() error, error) {
 
 	// return our temporary directory path, cleanup function, and error
 	return tmp,
-		func() error {
+		func(l hclog.Logger) {
 			err := os.RemoveAll(tmp)
 			if err != nil {
-				return fmt.Errorf("Failed to clean up temporary directory %w", err)
+				l.Error("Failed to clean up temporary directory %w", err)
 			}
-			return nil
 		},
 		nil
 }
