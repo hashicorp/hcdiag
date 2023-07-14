@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcdiag/op"
 	"github.com/hashicorp/hcdiag/redact"
+	"github.com/hashicorp/hcdiag/runner"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,3 +49,5 @@ func (m mockShellRunner) Run() op.Op {
 func (m mockShellRunner) ID() string {
 	return ""
 }
+
+var _ runner.Runner = mockShellRunner{}

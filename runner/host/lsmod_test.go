@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//var _ runner.Runner = mockShellRunner{}
-
 func TestLsmod_Run(t *testing.T) {
 	type response struct {
 		result    map[string]any
