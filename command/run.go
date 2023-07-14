@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -144,6 +145,41 @@ func (c *RunCommand) Synopsis() string {
 
 // Run executes the command.
 func (c *RunCommand) Run(args []string) int {
+	// a randomly-named temporary directory
+	var tmp string
+	var cleanup func(hclog.Logger)
+	var err error
+
+	// Default teeWriter just prints to stdout
+	var teeWriter io.Writer = os.Stdout
+	l := configureLogging("hcdiag", teeWriter)
+
+	// Create a temporary directory and logfile
+	if !c.dryrun {
+		if tmp, cleanup, err = util.CreateTemp(c.destination); err != nil {
+			fmt.Println("Failed to create temp directory. error:", err)
+			return SetupError
+		}
+		// remove the temporary directory and its contents
+		defer cleanup(l)
+
+		// Set up stdout/logfile output
+		logfile, err := os.Create(filepath.Join(tmp, "hcdiag.log")) // creates a file at current directory
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer logfile.Close()
+
+		// Create a MultiWriter to multiplex output
+		teeWriter = io.MultiWriter(logfile, os.Stdout)
+	}
+
+	// Modify CLI app to ensure we're writing to all desired outputs, including the logfile
+	c.ui = &cli.BasicUi{
+		Writer:      teeWriter,
+		ErrorWriter: teeWriter,
+	}
+
 	if err := c.parseFlags(args); err != nil {
 		// Output the specific error to help the user understand what went wrong.
 		c.ui.Warn(err.Error())
@@ -151,8 +187,6 @@ func (c *RunCommand) Run(args []string) int {
 		c.ui.Warn(c.Help())
 		return FlagParseError
 	}
-
-	l := configureLogging("hcdiag")
 
 	// Build agent configuration from flags, HCL, and system time
 	var config agent.Config
@@ -166,6 +200,10 @@ func (c *RunCommand) Run(args []string) int {
 		l.Debug("HCL config is", "hcl", hclCfg)
 		config.HCL = hclCfg
 	}
+
+	// add tempdir to the CLI-generated Agent.Config
+	config.TmpDir = tmp
+
 	// Assign flag values to our agent.Config
 	cfg := c.mergeAgentConfig(config)
 
@@ -208,22 +246,51 @@ func (c *RunCommand) Run(args []string) int {
 		return Success
 	}
 
-	resultsFile := a.ResultsDest()
-	if err = writeSummary(os.Stdout, resultsFile, a.ManifestOps); err != nil {
+	// Include a timestamp based on agent start time
+	// specifically excluding colons ":" since they are anathema to some filesystems and programs.
+	ts := a.Start.UTC().Format("2006-01-02T150405Z")
+	err = compressOutputDir(tmp, "hcdiag"+ts, a.Config.Destination)
+	if err != nil {
+		l.Warn("failed to compress output directory; please review output files", "tmpdir", tmp, "err", err)
+		return OutputError
+	}
+
+	absDest, _ := filepath.Abs(a.Config.Destination)
+	if err = writeSummary(teeWriter, filepath.Join(absDest, ("hcdiag"+ts+".tar.gz")), a.ManifestOps); err != nil {
 		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
-		return RunError
+		return OutputError
 	}
 
 	return Success
 }
 
+func compressOutputDir(tmpDir, filename, destination string) error {
+	err := util.EnsureDirectory(destination)
+	if err != nil {
+		return fmt.Errorf("Failed to ensure destination directory exists: dir=%s, error=%w", destination, err)
+	}
+
+	// Build bundle destination path from config
+	resultsFile := fmt.Sprintf("%s.tar.gz", filename)
+	resultsDest := filepath.Join(destination, resultsFile)
+
+	// Archive and compress outputs
+	err = util.TarGz(tmpDir, resultsDest, filename)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // configureLogging takes a logger name, sets the default configuration, grabs the LOG_LEVEL from our ENV vars, and
 // returns a configured and usable logger.
-func configureLogging(loggerName string) hclog.Logger {
+func configureLogging(loggerName string, loggerOutput io.Writer) hclog.Logger {
 	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
-		Name:  loggerName,
-		Color: hclog.AutoColor,
+		Name: loggerName,
+		// NOTE(dcohen) Currently broken due to multiplexing -- stdout supports color codes, but logfiles don't
+		// Color:  hclog.AutoColor,
+		Output: loggerOutput,
 	})
 	hclog.SetDefault(appLogger)
 	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {

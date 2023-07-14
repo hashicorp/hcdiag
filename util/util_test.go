@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -222,6 +223,32 @@ func TestHostCommandExists(t *testing.T) {
 			result, _ := HostCommandExists(tc.command)
 			assert.Equal(t, result, tc.expect)
 		})
+	}
+}
+
+func TestCreateAndCleanupTemporaryDirectory(t *testing.T) {
+	tmp, cleanup, err := CreateTemp(".")
+	if err != nil {
+		t.Errorf("failed to create temporary directory, err=%s", err)
+	}
+
+	fileInfo, err := os.Stat(tmp)
+	if err != nil {
+		t.Errorf("error checking for temp dir: %s", err)
+	}
+	if !fileInfo.IsDir() {
+		t.Error("temporary directory was not created")
+	}
+
+	// test cleanup
+	cleanup(hclog.NewNullLogger())
+	if err != nil {
+		t.Errorf("error while cleaning up temporary directory: %s", err)
+	}
+
+	_, err = os.Stat(tmp)
+	if err == nil {
+		t.Errorf("error checking for temp dir: %s", err)
 	}
 }
 

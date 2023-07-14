@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcdiag/hcl"
+	"github.com/hashicorp/hcdiag/util"
 
 	"github.com/hashicorp/hcdiag/op"
 
@@ -24,17 +25,22 @@ import (
 // so mocks can be used instead of actually writing files?
 // that would also allow us to run these tests in parallel if we wish.
 
+var emptyLogger = hclog.NewNullLogger()
+
 // Wraps NewAgent(Config{}, hclog.Default()) for testing
-func newTestAgent(t *testing.T) *Agent {
+func newTestAgent(t *testing.T) (*Agent, func(hclog.Logger)) {
 	t.Helper()
-	a, err := NewAgent(Config{}, hclog.Default())
+	tmp, cleanup, _ := util.CreateTemp(".")
+
+	a, err := NewAgent(Config{TmpDir: tmp}, hclog.Default())
 	require.NoError(t, err, "Error new test Agent")
 	require.NotNil(t, a)
-	return a
+	return a, cleanup
 }
 
 func TestNewAgentIncludesBackgroundContext(t *testing.T) {
-	a := newTestAgent(t)
+	a, cleanup := newTestAgent(t)
+	defer cleanup(emptyLogger)
 	assert.Equal(t, context.Background(), a.ctx)
 }
 
@@ -42,14 +48,18 @@ func TestNewAgentWithContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	a, err := NewAgentWithContext(ctx, Config{}, hclog.Default())
+	tmp, cleanup, _ := util.CreateTemp(".")
+	defer cleanup(emptyLogger)
+
+	a, err := NewAgentWithContext(ctx, Config{TmpDir: tmp}, hclog.Default())
 	require.NoError(t, err, "Error new test Agent with context")
 	require.NotNil(t, a)
 	require.Equal(t, ctx, a.ctx)
 }
 
 func TestStartAndEnd(t *testing.T) {
-	a := newTestAgent(t)
+	a, cleanup := newTestAgent(t)
+	defer cleanup(emptyLogger)
 
 	// Start and End fields should be zero at first,
 	// and Duration should be empty ""
@@ -64,50 +74,12 @@ func TestStartAndEnd(t *testing.T) {
 	assert.NotEqual(t, "", a.Duration, "Duration value still an empty string after recordEnd()")
 }
 
-func TestCreateTemp(t *testing.T) {
-	a := newTestAgent(t)
-	defer cleanupHelper(t, a)
-
-	if err := a.CreateTemp(); err != nil {
-		t.Errorf("Failed creating temp dir: %s", err)
-	}
-
-	fileInfo, err := os.Stat(a.tmpDir)
-	if err != nil {
-		t.Errorf("Error checking for temp dir: %s", err)
-	}
-	if !fileInfo.IsDir() {
-		t.Error("tmpDir is not a directory")
-	}
-}
-
-func TestCreateTempAndCleanup(t *testing.T) {
-	var err error
-	a := newTestAgent(t)
-
-	if err = a.CreateTemp(); err != nil {
-		t.Errorf("Error creating tmpDir: %s", err)
-	}
-
-	if _, err = os.Stat(a.tmpDir); err != nil {
-		t.Errorf("Error checking for temp dir: %s", err)
-	}
-
-	if err = a.Cleanup(); err != nil {
-		t.Errorf("Cleanup error: %s", err)
-	}
-
-	_, err = os.Stat(a.tmpDir)
-	if !os.IsNotExist(err) {
-		t.Errorf("Got unexpected error when validating that tmpDir was removed: %s", err)
-	}
-}
-
 func TestRunProducts(t *testing.T) {
 	l := hclog.Default()
 	pCfg := product.Config{OS: "auto"}
 	p := make(map[product.Name]*product.Product)
-	a := newTestAgent(t)
+	a, cleanup := newTestAgent(t)
+	defer cleanup(emptyLogger)
 
 	a.products = p
 	h, err := product.NewHostWithContext(context.Background(), l, pCfg, &hcl.Host{})
@@ -127,7 +99,8 @@ func TestAgent_RecordManifest(t *testing.T) {
 		testResults := map[string]op.Op{
 			"": {},
 		}
-		a := newTestAgent(t)
+		a, cleanup := newTestAgent(t)
+		defer cleanup(emptyLogger)
 
 		a.results[testProduct] = testResults
 		assert.NotEmptyf(t, a.results[testProduct], "test setup failure, no ops available")
@@ -139,29 +112,8 @@ func TestAgent_RecordManifest(t *testing.T) {
 }
 
 func TestWriteOutput(t *testing.T) {
-	a := newTestAgent(t)
-
-	testOut := "."
-	resultsDest := a.TempDir() + ".tar.gz"
-	a.Config.Destination = testOut
-	err := a.CreateTemp()
-	if err != nil {
-		t.Errorf("failed to create tempDir, err=%s", err)
-	}
-
-	defer func() {
-		if err := a.Cleanup(); err != nil {
-			a.l.Error("Failed to cleanup", "error", err)
-		}
-	}()
-
-	defer func() {
-		err := os.Remove(resultsDest)
-		if err != nil {
-			// Simply log this case because it's not an error in the function we're testing
-			t.Logf("Error removing test results file: %s", resultsDest)
-		}
-	}()
+	a, cleanup := newTestAgent(t)
+	defer cleanup(emptyLogger)
 
 	if err := a.WriteOutput(); err != nil {
 		t.Errorf("Error writing outputs: %s", err)
@@ -170,7 +122,6 @@ func TestWriteOutput(t *testing.T) {
 	expectFiles := []string{
 		filepath.Join(a.tmpDir, "manifest.json"),
 		filepath.Join(a.tmpDir, "results.json"),
-		resultsDest,
 	}
 	for _, f := range expectFiles {
 		// NOTE: OS X is case insensitive, so this test will never correctly check filename case on a dev machine
@@ -180,6 +131,9 @@ func TestWriteOutput(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
+	tmp, cleanup, _ := util.CreateTemp(".")
+	defer cleanup(emptyLogger)
+
 	testCases := []struct {
 		name        string
 		cfg         Config
@@ -188,15 +142,17 @@ func TestSetup(t *testing.T) {
 		{
 			name: "Should only get host if no products enabled",
 			cfg: Config{
-				OS: "auto",
+				OS:     "auto",
+				TmpDir: tmp,
 			},
 			expectedLen: 1,
 		},
 		{
 			name: "Should have host and nomad enabled",
 			cfg: Config{
-				Nomad: true,
-				OS:    "auto",
+				Nomad:  true,
+				OS:     "auto",
+				TmpDir: tmp,
 			},
 			expectedLen: 2,
 		},
@@ -211,12 +167,5 @@ func TestSetup(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, a.products, tc.expectedLen)
 		})
-	}
-}
-
-func cleanupHelper(t *testing.T, a *Agent) {
-	err := a.Cleanup()
-	if err != nil {
-		t.Errorf("Failed to clean up")
 	}
 }

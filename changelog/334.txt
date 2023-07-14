@@ -1,0 +1,4 @@
+```release-note:improvement
+cli: multiplex output to a logfile, in addition to stdout.
+```
+

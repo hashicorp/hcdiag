@@ -16,6 +16,12 @@ const (
 
 	// RunError indicates an error in the runner or its supporting unexported procedures.
 	RunError
+
+	// OutputError indicates an error writing or compressing the output of an agent run
+	OutputError
+
+	// SetupError is returned when errors are encountered while setting up prerequisites for an Agent to run; e.g. logfiles, temporary directories
+	SetupError
 )
 
 // The following error group is intended for issues with the Agent.
