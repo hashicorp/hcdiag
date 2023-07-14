@@ -164,7 +164,7 @@ func (c *RunCommand) Run(args []string) int {
 		defer cleanup(l)
 
 		// Set up stdout/logfile output
-		logfile, err := os.Create(path.Join(tmp, "hcdiag.log")) // creates a file at current directory
+		logfile, err := os.Create(filepath.Join(tmp, "hcdiag.log")) // creates a file at current directory
 		if err != nil {
 			fmt.Println(err)
 		}
