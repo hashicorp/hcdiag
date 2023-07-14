@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFSTab_Run(t *testing.T) {
+func TestLsmod_Run(t *testing.T) {
 	type response struct {
 		result    map[string]any
 		status    op.Status
@@ -21,12 +21,12 @@ func TestFSTab_Run(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		fstab    FSTab
+		lsmod    Lsmod
 		expected response
 	}{
 		{
-			name: "Test Windows Does Not Run",
-			fstab: FSTab{
+			name: "Testing if Windows Does Not Run",
+			lsmod: Lsmod{
 				OS: "windows",
 			},
 			expected: response{
@@ -35,8 +35,8 @@ func TestFSTab_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "Test Darwin Does Not Run",
-			fstab: FSTab{
+			name: "Testing if Darwin Does Not Run",
+			lsmod: Lsmod{
 				OS: "darwin",
 			},
 			expected: response{
@@ -45,8 +45,8 @@ func TestFSTab_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "Test Successful Run",
-			fstab: FSTab{
+			name: "Testing a Successful Run",
+			lsmod: Lsmod{
 				OS: "linux",
 				Shell: &mockShellRunner{
 					result: map[string]any{"shell": "contents"},
@@ -61,8 +61,8 @@ func TestFSTab_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "Test Unsuccessful Run",
-			fstab: FSTab{
+			name: "Testing an Unsuccessful Linux Run",
+			lsmod: Lsmod{
 				OS: "linux",
 				Shell: &mockShellRunner{
 					status: op.Unknown,
@@ -76,10 +76,11 @@ func TestFSTab_Run(t *testing.T) {
 		},
 	}
 
+	//Running all the test cases
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			expected := tc.expected
-			o := tc.fstab.Run()
+			o := tc.lsmod.Run()
 			assert.Equal(t, expected.result, o.Result)
 			assert.Equal(t, expected.status, o.Status)
 			if tc.expected.expectErr {
@@ -89,24 +90,29 @@ func TestFSTab_Run(t *testing.T) {
 	}
 }
 
-func TestNewFSTab(t *testing.T) {
+func TestNewLsmod(t *testing.T) {
 	testCases := []struct {
 		name     string
 		os       string
-		expected FSTab
+		expected Lsmod
 	}{
 		{
-			name:     "Test Linux",
+			name:     "Test for Linux",
 			os:       "linux",
-			expected: FSTab{OS: "linux"},
+			expected: Lsmod{OS: "linux"},
+		},
+		{
+			name:     "Test for windows",
+			os:       "windows",
+			expected: Lsmod{OS: "windows"},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fstab, err := NewFSTab(FSTabConfig{OS: tc.os})
+			lsmod, err := NewLsmod(LsmodConfig{OS: tc.os})
 			assert.NoError(t, err)
-			assert.Equal(t, tc.expected.OS, fstab.OS)
+			assert.Equal(t, tc.expected.OS, lsmod.OS)
 		})
 	}
 }
