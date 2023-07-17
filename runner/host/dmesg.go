@@ -6,7 +6,6 @@ package host
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
@@ -24,7 +23,6 @@ type DMesgConfig struct {
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-// DMesg accepts
 type DMesg struct {
 	OS      string         `json:"os"`
 	Shell   runner.Runner  `json:"shell"`
@@ -42,26 +40,15 @@ func NewDMesgWithContext(ctx context.Context, cfg DMesgConfig) (*DMesg, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if runtime.GOOS == "darwin" {
-		shell, err := runner.NewShellWithContext(ctx, runner.ShellConfig{
-			Command:    "sudo dmesg",
-			Redactions: cfg.Redactions,
-			Timeout:    time.Duration(cfg.Timeout),
-		})
-		if err != nil {
-			return nil, err
-		}
-		return &DMesg{
-			OS:    cfg.OS,
-			Shell: shell,
-			ctx:   ctx,
-		}, nil
-	}
-	shell, err := runner.NewShellWithContext(ctx, runner.ShellConfig{
+	shellConfig := runner.ShellConfig{
 		Command:    "dmesg -T",
 		Redactions: cfg.Redactions,
 		Timeout:    time.Duration(cfg.Timeout),
-	})
+	}
+	if cfg.OS == "darwin" {
+		shellConfig.Command = "dmesg"
+	}
+	shell, err := runner.NewShellWithContext(ctx, shellConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +61,7 @@ func NewDMesgWithContext(ctx context.Context, cfg DMesgConfig) (*DMesg, error) {
 
 // ID returns the runner ID for DMesg.
 func (r DMesg) ID() string {
-	if runtime.GOOS == "darwin" {
+	if r.OS == "darwin" {
 		return "dmesg"
 	}
 	return "dmesg -T"
