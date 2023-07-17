@@ -6,6 +6,7 @@ package host
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/hashicorp/hcdiag/op"
@@ -41,6 +42,21 @@ func NewDMesgWithContext(ctx context.Context, cfg DMesgConfig) (*DMesg, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	if runtime.GOOS == "darwin" {
+		shell, err := runner.NewShellWithContext(ctx, runner.ShellConfig{
+			Command:    "sudo dmesg",
+			Redactions: cfg.Redactions,
+			Timeout:    time.Duration(cfg.Timeout),
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &DMesg{
+			OS:    cfg.OS,
+			Shell: shell,
+			ctx:   ctx,
+		}, nil
+	}
 	shell, err := runner.NewShellWithContext(ctx, runner.ShellConfig{
 		Command:    "dmesg -T",
 		Redactions: cfg.Redactions,
@@ -58,6 +74,9 @@ func NewDMesgWithContext(ctx context.Context, cfg DMesgConfig) (*DMesg, error) {
 
 // ID returns the runner ID for DMesg.
 func (r DMesg) ID() string {
+	if runtime.GOOS == "darwin" {
+		return "dmesg"
+	}
 	return "dmesg -T"
 }
 
@@ -65,8 +84,8 @@ func (r DMesg) ID() string {
 func (r DMesg) Run() op.Op {
 	startTime := time.Now()
 
-	// Only Linux is supported currently; Windows is unsupported, and Darwin doesn't use dmesg -T (uses dmesg) by default.
-	if r.OS != "linux" {
+	// Only Linux and darwin is supported currently; Windows is unsupported, and Darwin doesn't use dmesg -T (uses dmesg) by default.
+	if r.OS != "linux" && r.OS != "darwin" {
 		return op.New(r.ID(), nil, op.Skip, fmt.Errorf("DMesg.Run() not available on os, os=%s", r.OS), runner.Params(r), startTime, time.Now())
 	}
 	o := r.Shell.Run()

@@ -35,17 +35,7 @@ func TestDMesg_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "Test Darwin Does Not Run",
-			dmesg: DMesg{
-				OS: "darwin",
-			},
-			expected: response{
-				status:    op.Skip,
-				expectErr: true,
-			},
-		},
-		{
-			name: "Test Successful Run",
+			name: "Test Successful linux Run",
 			dmesg: DMesg{
 				OS: "linux",
 				Shell: &mockShellRunner{
@@ -61,9 +51,39 @@ func TestDMesg_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "Test Unsuccessful Run",
+			name: "Test Unsuccessful linux Run",
 			dmesg: DMesg{
 				OS: "linux",
+				Shell: &mockShellRunner{
+					status: op.Unknown,
+					err:    fmt.Errorf("an error"),
+				},
+			},
+			expected: response{
+				status:    op.Unknown,
+				expectErr: true,
+			},
+		},
+		{
+			name: "Test Successful darwin Run",
+			dmesg: DMesg{
+				OS: "darwin",
+				Shell: &mockShellRunner{
+					result: map[string]any{"shell": "contents"},
+					status: op.Success,
+					err:    nil,
+				},
+			},
+			expected: response{
+				result:    map[string]any{"shell": "contents"},
+				status:    op.Success,
+				expectErr: false,
+			},
+		},
+		{
+			name: "Test Unsuccessful darwin Run",
+			dmesg: DMesg{
+				OS: "darwin",
 				Shell: &mockShellRunner{
 					status: op.Unknown,
 					err:    fmt.Errorf("an error"),
@@ -99,6 +119,11 @@ func TestNewDMesg(t *testing.T) {
 			name:     "Test Linux",
 			os:       "linux",
 			expected: DMesg{OS: "linux"},
+		},
+		{
+			name:     "Test Darwin",
+			os:       "darwin",
+			expected: DMesg{OS: "darwin"},
 		},
 	}
 
