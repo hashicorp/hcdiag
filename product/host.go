@@ -124,6 +124,17 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	}
 	r = append(r, lsMod)
 
+	//Dmesg runner
+	dMesg, err := host.NewDMesg(host.DMesgConfig{
+		OS:         os,
+		Timeout:    TimeoutTenSeconds,
+		Redactions: redactions,
+	})
+	if err != nil {
+		l.Error("unable to create host.Dmesg runner.", "err=", err)
+	}
+	r = append(r, dMesg)
+
 	runners := []runner.Runner{
 		do.New(l, "host", "host runners", r),
 	}
