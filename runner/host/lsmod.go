@@ -23,7 +23,6 @@ type LsmodConfig struct {
 	Redactions []*redact.Redact `json:"redactions"`
 }
 
-// lsmod accepts
 type Lsmod struct {
 	OS      string         `json:"os"`
 	Shell   runner.Runner  `json:"shell"`
