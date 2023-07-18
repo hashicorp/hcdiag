@@ -69,14 +69,18 @@ func NewHostWithContext(ctx context.Context, logger hclog.Logger, cfg Config, hc
 
 	// TODO(mkcp): Host can have an API client now and it would simplify quite a bit.
 	// Add built-in runners
-	builtInRunners := hostRunners(ctx, os, cfg.Redactions, product.l)
+	builtInRunners, err := hostRunners(ctx, os, cfg.Redactions, product.l)
+	if err != nil {
+		return nil, err
+	}
+
 	product.Runners = append(product.Runners, builtInRunners...)
 
 	return product, nil
 }
 
 // hostRunners generates a slice of runners to inspect the host.
-func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
+func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
 		host.NewOSWithContext(ctx, host.OSConfig{OS: os, Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
 		host.NewDiskWithContext(ctx, host.DiskConfig{Redactions: redactions}),
@@ -107,9 +111,9 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 		Timeout:    TimeoutTenSeconds,
 		Redactions: redactions,
 	})
-	// TODO(mkcp): Errors should propagate back from hostRunners().
 	if err != nil {
 		l.Error("unable to create host.FSTab runner.", "err=", err)
+		return nil, err
 	}
 	r = append(r, fsTab)
 
@@ -121,6 +125,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	})
 	if err != nil {
 		l.Error("unable to create host.Lsmod runner.", "err=", err)
+		return nil, err
 	}
 	r = append(r, lsMod)
 
@@ -132,13 +137,14 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	})
 	if err != nil {
 		l.Error("unable to create host.Dmesg runner.", "err=", err)
+		return nil, err
 	}
 	r = append(r, dMesg)
 
 	runners := []runner.Runner{
 		do.New(l, "host", "host runners", r),
 	}
-	return runners
+	return runners, nil
 }
 
 // hostRedactions returns a slice of default redactions for this product
