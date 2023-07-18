@@ -135,6 +135,17 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	}
 	r = append(r, dMesg)
 
+	//Lsof runner
+	lSof, err := host.NewLsof(host.LsofConfig{
+		OS:         os,
+		Timeout:    TimeoutTenSeconds,
+		Redactions: redactions,
+	})
+	if err != nil {
+		l.Error("unable to create host.Lsof runner.", "err=", err)
+	}
+	r = append(r, lSof)
+
 	runners := []runner.Runner{
 		do.New(l, "host", "host runners", r),
 	}
