@@ -69,14 +69,18 @@ func NewHostWithContext(ctx context.Context, logger hclog.Logger, cfg Config, hc
 
 	// TODO(mkcp): Host can have an API client now and it would simplify quite a bit.
 	// Add built-in runners
-	builtInRunners := hostRunners(ctx, os, cfg.Redactions, product.l)
+	builtInRunners, err := hostRunners(ctx, os, cfg.Redactions, product.l)
+	if err != nil {
+		return nil, err
+	}
+
 	product.Runners = append(product.Runners, builtInRunners...)
 
 	return product, nil
 }
 
 // hostRunners generates a slice of runners to inspect the host.
-func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l hclog.Logger) []runner.Runner {
+func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l hclog.Logger) ([]runner.Runner, error) {
 	r := []runner.Runner{
 		host.NewOSWithContext(ctx, host.OSConfig{OS: os, Redactions: redactions, Timeout: time.Duration(TimeoutTenSeconds)}),
 		host.NewDiskWithContext(ctx, host.DiskConfig{Redactions: redactions}),
@@ -102,7 +106,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	}
 
 	//Creates the host.FStab runner and adds it to the list of runners
-	fsTab, err := host.NewFSTab(host.FSTabConfig{
+	fsTab, err := host.NewFSTabWithContext(ctx, host.FSTabConfig{
 		OS:         os,
 		Timeout:    TimeoutTenSeconds,
 		Redactions: redactions,
@@ -114,7 +118,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	r = append(r, fsTab)
 
 	//Creates the host.Lsmod runner and adds it to the list of runners
-	lsMod, err := host.NewLsmod(host.LsmodConfig{
+	lsMod, err := host.NewLsmodWithContext(ctx, host.LsmodConfig{
 		OS:         os,
 		Timeout:    TimeoutTenSeconds,
 		Redactions: redactions,
@@ -125,7 +129,7 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	r = append(r, lsMod)
 
 	//Dmesg runner
-	dMesg, err := host.NewDMesg(host.DMesgConfig{
+	dMesg, err := host.NewDMesgWithContext(ctx, host.DMesgConfig{
 		OS:         os,
 		Timeout:    TimeoutTenSeconds,
 		Redactions: redactions,
@@ -136,20 +140,21 @@ func hostRunners(ctx context.Context, os string, redactions []*redact.Redact, l 
 	r = append(r, dMesg)
 
 	//Lsof runner
-	lSof, err := host.NewLsof(host.LsofConfig{
+	lSof, err := host.NewLsofWithContext(ctx, host.LsofConfig{
 		OS:         os,
 		Timeout:    TimeoutTenSeconds,
 		Redactions: redactions,
 	})
 	if err != nil {
 		l.Error("unable to create host.Lsof runner.", "err=", err)
+		return nil, err
 	}
 	r = append(r, lSof)
 
 	runners := []runner.Runner{
 		do.New(l, "host", "host runners", r),
 	}
-	return runners
+	return runners, nil
 }
 
 // hostRedactions returns a slice of default redactions for this product
