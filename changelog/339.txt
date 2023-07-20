@@ -1,0 +1,4 @@
+```release-note:bug
+bug: host runners now return early if they experience failures during instantiation, avoiding possible nil pointers in the runner slice.
+```
+
