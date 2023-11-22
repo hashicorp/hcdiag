@@ -4,5 +4,3 @@
 # Component                             # Maintainer
 /*                                      @hashicorp/core-instrumentation
 
-/.release/                              @hashicorp/release-engineering
-/.github/workflows/build.yml            @hashicorp/release-engineering
