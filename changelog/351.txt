@@ -1,0 +1,4 @@
+```release-note:improvement
+core: Upgrade to go 1.21.7.
+```
+
