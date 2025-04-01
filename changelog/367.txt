@@ -1,0 +1,4 @@
+```release-note:improvement
+core: Upgrade to go 1.23.7.
+core: Upgrade golang.org/x/crypto to v0.36.0.
+```
