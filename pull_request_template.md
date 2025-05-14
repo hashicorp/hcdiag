@@ -11,5 +11,3 @@
 - [ ] If applicable, I've worked with GRC to ensure compliance due to a significant change to the in-scope PCI environment.
 
   Examples include changes to operating systems, ports, protocols, services, cryptography-related components, PII processing code, etc.
-
-If you have any questions, please contact your direct supervisor, GRC (#team-grc), or the PCI working group (#proj-pci-reboot). You can also find more information at [PCI Compliance](https://hashicorp.atlassian.net/wiki/spaces/SEC/pages/2784559202/PCI+Compliance).
