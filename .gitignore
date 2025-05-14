@@ -32,3 +32,6 @@
 # Built binaries, etc.
 bin/
 
+# Allow pull_request_template.md to be tracked, despite all *temp* files being ignored
+!pull_request_template.md
+
