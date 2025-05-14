@@ -1,0 +1,3 @@
+```release-note:improvement
+core: Added pull_request_template for compliance
+```
