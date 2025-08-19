@@ -14,12 +14,12 @@ const (
 var (
 	// version is the main version number that is being run at the moment.
 	// version must be of the format <MAJOR>.<MINOR>.<PATCH>, as described in the semantic versioning specification.
-	version = "0.5.8"
+	version = "0.5.9"
 
 	// prerelease is a pre-release marker for the version. If this is "" (empty string) then it means that
 	// it is a final release. Otherwise, this is a pre-release such as "dev" (in development),
 	// "beta", "rc1", etc.
-	prerelease = ""
+	prerelease = "rc0"
 
 	// metadata is any additional (optional) information regarding the build, as described by the semantic
 	// versioning specification.
