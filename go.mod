@@ -1,6 +1,6 @@
 module github.com/hashicorp/hcdiag
 
-go 1.24.11
+go 1.24.13
 
 require (
 	github.com/cosiner/argv v0.1.0
