@@ -154,7 +154,7 @@ func (c *APIClient) GetStringValue(path string, mapKeys ...string) (string, erro
 	return v, nil
 }
 
-func (c *APIClient) request(method string, path string, data []byte) (result interface{}, err error) {
+func (c *APIClient) request(method string, path string, data []byte) (result any, err error) {
 	// Build request
 	url := fmt.Sprintf("%s%s", c.BaseURL, path)
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(data))
