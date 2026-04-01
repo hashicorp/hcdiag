@@ -267,7 +267,7 @@ func (c *RunCommand) Run(args []string) int {
 func compressOutputDir(tmpDir, filename, destination string) error {
 	err := util.EnsureDirectory(destination)
 	if err != nil {
-		return fmt.Errorf("Failed to ensure destination directory exists: dir=%s, error=%w", destination, err)
+		return fmt.Errorf("failed to ensure destination directory exists: dir=%s, error=%w", destination, err)
 	}
 
 	// Build bundle destination path from config
