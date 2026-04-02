@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package util
@@ -61,7 +61,11 @@ func TarGz(sourceDir string, destFileName string, baseName string) error {
 				hclog.L().Error("TarGz", "error opening source file", err)
 				return err
 			}
-			defer sourceFile.Close()
+			defer func(sourceFile *os.File) {
+				if closeErr := sourceFile.Close(); closeErr != nil {
+					hclog.L().Warn("error closing source file", "component", "TarGz", "error", closeErr)
+				}
+			}(sourceFile)
 
 			stat, err := sourceFile.Stat()
 			if err != nil {
@@ -208,6 +212,33 @@ func FindInInterface(iface interface{}, mapKeys ...string) (interface{}, error) 
 		}
 	}
 	return mapped, nil
+}
+
+// CreateTemp Creates a temporary directory so that we may gather results and files before compressing the final
+// artifact. It returns a string representing a filepath, a cleanup function that takes a logger in case of a cleanup error, and an optional error.
+func CreateTemp(parent_directory string) (string, func(hclog.Logger), error) {
+	// default "empty" cleanupfunc
+	emptyCleanup := func(hclog.Logger) {}
+
+	// Create the temporary directory inside the given parent directory
+	tmp, err := os.MkdirTemp(parent_directory, "hcdiag")
+	if err != nil {
+		return "", emptyCleanup, fmt.Errorf("Error creating temp directory, message=%w", err)
+	}
+	tmp, err = filepath.Abs(tmp)
+	if err != nil {
+		return "", emptyCleanup, fmt.Errorf("Error identifying absolute path for temp directory, message=%w", err)
+	}
+
+	// return our temporary directory path, cleanup function, and error
+	return tmp,
+		func(l hclog.Logger) {
+			err := os.RemoveAll(tmp)
+			if err != nil {
+				l.Error("Failed to clean up temporary directory %w", err)
+			}
+		},
+		nil
 }
 
 // EnsureDirectory will ensure that the full path to the destination directory exists. If the full

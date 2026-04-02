@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package main
@@ -67,7 +67,7 @@ func mainHelp(commands map[string]cli.CommandFactory) string {
 	// NOTE: This is a slightly modified copy of mitchellh/cli.BasicHelp so that we can include some general
 	// application usage information in it.
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("Usage: %s [--version] [--help] <command> [<args>]\n\n", appName))
+	fmt.Fprintf(&buf, "Usage: %s [--version] [--help] <command> [<args>]\n\n", appName)
 
 	appUsage := strings.TrimSpace(`
 hcdiag simplifies debugging HashiCorp products by automating shared and product-specific diagnostics data collection
@@ -80,7 +80,7 @@ However, this will be deprecated in an upcoming release. You should begin using 
 For guidance on available options for running local execution, please refer to the help output from 'run' by using
 'hcdiag run --help'.
 `)
-	buf.WriteString(fmt.Sprintf("%s\n\n", appUsage))
+	fmt.Fprintf(&buf, "%s\n\n", appUsage)
 
 	buf.WriteString("Available commands are:\n")
 
@@ -113,7 +113,7 @@ For guidance on available options for running local execution, please refer to t
 		}
 
 		key = fmt.Sprintf("%s%s", key, strings.Repeat(" ", maxKeyLen-len(key)))
-		buf.WriteString(fmt.Sprintf("    %s    %s\n", key, c.Synopsis()))
+		fmt.Fprintf(&buf, "    %s    %s\n", key, c.Synopsis())
 	}
 
 	return buf.String()

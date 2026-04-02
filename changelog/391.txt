@@ -1,0 +1,3 @@
+```release-note:improvement
+core: improve error handling around API responses, logfile output, and file cleanup.
+```

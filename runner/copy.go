@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package runner
@@ -252,7 +252,7 @@ func copyDir(to, src string, redactions []*redact.Redact) error {
 		targetMaybeUnsafe := filepath.Join(to, absBase, info.Name())
 
 		// TODO: more extensive path cleansing beyond handling C:\
-		target := strings.Replace(targetMaybeUnsafe, ":", "_", -1)
+		target := strings.ReplaceAll(targetMaybeUnsafe, ":", "_")
 
 		if info.IsDir() {
 			hclog.L().Info("copying", "path", path, "to", target)

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package runner
@@ -19,16 +19,16 @@ func TestShell(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		return
 	}
-	curShell := os.Getenv("SHELL")
-	defer os.Setenv("SHELL", curShell)
-	os.Setenv("SHELL", "/bin/sh")
+	t.Setenv("SHELL", "/bin/sh")
 
 	// features pipe "|" and file redirection ">"
 	c, err := NewShell(ShellConfig{
 		Command: "echo hiii | grep hi > cooltestfile",
 	})
 	assert.NoError(t, err)
-	defer os.Remove("cooltestfile")
+	t.Cleanup(func() {
+		assert.NoError(t, os.Remove("cooltestfile"))
+	})
 	o := c.Run()
 	assert.Equal(t, map[string]any{"shell": ""}, o.Result)
 	assert.NoError(t, o.Error)

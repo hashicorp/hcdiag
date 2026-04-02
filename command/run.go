@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package command
@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -36,7 +37,6 @@ type RunCommand struct {
 	flags *flag.FlagSet
 
 	os     string
-	serial bool
 	dryrun bool
 
 	// Products
@@ -51,9 +51,6 @@ type RunCommand struct {
 
 	// includeSince provides a time range for ops to work from
 	includeSince time.Duration
-
-	// includes
-	includes []string
 
 	// Bundle write location
 	destination string
@@ -85,7 +82,6 @@ func (c *RunCommand) init() {
 
 		// Deprecated options
 		includesUsageText      = "DEPRECATED: Files or directories to include (comma-separated, file-*-globbing available if 'wrapped-*-in-single-quotes'); e.g. '/var/log/consul-*,/var/log/nomad-*'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead."
-		serialUsageText        = "DEPRECATED: Run products in sequence rather than concurrently. NOTE: This option will be removed in an upcoming version of hcdiag. Runners within products run concurrently beginning in 0.5.0. Please use HCL seq blocks instead."
 		debugDurationUsageText = "DEPRECATED: How long to run product debug bundle commands. Provide a duration ex: '00h00m00s'. See: -duration in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
 		debugIntervalUsageText = "DEPRECATED: How long metrics collection intervals in product debug commands last. Provide a duration ex: '00h00m00s'. See: -interval in 'vault debug', 'consul debug', and 'nomad operator debug'. NOTE: This option will be removed in an upcoming version of hcdiag. Please use HCL debug blocks instead."
 	)
@@ -95,7 +91,6 @@ func (c *RunCommand) init() {
 	c.flags = flag.NewFlagSet("run", flag.ContinueOnError)
 
 	c.flags.BoolVar(&c.dryrun, "dryrun", false, dryrunUsageText)
-	c.flags.BoolVar(&c.serial, "serial", false, serialUsageText)
 	c.flags.BoolVar(&c.consul, "consul", false, consulUsageText)
 	c.flags.BoolVar(&c.nomad, "nomad", false, nomadUsageText)
 	c.flags.BoolVar(&c.tfe, "terraform-ent", false, terraformEntUsageText)
@@ -109,7 +104,6 @@ func (c *RunCommand) init() {
 	c.flags.StringVar(&c.destination, "destination", ".", destinationUsageText)
 	c.flags.StringVar(&c.destination, "dest", ".", destUsageText)
 	c.flags.StringVar(&c.config, "config", "", configUsageText)
-	c.flags.Var(&CSVFlag{&c.includes}, "includes", includesUsageText)
 
 	// Ensure f.Destination points to some kind of directory by its notation
 	// FIXME(mkcp): trailing slashes should be trimmed in path.Dir... why does a double slash end in a slash?
@@ -151,6 +145,46 @@ func (c *RunCommand) Synopsis() string {
 
 // Run executes the command.
 func (c *RunCommand) Run(args []string) int {
+	// a randomly-named temporary directory
+	var tmp string
+	var cleanup func(hclog.Logger)
+	var err error
+
+	// Default teeWriter just prints to stdout
+	var teeWriter io.Writer = os.Stdout
+	l := configureLogging("hcdiag", teeWriter)
+
+	// Create a temporary directory and logfile
+	if !c.dryrun {
+		if tmp, cleanup, err = util.CreateTemp(c.destination); err != nil {
+			fmt.Println("Failed to create temp directory. error:", err)
+			return SetupError
+		}
+		// remove the temporary directory and its contents
+		defer cleanup(l)
+
+		// Set up stdout/logfile output
+		logfile, err := os.Create(filepath.Join(tmp, "hcdiag.log"))
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			defer func() {
+				if closeErr := logfile.Close(); closeErr != nil {
+					l.Warn("failed to close logfile", "error", closeErr)
+				}
+			}()
+
+			// Create a MultiWriter to multiplex output
+			teeWriter = io.MultiWriter(logfile, os.Stdout)
+		}
+	}
+
+	// Modify CLI app to ensure we're writing to all desired outputs, including the logfile
+	c.ui = &cli.BasicUi{
+		Writer:      teeWriter,
+		ErrorWriter: teeWriter,
+	}
+
 	if err := c.parseFlags(args); err != nil {
 		// Output the specific error to help the user understand what went wrong.
 		c.ui.Warn(err.Error())
@@ -158,8 +192,6 @@ func (c *RunCommand) Run(args []string) int {
 		c.ui.Warn(c.Help())
 		return FlagParseError
 	}
-
-	l := configureLogging("hcdiag")
 
 	// Build agent configuration from flags, HCL, and system time
 	var config agent.Config
@@ -173,6 +205,10 @@ func (c *RunCommand) Run(args []string) int {
 		l.Debug("HCL config is", "hcl", hclCfg)
 		config.HCL = hclCfg
 	}
+
+	// add tempdir to the CLI-generated Agent.Config
+	config.TmpDir = tmp
+
 	// Assign flag values to our agent.Config
 	cfg := c.mergeAgentConfig(config)
 
@@ -215,22 +251,51 @@ func (c *RunCommand) Run(args []string) int {
 		return Success
 	}
 
-	resultsFile := a.ResultsDest()
-	if err = writeSummary(os.Stdout, resultsFile, a.ManifestOps); err != nil {
+	// Include a timestamp based on agent start time
+	// specifically excluding colons ":" since they are anathema to some filesystems and programs.
+	ts := a.Start.UTC().Format("2006-01-02T150405Z")
+	err = compressOutputDir(tmp, "hcdiag"+ts, a.Config.Destination)
+	if err != nil {
+		l.Warn("failed to compress output directory; please review output files", "tmpdir", tmp, "err", err)
+		return OutputError
+	}
+
+	absDest, _ := filepath.Abs(a.Config.Destination)
+	if err = writeSummary(teeWriter, filepath.Join(absDest, ("hcdiag"+ts+".tar.gz")), a.ManifestOps); err != nil {
 		l.Warn("failed to generate report summary; please review output files to ensure everything expected is present", "err", err)
-		return RunError
+		return OutputError
 	}
 
 	return Success
 }
 
+func compressOutputDir(tmpDir, filename, destination string) error {
+	err := util.EnsureDirectory(destination)
+	if err != nil {
+		return fmt.Errorf("failed to ensure destination directory exists: dir=%s, error=%w", destination, err)
+	}
+
+	// Build bundle destination path from config
+	resultsFile := fmt.Sprintf("%s.tar.gz", filename)
+	resultsDest := filepath.Join(destination, resultsFile)
+
+	// Archive and compress outputs
+	err = util.TarGz(tmpDir, resultsDest, filename)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // configureLogging takes a logger name, sets the default configuration, grabs the LOG_LEVEL from our ENV vars, and
 // returns a configured and usable logger.
-func configureLogging(loggerName string) hclog.Logger {
+func configureLogging(loggerName string, loggerOutput io.Writer) hclog.Logger {
 	// Create logger, set default and log level
 	appLogger := hclog.New(&hclog.LoggerOptions{
-		Name:  loggerName,
-		Color: hclog.AutoColor,
+		Name: loggerName,
+		// NOTE(dcohen) Currently broken due to multiplexing -- stdout supports color codes, but logfiles don't
+		// Color:  hclog.AutoColor,
+		Output: loggerOutput,
 	})
 	hclog.SetDefault(appLogger)
 	if logStr := os.Getenv("LOG_LEVEL"); logStr != "" {
@@ -265,7 +330,6 @@ func (c *RunCommand) parseFlags(args []string) error {
 // mergeAgentConfig merges flags into the agent.Config, prioritizing flags over HCL config.
 func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 	config.OS = c.os
-	config.Serial = c.serial
 	config.Dryrun = c.dryrun
 
 	config.Consul = c.consul
@@ -289,14 +353,6 @@ func (c *RunCommand) mergeAgentConfig(config agent.Config) agent.Config {
 				"vault", config.Vault,
 			)
 		}
-	}
-
-	// Params for --includes
-	config.Includes = c.includes
-	if len(c.includes) > 0 {
-		hclog.L().Warn(
-			"DEPRECATION NOTICE: The '-includes' option will be removed in an upcoming version of hcdiag. Please use HCL copy blocks instead.",
-		)
 	}
 
 	// Bundle write location

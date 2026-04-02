@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package util
@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,15 +52,35 @@ func TestSplitFilepath(t *testing.T) {
 		t.Errorf("error creating cooldir/coolfile: %s", err)
 		return
 	}
-	defer os.RemoveAll("cooldir")
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll("cooldir"))
+	})
+	cleanupPaths := map[string]struct{}{}
 	for _, data := range testTable {
 		f := data["path"]
-		_, err = os.Create(f)
+		file, err := os.Create(f)
 		if err != nil {
 			t.Errorf("error creating %s: %s", f, err)
 			return
 		}
-		defer os.Remove(f)
+		assert.NoError(t, file.Close())
+
+		cleanupPath, err := filepath.Abs(f)
+		if err != nil {
+			t.Errorf("error getting absolute path for %s: %s", f, err)
+			return
+		}
+		if _, ok := cleanupPaths[cleanupPath]; ok {
+			continue
+		}
+		cleanupPaths[cleanupPath] = struct{}{}
+
+		t.Cleanup(func() {
+			err := os.Remove(cleanupPath)
+			if err != nil && !os.IsNotExist(err) {
+				assert.NoError(t, err)
+			}
+		})
 	}
 
 	// Validate our test results
@@ -222,6 +243,32 @@ func TestHostCommandExists(t *testing.T) {
 			result, _ := HostCommandExists(tc.command)
 			assert.Equal(t, result, tc.expect)
 		})
+	}
+}
+
+func TestCreateAndCleanupTemporaryDirectory(t *testing.T) {
+	tmp, cleanup, err := CreateTemp(".")
+	if err != nil {
+		t.Errorf("failed to create temporary directory, err=%s", err)
+	}
+
+	fileInfo, err := os.Stat(tmp)
+	if err != nil {
+		t.Errorf("error checking for temp dir: %s", err)
+	}
+	if !fileInfo.IsDir() {
+		t.Error("temporary directory was not created")
+	}
+
+	// test cleanup
+	cleanup(hclog.NewNullLogger())
+	if err != nil {
+		t.Errorf("error while cleaning up temporary directory: %s", err)
+	}
+
+	_, err = os.Stat(tmp)
+	if err == nil {
+		t.Errorf("error checking for temp dir: %s", err)
 	}
 }
 

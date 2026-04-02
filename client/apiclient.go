@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package client
@@ -79,7 +79,7 @@ func (c *APIClient) RedactGet(path string, redactions []*redact.Redact) (any, er
 
 // RedactGetWithContext behaves similarly to RedactGet, however it takes a context object as a parameter, which is
 // then used when making HTTP requests. This allows for timeouts and cancellations to propagate.
-func (c *APIClient) RedactGetWithContext(ctx context.Context, path string, redactions []*redact.Redact) (any, error) {
+func (c *APIClient) RedactGetWithContext(ctx context.Context, path string, redactions []*redact.Redact) (result any, err error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -105,7 +105,9 @@ func (c *APIClient) RedactGetWithContext(ctx context.Context, path string, redac
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = errors.Join(err, resp.Body.Close())
+	}()
 
 	// Grab response contents
 	body, err := io.ReadAll(resp.Body)
@@ -152,7 +154,7 @@ func (c *APIClient) GetStringValue(path string, mapKeys ...string) (string, erro
 	return v, nil
 }
 
-func (c *APIClient) request(method string, path string, data []byte) (interface{}, error) {
+func (c *APIClient) request(method string, path string, data []byte) (result any, err error) {
 	// Build request
 	url := fmt.Sprintf("%s%s", c.BaseURL, path)
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(data))
@@ -171,7 +173,9 @@ func (c *APIClient) request(method string, path string, data []byte) (interface{
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = errors.Join(err, resp.Body.Close())
+	}()
 
 	// Grab response contents
 	body, err := io.ReadAll(resp.Body)

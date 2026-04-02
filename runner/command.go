@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package runner
@@ -145,8 +145,8 @@ func (c Command) Run() op.Op {
 
 		// Parse result format
 		// TODO(mkcp): This can be detected rather than branching on user input
-		switch {
-		case c.Format == "string":
+		switch c.Format {
+		case "string":
 			redBts, err := redact.Bytes(bts, c.Redactions)
 			if err != nil {
 				results <- op.New(c.ID(), nil, op.Fail, err, Params(c), startTime, time.Now())
@@ -156,7 +156,7 @@ func (c Command) Run() op.Op {
 			result := map[string]any{"text": redResult}
 			results <- op.New(c.ID(), result, op.Success, nil, Params(c), startTime, time.Now())
 
-		case c.Format == "json":
+		case "json":
 			var obj any
 			marshErr := json.Unmarshal(bts, &obj)
 			if marshErr != nil {
