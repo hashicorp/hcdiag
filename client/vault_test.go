@@ -4,15 +4,13 @@
 package client
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewVaultAPI(t *testing.T) {
-	os.Setenv("VAULT_TOKEN", "testytest")
-	defer os.Unsetenv("VAULT_TOKEN")
+	t.Setenv("VAULT_TOKEN", "testytest")
 
 	api, err := NewVaultAPI()
 	if err != nil {
@@ -30,8 +28,7 @@ func TestNewVaultAPI(t *testing.T) {
 }
 
 func TestGetVaultLogPathPDir(t *testing.T) {
-	os.Setenv("VAULT_TOKEN", "testytest")
-	defer os.Unsetenv("VAULT_TOKEN")
+	t.Setenv("VAULT_TOKEN", "testytest")
 
 	api, err := NewVaultAPI()
 	if err != nil {

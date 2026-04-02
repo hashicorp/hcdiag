@@ -4,7 +4,6 @@
 package util
 
 import (
-	"os"
 	"runtime"
 	"testing"
 
@@ -25,16 +24,13 @@ func TestGetShell(t *testing.T) {
 		return
 	}
 
-	curShell := os.Getenv("SHELL")
-	defer os.Setenv("SHELL", curShell)
-
 	// no $SHELL ? no shell for you.
-	os.Setenv("SHELL", "")
+	t.Setenv("SHELL", "")
 	_, err := GetShell()
 	assert.ErrorIs(t, err, ErrUnknownShell)
 
 	// happy path
-	os.Setenv("SHELL", "/bin/sh")
+	t.Setenv("SHELL", "/bin/sh")
 	shell, err := GetShell()
 	assert.Equal(t, "/bin/sh", shell)
 	assert.NoError(t, err)

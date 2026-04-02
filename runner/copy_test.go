@@ -64,15 +64,20 @@ func TestNewCopy(t *testing.T) {
 }
 
 func setupFile(t *testing.T, dir, file, content string) {
+	t.Helper()
+
 	// touch file
 	absFile := filepath.Join(dir, file)
 	f, err := os.Create(absFile)
 	assert.NoError(t, err)
-	defer f.Close()
+	if err != nil {
+		return
+	}
 
 	// write to file
 	_, err = f.WriteString(content)
 	assert.NoError(t, err)
+	assert.NoError(t, f.Close())
 }
 
 // TestFiles maps any number of filenames to their desired content

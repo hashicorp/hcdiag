@@ -61,7 +61,11 @@ func TarGz(sourceDir string, destFileName string, baseName string) error {
 				hclog.L().Error("TarGz", "error opening source file", err)
 				return err
 			}
-			defer sourceFile.Close()
+			defer func(sourceFile *os.File) {
+				if closeErr := sourceFile.Close(); closeErr != nil {
+					hclog.L().Warn("error closing source file", "component", "TarGz", "error", closeErr)
+				}
+			}(sourceFile)
 
 			stat, err := sourceFile.Stat()
 			if err != nil {
