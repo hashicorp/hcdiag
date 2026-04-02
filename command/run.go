@@ -164,14 +164,19 @@ func (c *RunCommand) Run(args []string) int {
 		defer cleanup(l)
 
 		// Set up stdout/logfile output
-		logfile, err := os.Create(filepath.Join(tmp, "hcdiag.log")) // creates a file at current directory
+		logfile, err := os.Create(filepath.Join(tmp, "hcdiag.log"))
 		if err != nil {
 			fmt.Println(err)
-		}
-		defer logfile.Close()
+		} else {
+			defer func() {
+				if closeErr := logfile.Close(); closeErr != nil {
+					l.Warn("failed to close logfile", "error", closeErr)
+				}
+			}()
 
-		// Create a MultiWriter to multiplex output
-		teeWriter = io.MultiWriter(logfile, os.Stdout)
+			// Create a MultiWriter to multiplex output
+			teeWriter = io.MultiWriter(logfile, os.Stdout)
+		}
 	}
 
 	// Modify CLI app to ensure we're writing to all desired outputs, including the logfile
@@ -267,7 +272,7 @@ func (c *RunCommand) Run(args []string) int {
 func compressOutputDir(tmpDir, filename, destination string) error {
 	err := util.EnsureDirectory(destination)
 	if err != nil {
-		return fmt.Errorf("Failed to ensure destination directory exists: dir=%s, error=%w", destination, err)
+		return fmt.Errorf("failed to ensure destination directory exists: dir=%s, error=%w", destination, err)
 	}
 
 	// Build bundle destination path from config

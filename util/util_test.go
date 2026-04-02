@@ -52,15 +52,35 @@ func TestSplitFilepath(t *testing.T) {
 		t.Errorf("error creating cooldir/coolfile: %s", err)
 		return
 	}
-	defer os.RemoveAll("cooldir")
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll("cooldir"))
+	})
+	cleanupPaths := map[string]struct{}{}
 	for _, data := range testTable {
 		f := data["path"]
-		_, err = os.Create(f)
+		file, err := os.Create(f)
 		if err != nil {
 			t.Errorf("error creating %s: %s", f, err)
 			return
 		}
-		defer os.Remove(f)
+		assert.NoError(t, file.Close())
+
+		cleanupPath, err := filepath.Abs(f)
+		if err != nil {
+			t.Errorf("error getting absolute path for %s: %s", f, err)
+			return
+		}
+		if _, ok := cleanupPaths[cleanupPath]; ok {
+			continue
+		}
+		cleanupPaths[cleanupPath] = struct{}{}
+
+		t.Cleanup(func() {
+			err := os.Remove(cleanupPath)
+			if err != nil && !os.IsNotExist(err) {
+				assert.NoError(t, err)
+			}
+		})
 	}
 
 	// Validate our test results
