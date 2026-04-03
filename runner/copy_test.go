@@ -68,7 +68,9 @@ func setupFile(t *testing.T, dir, file, content string) {
 	absFile := filepath.Join(dir, file)
 	f, err := os.Create(absFile)
 	assert.NoError(t, err)
-	defer f.Close()
+	defer func() {
+		assert.NoError(t, f.Close())
+	}()
 
 	// write to file
 	_, err = f.WriteString(content)

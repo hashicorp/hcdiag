@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetShellWindows(t *testing.T) {
@@ -26,15 +27,17 @@ func TestGetShell(t *testing.T) {
 	}
 
 	curShell := os.Getenv("SHELL")
-	defer os.Setenv("SHELL", curShell)
+	t.Cleanup(func() {
+		assert.NoError(t, os.Setenv("SHELL", curShell))
+	})
 
 	// no $SHELL ? no shell for you.
-	os.Setenv("SHELL", "")
+	require.NoError(t, os.Setenv("SHELL", ""))
 	_, err := GetShell()
 	assert.ErrorIs(t, err, ErrUnknownShell)
 
 	// happy path
-	os.Setenv("SHELL", "/bin/sh")
+	require.NoError(t, os.Setenv("SHELL", "/bin/sh"))
 	shell, err := GetShell()
 	assert.Equal(t, "/bin/sh", shell)
 	assert.NoError(t, err)

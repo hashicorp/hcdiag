@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/hcdiag/op"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestShell(t *testing.T) {
@@ -20,15 +21,19 @@ func TestShell(t *testing.T) {
 		return
 	}
 	curShell := os.Getenv("SHELL")
-	defer os.Setenv("SHELL", curShell)
-	os.Setenv("SHELL", "/bin/sh")
+	require.NoError(t, os.Setenv("SHELL", "/bin/sh"))
+	t.Cleanup(func() {
+		assert.NoError(t, os.Setenv("SHELL", curShell))
+	})
 
 	// features pipe "|" and file redirection ">"
 	c, err := NewShell(ShellConfig{
 		Command: "echo hiii | grep hi > cooltestfile",
 	})
 	assert.NoError(t, err)
-	defer os.Remove("cooltestfile")
+	t.Cleanup(func() {
+		assert.NoError(t, os.Remove("cooltestfile"))
+	})
 	o := c.Run()
 	assert.Equal(t, map[string]any{"shell": ""}, o.Result)
 	assert.NoError(t, o.Error)

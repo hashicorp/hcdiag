@@ -105,7 +105,11 @@ func (c *APIClient) RedactGetWithContext(ctx context.Context, path string, redac
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
 	// Grab response contents
 	body, err := io.ReadAll(resp.Body)
@@ -171,7 +175,11 @@ func (c *APIClient) request(method string, path string, data []byte) (interface{
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
 	// Grab response contents
 	body, err := io.ReadAll(resp.Body)

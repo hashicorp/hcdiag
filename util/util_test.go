@@ -51,7 +51,9 @@ func TestSplitFilepath(t *testing.T) {
 		t.Errorf("error creating cooldir/coolfile: %s", err)
 		return
 	}
-	defer os.RemoveAll("cooldir")
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll("cooldir"))
+	})
 	for _, data := range testTable {
 		f := data["path"]
 		_, err = os.Create(f)
@@ -59,7 +61,10 @@ func TestSplitFilepath(t *testing.T) {
 			t.Errorf("error creating %s: %s", f, err)
 			return
 		}
-		defer os.Remove(f)
+		t.Cleanup(func() {
+			err := os.Remove(f)
+			assert.True(t, err == nil || os.IsNotExist(err), "unexpected cleanup error: %v", err)
+		})
 	}
 
 	// Validate our test results
