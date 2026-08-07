@@ -18,7 +18,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcdiag/op"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/hcdiag/internal/cli"
 
 	"github.com/hashicorp/hcdiag/agent"
 	"github.com/hashicorp/hcdiag/hcl"

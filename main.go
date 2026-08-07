@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcdiag/command"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/hcdiag/internal/cli"
 )
 
 const appName = "hcdiag"

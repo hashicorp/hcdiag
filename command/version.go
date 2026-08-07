@@ -5,7 +5,7 @@ package command
 
 import (
 	"github.com/hashicorp/hcdiag/version"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/hcdiag/internal/cli"
 )
 
 var _ cli.Command = &VersionCommand{}

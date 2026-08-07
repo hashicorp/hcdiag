@@ -1,0 +1,3 @@
+```release-note:security
+dependency: Replace archived github.com/mitchellh/cli with internal package, removing transitive golang.org/x/crypto/openpgp dependency (GO-2026-5932).
+```

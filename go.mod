@@ -8,7 +8,6 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/hcl/v2 v2.20.0
 	github.com/kr/text v0.2.0
-	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/shirou/gopsutil/v3 v3.24.2
@@ -16,34 +15,20 @@ require (
 )
 
 require (
-	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.2.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
-	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
+	github.com/frankban/quicktest v1.14.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/uuid v1.6.0 // indirect
-	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/huandu/xstrings v1.4.0 // indirect
-	github.com/imdario/mergo v0.3.16 // indirect
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240226150601-1dcf7310316a // indirect
-	github.com/mitchellh/copystructure v1.2.0 // indirect
-	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/nwaples/rardecode v1.1.3 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/posener/complete v1.2.3 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/spf13/cast v1.5.0 // indirect
 	github.com/ulikunitz/xz v0.5.14 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/tools v0.47.0 // indirect
